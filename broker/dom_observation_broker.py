@@ -28,7 +28,7 @@ POLL_SECONDS = max(30, int(os.getenv("DOM_BROKER_POLL_SECONDS", "60")))
 MAX_RECORDS = max(1000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "20000")))
 DB_PATH = os.getenv("DOM_BROKER_DB", os.path.join(os.path.dirname(__file__), "dom_observations.sqlite3"))
 ALLOWED_ORIGINS = {x.strip() for x in os.getenv("DOM_ALLOWED_ORIGINS", "https://domenicleonetti8-dev.github.io,http://localhost,http://127.0.0.1").split(",") if x.strip()}
-USER_AGENT = "DOMS-Living-Archival-Observatory/0.6 public-research-broker"
+USER_AGENT = "DOMS-Living-Archival-Observatory/0.7 public-research-broker"
 REGISTERED_SOURCE_IDS = (
     "wmo-gos", "gcos", "copernicus-era5", "argo", "usgs-eq", "usgs-water",
     "ndbc-stdmet", "ndbc-ocean", "ndbc-waterlevel", "ndbc-dart", "nws-alerts",
@@ -281,7 +281,7 @@ BROKER = Broker(DB_PATH)
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DOMObservationBroker/0.6"
+    server_version = "DOMObservationBroker/0.7"
 
     def log_message(self, fmt, *args):
         print(f"[{iso_now()}] {self.client_address[0]} {fmt % args}")
@@ -321,7 +321,8 @@ class Handler(BaseHTTPRequestHandler):
                                  "records": len(BROKER.snapshot()), "sources": BROKER.source_snapshot(), "time": iso_now(),
                                  "persistent": BROKER.db_path != ":memory:"})
         elif path == "/v1/observations":
-            self.send_json(200, {"schema": "dom.observation.batch.v1", "generatedAt": iso_now(), "records": BROKER.snapshot()})
+            self.send_json(200, {"schema": "dom.observation.batch.v1", "version": BROKER.version,
+                                 "generatedAt": iso_now(), "records": BROKER.snapshot()})
         elif path == "/v1/sources":
             sources = BROKER.source_snapshot()
             self.send_json(200, {"sources": sources, "registered": len(sources), "activeAdapters": len(BROKER.adapters),
