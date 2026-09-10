@@ -1,5 +1,5 @@
 const H={events:[],seen:new Set(),user:null};
-const q=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const q=s=>document.querySelector(s);const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function getJSON(url,ms=10000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,headers:{Accept:'application/json'}});if(!r.ok)throw Error(`${r.status}`);return await r.json()}finally{clearTimeout(t)}}
 function clamp01(x){return Math.max(0,Math.min(1,Number(x)||0))}
 function km(a,b,c,d){const R=6371,p=Math.PI/180,da=(c-a)*p,do_=(d-b)*p,x=Math.sin(da/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin(do_/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
