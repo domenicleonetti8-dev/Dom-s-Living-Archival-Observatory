@@ -14,7 +14,8 @@ const DOMEnvironmentalDefense=(()=>{
   function observationWeight(obs={}){
     const q=finite(obs.quality)?clamp(obs.quality):0.5;
     const f=finite(obs.freshness)?clamp(obs.freshness):0.5;
-    const u=finite(obs.uncertaintyC)&&Number(obs.uncertaintyC)>0?1/(Number(obs.uncertaintyC)**2):1;
+    const sigma=finite(obs.uncertaintyC)&&Number(obs.uncertaintyC)>0?Math.max(.01,Number(obs.uncertaintyC)):null;
+    const u=sigma==null?1:Math.min(10000,1/(sigma*sigma));
     return q*f*u;
   }
   function fusePoint(observations=[]){
@@ -30,14 +31,17 @@ const DOMEnvironmentalDefense=(()=>{
   function areaWeight(lat){if(!finite(lat))return 0;const n=Number(lat);if(n<-90||n>90)return 0;return Math.max(0,Math.cos(rad(n)))}
   function globalAreaWeightedMean(cells=[],options={}){
     const expected=finite(options.expectedAreaWeight)&&Number(options.expectedAreaWeight)>0?Number(options.expectedAreaWeight):null;
-    const unresolvedEmpty=()=>({valueC:null,uncertaintyC:null,coverage:expected==null?null:0,count:0,coverageResolved:expected!=null,representedAreaWeight:0,expectedAreaWeight:expected});
     const usable=(cells||[]).filter(c=>finite(c.valueC)&&finite(c.lat)&&Number(c.lat)>=-90&&Number(c.lat)<=90);
+    const explicitSpatial=usable.length>0&&usable.every(c=>finite(c.nominalAreaWeight)&&Number(c.nominalAreaWeight)>0);
+    const coverageResolved=expected!=null&&explicitSpatial;
+    const unresolvedEmpty=()=>({valueC:null,provisionalValueC:null,uncertaintyC:null,coverage:coverageResolved?0:null,count:0,coverageResolved,representativenessResolved:explicitSpatial,representedAreaWeight:0,expectedAreaWeight:expected});
     if(!usable.length)return unresolvedEmpty();
     const contributions=[],weights=[],uncertaintyTerms=[];let representedArea=0;
-    for(const c of usable){const nominal=finite(c.nominalAreaWeight)?Math.max(0,Number(c.nominalAreaWeight)):areaWeight(c.lat);const quality=finite(c.quality)?clamp(c.quality):.5;const localCoverage=finite(c.coverage)?clamp(c.coverage):.5;const w=nominal*quality*localCoverage;if(!(w>0))continue;weights.push(w);contributions.push(Number(c.valueC)*w);representedArea+=nominal*localCoverage;if(finite(c.uncertaintyC))uncertaintyTerms.push((w*Math.max(0,Number(c.uncertaintyC)))**2)}
+    for(const c of usable){const nominal=finite(c.nominalAreaWeight)&&Number(c.nominalAreaWeight)>0?Number(c.nominalAreaWeight):areaWeight(c.lat);const quality=finite(c.quality)?clamp(c.quality):.5;const localCoverage=finite(c.coverage)?clamp(c.coverage):.5;const w=nominal*quality*localCoverage;if(!(w>0))continue;weights.push(w);contributions.push(Number(c.valueC)*w);representedArea+=nominal*localCoverage;if(finite(c.uncertaintyC))uncertaintyTerms.push((w*Math.max(0,Number(c.uncertaintyC)))**2)}
     const sw=kahanSum(weights);if(!(sw>0))return unresolvedEmpty();
-    const coverage=expected==null?null:clamp(representedArea/expected);
-    return{valueC:kahanSum(contributions)/sw,uncertaintyC:uncertaintyTerms.length?Math.sqrt(kahanSum(uncertaintyTerms))/sw:null,coverage,count:weights.length,coverageResolved:expected!=null,representedAreaWeight:representedArea,expectedAreaWeight:expected};
+    const provisionalValueC=kahanSum(contributions)/sw;
+    const coverage=coverageResolved?clamp(representedArea/expected):null;
+    return{valueC:coverageResolved?provisionalValueC:null,provisionalValueC,uncertaintyC:uncertaintyTerms.length?Math.sqrt(kahanSum(uncertaintyTerms))/sw:null,coverage,count:weights.length,coverageResolved,representativenessResolved:explicitSpatial,representedAreaWeight:representedArea,expectedAreaWeight:expected};
   }
   function anomaly(current,baseline){if(!finite(current)||!finite(baseline))return null;return Number(current)-Number(baseline)}
   function robustStats(values=[]){const v=(values||[]).filter(Number.isFinite).slice().sort((a,b)=>a-b);if(!v.length)return{median:null,mad:null};const m=v.length%2?v[(v.length-1)/2]:(v[v.length/2-1]+v[v.length/2])/2;const d=v.map(x=>Math.abs(x-m)).sort((a,b)=>a-b),md=d.length%2?d[(d.length-1)/2]:(d[d.length/2-1]+d[d.length/2])/2;return{median:m,mad:md}}
@@ -47,7 +51,7 @@ const DOMEnvironmentalDefense=(()=>{
     const global=globalAreaWeightedMean(cells,{expectedAreaWeight});const anom=anomaly(global.valueC,baselineC);
     const representativeness=global.coverageResolved&&global.coverage!=null?1-global.coverage:null;
     const uncertainty=global.coverageResolved?confidenceEnvelope({measurementUncertainty:global.uncertaintyC,modelUncertainty:modelUncertaintyC,representativenessUncertainty:representativeness}):null;
-    return{globalMeanC:global.valueC,globalMeanUncertaintyC:uncertainty,uncertaintyResolved:global.coverageResolved&&uncertainty!=null,coverage:global.coverage,count:global.count,anomalyC:anom,coverageResolved:global.coverageResolved,precisionPolicy:'display only digits supported by measurement, model and representativeness uncertainty'};
+    return{globalMeanC:global.valueC,provisionalMeanC:global.provisionalValueC,globalMeanUncertaintyC:uncertainty,uncertaintyResolved:global.coverageResolved&&uncertainty!=null,coverage:global.coverage,count:global.count,anomalyC:anom,coverageResolved:global.coverageResolved,representativenessResolved:global.representativenessResolved,precisionPolicy:'global temperature requires explicit spatial support/area weights; display only digits supported by measurement, model and representativeness uncertainty'};
   }
   function activationFromEvidence({anomalyZ=null,quality=null,freshness=null,corroboration=null,persistence=null}={}){const a=finite(anomalyZ)?clamp(Math.abs(Number(anomalyZ))/6):0,q=finite(quality)?clamp(quality):0,f=finite(freshness)?clamp(freshness):0,c=finite(corroboration)?clamp(corroboration):0,p=finite(persistence)?clamp(persistence):0;return clamp(.34*a+.18*q+.18*f+.16*c+.14*p)}
   function verdict({evidenceStrength=null,coverage=null,officialAlert=false,uncertainty=null}={}){if(officialAlert)return{level:'official',text:'Official alert active; issuing authority takes precedence.'};if(!finite(evidenceStrength)||!finite(coverage)||Number(coverage)<.25)return{level:'unknown',text:'Insufficient measured coverage for a strong environmental judgment.'};const e=clamp(evidenceStrength),u=finite(uncertainty)?Math.max(0,Number(uncertainty)):null;if(e>=.85&&Number(coverage)>=.7)return{level:'high-evidence',text:u==null?'Strong multi-source evidence; uncertainty unresolved.':'Strong multi-source evidence with quantified uncertainty.'};if(e>=.6)return{level:'moderate-evidence',text:'Moderate evidence; continue corroboration and trend monitoring.'};return{level:'limited-evidence',text:'Evidence is limited; no strong outcome claim is supported.'}}
