@@ -20,7 +20,7 @@ const DOMObservationIngress=(()=>{
     return{ok:errors.length===0,record,errors};
   }
   function dedupe(records=[]){const m=new Map();for(const raw of records){const n=raw&&raw.schema==='dom.observation.v1'?{ok:true,record:raw,errors:[]}:normalize(raw);if(!n.ok)continue;const r=n.record,key=`${r.lineageId}|${r.sourceId}|${r.observedAt||''}`;const old=m.get(key);if(!old||String(r.receivedAt||'')>String(old.receivedAt||''))m.set(key,r)}return[...m.values()]}
-  function toSensor(record){if(!record||record.schema!=='dom.observation.v1'||!window.DOMSensorActivation)return null;return DOMSensorActivation.sensorPacket(record)}
+  function toSensor(record){if(!record||record.schema!=='dom.observation.v1'||typeof DOMSensorActivation==='undefined')return null;return DOMSensorActivation.sensorPacket(record)}
   function summary(records=[]){const rows=dedupe(records),lineages=new Set(rows.map(r=>r.lineageId).filter(Boolean)),agencies=new Set(rows.map(r=>r.sourceAgency).filter(Boolean));return{records:rows.length,lineages:lineages.size,agencies:agencies.size,geolocated:rows.filter(r=>r.lat!==null&&r.lon!==null).length,officialAlerts:rows.filter(r=>r.officialAlert).length}}
   return{normalize,dedupe,toSensor,summary,validLatLon};
 })();
