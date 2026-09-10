@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable, Dict, List, Optional
 
-from dom_adapters import poll_nws
+from dom_adapters import builtin_adapters
 
 HOST = os.getenv("DOM_BROKER_HOST", "0.0.0.0")
 PORT = int(os.getenv("DOM_BROKER_PORT", "8787"))
@@ -28,7 +28,7 @@ POLL_SECONDS = max(30, int(os.getenv("DOM_BROKER_POLL_SECONDS", "60")))
 MAX_RECORDS = max(1000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "20000")))
 DB_PATH = os.getenv("DOM_BROKER_DB", os.path.join(os.path.dirname(__file__), "dom_observations.sqlite3"))
 ALLOWED_ORIGINS = {x.strip() for x in os.getenv("DOM_ALLOWED_ORIGINS", "https://domenicleonetti8-dev.github.io,http://localhost,http://127.0.0.1").split(",") if x.strip()}
-USER_AGENT = "DOMS-Living-Archival-Observatory/0.4 public-research-broker"
+USER_AGENT = "DOMS-Living-Archival-Observatory/0.5 public-research-broker"
 REGISTERED_SOURCE_IDS = (
     "wmo-gos", "gcos", "copernicus-era5", "argo", "usgs-eq", "usgs-water",
     "ndbc-stdmet", "ndbc-ocean", "ndbc-waterlevel", "ndbc-dart", "nws-alerts",
@@ -175,11 +175,8 @@ class Broker:
         self.db.commit()
         self.records: Dict[str, dict] = {}
         self.sources: Dict[str, SourceState] = {sid: SourceState(sid) for sid in REGISTERED_SOURCE_IDS}
-        self.adapters: Dict[str, Callable[[], List[dict]]] = {
-            "usgs-eq": poll_usgs,
-            "nasa-eonet": poll_eonet,
-            "nws-alerts": lambda: poll_nws(get_json, record, valid_lat_lon),
-        }
+        self.adapters: Dict[str, Callable[[], List[dict]]] = {"usgs-eq": poll_usgs, "nasa-eonet": poll_eonet}
+        self.adapters.update(builtin_adapters(get_json, record, valid_lat_lon))
         self.last_batch: List[dict] = []
         self.version = 0
         self.stop_event = threading.Event()
@@ -261,7 +258,7 @@ BROKER = Broker(DB_PATH)
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DOMObservationBroker/0.4"
+    server_version = "DOMObservationBroker/0.5"
 
     def log_message(self, fmt, *args):
         print(f"[{iso_now()}] {self.client_address[0]} {fmt % args}")
