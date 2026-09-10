@@ -5,10 +5,12 @@ const assert=require('assert');
 const listeners=new Map();
 class CustomEvent{constructor(type,init={}){this.type=type;this.detail=init.detail}}
 const document={readyState:'loading',addEventListener(){},querySelector(){return null},getElementById(){return null},visibilityState:'visible'};
-const sandbox={console,Date,Math,Number,String,Array,Object,Map,Set,JSON,URL,CustomEvent,document,setTimeout,clearTimeout,setInterval,clearInterval,performance:{now:()=>Date.now()},navigator:{},location:{href:'https://example.test/hazards.html'},requestAnimationFrame:fn=>setTimeout(fn,0),cancelAnimationFrame:clearTimeout};
+const sandbox={console,Date,Math,Number,String,Array,Object,Map,Set,JSON,URL,CustomEvent,document,setTimeout,clearTimeout,setInterval,clearInterval,performance:{now:()=>Date.now()},navigator:{},location:{href:'https://example.test/hazards.html'},requestAnimationFrame:fn=>setTimeout(fn,0),cancelAnimationFrame:clearTimeout,__notifications:[]};
 sandbox.window=sandbox;
 sandbox.addEventListener=(name,fn)=>{if(!listeners.has(name))listeners.set(name,[]);listeners.get(name).push(fn)};
 sandbox.dispatchEvent=ev=>{for(const fn of listeners.get(ev.type)||[])fn(ev);return true};
+sandbox.notifyNew=events=>sandbox.__notifications.push(...events.map(e=>e.id));
+sandbox.recordHistory=()=>{};
 const ctx=vm.createContext(sandbox);
 function load(path){vm.runInContext(fs.readFileSync(path,'utf8'),ctx,{filename:path})}
 function value(code){return vm.runInContext(code,ctx)}
@@ -49,5 +51,19 @@ assert.equal(value('__swEvent.kind'),'Space Weather','Space Weather must survive
 assert.equal(value('__swEvent.observationStatus'),'forecast');
 assert.equal(value('Number.isNaN(__swEvent.lat)&&Number.isNaN(__swEvent.lon)'),true,'Space Weather must remain unlocated without source geometry');
 assert.equal(value('DOMObservationHazardBridge.stale({...__swEvent,time:new Date(Date.now()-80*3600e3).toISOString()},Date.now())'),true,'old Space Weather forecast must expire');
+
+function canonical(id,minute){return value(`DOMObservationIngress.normalize({id:${JSON.stringify(id)},sourceAgency:'CI Agency',network:'CI Net',lineageId:'ci-alert-lineage',kind:'Earthquake',modality:'seismic',lat:40,lon:-74,time:new Date(Date.now()+${minute}*60000).toISOString(),url:'https://example.com/'+${JSON.stringify(id)},authoritative:true}).record`)}
+sandbox.__snapshotRecord=canonical('snapshot-hydration',0);
+sandbox.__primeRecord=canonical('first-stream-prime',1);
+sandbox.__liveRecord=canonical('later-live-stream',2);
+let r=value("DOMObservationHazardBridge.accept([__snapshotRecord],'snapshot')");
+assert.equal(r.notified,0,'snapshot hydration must never notify');
+assert.deepEqual(sandbox.__notifications,[],'snapshot hydration must be silent');
+r=value("DOMObservationHazardBridge.accept([__primeRecord],'stream')");
+assert.equal(r.notified,0,'first stream replay must prime silently');
+assert.deepEqual(sandbox.__notifications,[],'first stream replay must be silent');
+r=value("DOMObservationHazardBridge.accept([__liveRecord],'stream')");
+assert.equal(r.notified,1,'later genuinely new stream record may notify');
+assert.deepEqual(sandbox.__notifications,['later-live-stream']);
 
 console.log('D.O.M. canonical JavaScript organism execution PASS');
