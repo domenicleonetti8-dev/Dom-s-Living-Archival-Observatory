@@ -9,12 +9,16 @@
     t('z-score anomaly contributes when normalized anomaly absent',S.activation({anomalyZ:6}).components.anomaly===1&&S.activation({anomalyZ:-3}).components.anomaly===.5);
     t('explicit normalized anomaly outranks z-score fallback',S.activation({anomaly:.25,anomalyZ:6}).components.anomaly===.25);
     t('missing coordinate does not fabricate point',S.sensorPacket({sensorId:'x'}).lat===null&&S.sensorPacket({sensorId:'x'}).lon===null);
+    t('null coordinate does not become zero-zero',S.sensorPacket({sensorId:'x',lat:null,lon:null}).lat===null&&S.sensorPacket({sensorId:'x',lat:null,lon:null}).lon===null);
+    t('empty coordinate does not become zero-zero',S.sensorPacket({sensorId:'x',lat:'',lon:''}).lat===null&&S.sensorPacket({sensorId:'x',lat:'',lon:''}).lon===null);
     t('out of range coordinate rejected',S.sensorPacket({sensorId:'x',lat:91,lon:0}).lat===null&&S.sensorPacket({sensorId:'x',lat:0,lon:181}).lon===null);
     t('published coordinate preserved',S.sensorPacket({sensorId:'x',lat:40.1,lon:-73.9}).lat===40.1);
+    t('null elevation stays unknown',S.sensorPacket({sensorId:'x',lat:0,lon:0,elevation:null}).elevation===null);
     t('tropical storm threshold',S.cycloneFromKnots(50).category==='Tropical Storm');
     t('category 1 threshold',S.cycloneFromKnots(70).category==='Category 1');
     t('category 5 threshold',S.cycloneFromKnots(140).category==='Category 5');
     t('negative wind rejected',S.cycloneFromKnots(-1).category==='unknown');
+    t('null wind rejected',S.cycloneFromKnots(null).category==='unknown');
     t('derived cyclone category declares scale',/Saffir-Simpson/.test(S.cycloneFromKnots(70).scale));
     t('official category outranks derived category',S.stormLabel({officialType:'Hurricane',officialCategory:'Category 3',windKts:70}).category==='Category 3');
     t('unknown strength stays unresolved',S.stormLabel({type:'Storm'}).category==='strength unresolved');
@@ -30,6 +34,11 @@
       t('quality and freshness survive packet to globe',g.quality===.9&&g.freshness===.8);
       t('timestamps and source survive packet to globe',g.observedAt===p.observedAt&&g.receivedAt===p.receivedAt&&g.sourceUrl===p.sourceUrl&&g.authoritative===true);
       t('z-score survives packet to globe',g.anomalyZ===2.4);
+      t('globe rejects null coordinates',DOMGlobalSensorGlobe.normalizeSensor({id:'null',lat:null,lon:null}).lat===null);
+      const pointOnly=DOMGlobalSensorGlobe.temperatureField([{id:'t1',lat:0,lon:0,temperature:{value:20,unit:'C'},quality:1,freshness:1}],100);
+      t('point-only sensor cannot masquerade as global temperature area',pointOnly.valueC===null&&pointOnly.coverage===0);
+      const gridded=DOMGlobalSensorGlobe.temperatureField([{id:'t2',lat:0,lon:0,temperature:{value:20,unit:'C'},quality:1,freshness:1,nominalAreaWeight:10}],100);
+      t('spatially supported temperature contributes bounded coverage',gridded.valueC===20&&gridded.coverage>0&&gridded.coverage<=.1);
     }else t('global sensor globe loaded for continuity test',false);
   }catch(err){t('test execution',false)}
   const failed=tests.filter(x=>!x.ok);window.DOMSensorActivationTestReport={passed:tests.length-failed.length,failed:failed.length,tests};
