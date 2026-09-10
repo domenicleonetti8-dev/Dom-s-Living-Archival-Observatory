@@ -1,3 +1,5 @@
+import os
+import tempfile
 import unittest
 
 import dom_observation_broker as dom
@@ -27,33 +29,69 @@ class BrokerTests(unittest.TestCase):
 
     def test_registry_truth_separates_registered_from_active_adapters(self):
         b = dom.Broker()
-        self.assertEqual(len(b.sources), len(dom.REGISTERED_SOURCE_IDS))
-        self.assertEqual(set(b.adapters), {"usgs-eq", "nasa-eonet"})
-        self.assertEqual(b.sources["wmo-gos"].status, "registered-not-ingesting")
+        try:
+            self.assertEqual(len(b.sources), len(dom.REGISTERED_SOURCE_IDS))
+            self.assertEqual(set(b.adapters), {"usgs-eq", "nasa-eonet"})
+            self.assertEqual(b.sources["wmo-gos"].status, "registered-not-ingesting")
+        finally:
+            b.close()
 
     def test_deterministic_poll_updates_only_real_adapter(self):
         b = dom.Broker()
-        fixture = dom.record(source_id="fixture", lineage="fixture-lineage", agency="Fixture Agency",
-                             network="Fixture", kind="Earthquake", modality="seismic",
-                             observed_at="2026-09-10T00:00:00Z", lat=40, lon=-74,
-                             source="https://example.com/fixture", title="Fixture")
-        b.adapters = {"usgs-eq": lambda: [fixture]}
-        b.poll_once()
-        self.assertEqual(b.sources["usgs-eq"].status, "active")
-        self.assertEqual(b.sources["usgs-eq"].record_count, 1)
-        self.assertEqual(b.sources["wmo-gos"].status, "registered-not-ingesting")
-        self.assertEqual(len(b.snapshot()), 1)
-        self.assertEqual(len(b.stream_batch()), 1)
+        try:
+            fixture = dom.record(source_id="fixture", lineage="fixture-lineage", agency="Fixture Agency",
+                                 network="Fixture", kind="Earthquake", modality="seismic",
+                                 observed_at="2026-09-10T00:00:00Z", lat=40, lon=-74,
+                                 source="https://example.com/fixture", title="Fixture")
+            b.adapters = {"usgs-eq": lambda: [fixture]}
+            b.poll_once()
+            self.assertEqual(b.sources["usgs-eq"].status, "active")
+            self.assertEqual(b.sources["usgs-eq"].record_count, 1)
+            self.assertEqual(b.sources["wmo-gos"].status, "registered-not-ingesting")
+            self.assertEqual(len(b.snapshot()), 1)
+            self.assertEqual(len(b.stream_batch()), 1)
+        finally:
+            b.close()
 
     def test_failed_adapter_is_error_not_active(self):
         b = dom.Broker()
-        def fail():
-            raise RuntimeError("fixture failure")
-        b.adapters = {"usgs-eq": fail}
-        b.poll_once()
-        self.assertEqual(b.sources["usgs-eq"].status, "error")
-        self.assertEqual(b.sources["usgs-eq"].consecutive_failures, 1)
-        self.assertIn("fixture failure", b.sources["usgs-eq"].last_error)
+        try:
+            def fail():
+                raise RuntimeError("fixture failure")
+            b.adapters = {"usgs-eq": fail}
+            b.poll_once()
+            self.assertEqual(b.sources["usgs-eq"].status, "error")
+            self.assertEqual(b.sources["usgs-eq"].consecutive_failures, 1)
+            self.assertIn("fixture failure", b.sources["usgs-eq"].last_error)
+        finally:
+            b.close()
+
+    def test_sqlite_survives_broker_restart(self):
+        fd, path = tempfile.mkstemp(prefix="dom-broker-", suffix=".sqlite3")
+        os.close(fd)
+        try:
+            first = dom.Broker(path)
+            fixture = dom.record(source_id="persisted", lineage="persist-lineage", agency="Fixture Agency",
+                                 network="Fixture", kind="Earthquake", modality="seismic",
+                                 observed_at="2026-09-10T00:00:00Z", lat=41, lon=-73,
+                                 source="https://example.com/persisted", title="Persistent Fixture")
+            first.adapters = {"usgs-eq": lambda: [fixture]}
+            first.poll_once()
+            first.close()
+            second = dom.Broker(path)
+            try:
+                rows = second.snapshot()
+                self.assertEqual(len(rows), 1)
+                self.assertEqual(rows[0]["sourceId"], "persisted")
+                self.assertEqual(rows[0]["lineageId"], "persist-lineage")
+            finally:
+                second.close()
+        finally:
+            for suffix in ("", "-wal", "-shm"):
+                try:
+                    os.unlink(path + suffix)
+                except FileNotFoundError:
+                    pass
 
 
 if __name__ == "__main__":
