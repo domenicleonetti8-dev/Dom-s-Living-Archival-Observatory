@@ -36,15 +36,20 @@ const DOMSensorActivation=(()=>{
     return{type:input.type||'Storm',category:'strength unresolved',source:'insufficient-measurement',scale:null};
   }
   function sensorPacket(obs={}){
-    const hasPoint=validLatLon(obs.lat,obs.lon),a=activation(obs);
+    const hasPoint=validLatLon(obs.lat,obs.lon),a=activation(obs),canonicalId=obs.sensorId||obs.stationId||obs.sourceId||obs.id||obs.instrumentId||'unknown-sensor';
     return{
-      sensorId:String(obs.sensorId||obs.stationId||obs.instrumentId||'unknown-sensor'),
-      stationId:String(obs.stationId||obs.sensorId||''),
+      sensorId:String(canonicalId),
+      sourceId:String(obs.sourceId||obs.id||canonicalId),
+      stationId:String(obs.stationId||obs.sensorId||obs.sourceId||obs.id||''),
       agency:String(obs.agency||obs.sourceAgency||''),
       sourceAgency:String(obs.sourceAgency||obs.agency||''),
       network:String(obs.network||obs.sourceAgency||obs.agency||'unknown-network'),
       instrument:String(obs.instrument||obs.modality||'unknown-instrument'),
       modality:String(obs.modality||obs.instrument||''),
+      kind:String(obs.kind||''),
+      title:String(obs.title||obs.kind||''),
+      observationStatus:String(obs.observationStatus||'reported'),
+      expiresAt:obs.expiresAt||null,
       lat:hasPoint?Number(obs.lat):null,
       lon:hasPoint?Number(obs.lon):null,
       elevation:optionalNumber(obs.elevation),
@@ -60,6 +65,7 @@ const DOMSensorActivation=(()=>{
       lineageId:obs.lineageId||null,
       sourceUrl:obs.sourceUrl||null,
       authoritative:!!obs.authoritative,
+      officialAlert:!!obs.officialAlert,
       quality:obs.quality==null||obs.quality===''?null:clamp(obs.quality),
       freshness:obs.freshness==null||obs.freshness===''?null:clamp(obs.freshness),
       anomaly:obs.anomaly==null||obs.anomaly===''?null:clamp(obs.anomaly),
