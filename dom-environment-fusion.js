@@ -1,9 +1,9 @@
 const DOMEnvironmentFusion=(()=>{
   const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,Number(x)||0));
-  const finite=x=>Number.isFinite(Number(x));
+  const finite=x=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x));
   const pct=x=>Math.round(clamp(x)*100);
   function weighted(parts){let n=0,d=0,available=0,total=0;for(const p of parts||[]){if(!p||!finite(p.weight)||Number(p.weight)<=0)continue;total+=Number(p.weight);if(!finite(p.value))continue;n+=clamp(p.value)*Number(p.weight);d+=Number(p.weight);available+=Number(p.weight)}return{value:d?n/d:null,coverage:total?available/total:0}}
-  function interaction(a,b){if(a==null||b==null)return null;return Math.sqrt(clamp(a)*clamp(b))}
+  function interaction(a,b){if(!finite(a)||!finite(b))return null;return Math.sqrt(clamp(a)*clamp(b))}
   function compoundIndex(x={}){
     const domains={
       atmosphere:weighted([{value:x.wind,weight:.24},{value:x.pressureAnomaly,weight:.16},{value:x.convectiveEnergy,weight:.18},{value:x.precipRate,weight:.18},{value:x.visibilityLoss,weight:.08},{value:x.lightning,weight:.08},{value:x.temperatureExtreme,weight:.08}]),
