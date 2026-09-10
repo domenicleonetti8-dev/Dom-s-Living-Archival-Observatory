@@ -2,16 +2,19 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime
-from typing import List, Optional
+import re
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Callable
 
 
 def _iso(value) -> Optional[str]:
     if not value:
         return None
     try:
-        datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-        return str(value)
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
     except (TypeError, ValueError):
         return None
 
@@ -43,11 +46,7 @@ def _centroid(geometry, valid_lat_lon):
 
 
 def poll_nws(get_json, make_record, valid_lat_lon) -> List[dict]:
-    """Official currently-active NWS alerts for U.S. jurisdictions.
-
-    Uses /alerts/active. Geometry is summarized as a dateline-safe centroid for
-    globe placement while the alert URL remains the authority for boundaries.
-    """
+    """Official currently-active NWS alerts for U.S. jurisdictions."""
     data = get_json("https://api.weather.gov/alerts/active")
     out = []
     for feature in data.get("features", []):
@@ -74,4 +73,44 @@ def poll_nws(get_json, make_record, valid_lat_lon) -> List[dict]:
     return out
 
 
-__all__ = ["poll_nws"]
+def poll_swpc(get_json, make_record, _valid_lat_lon) -> List[dict]:
+    """NOAA SWPC machine-readable alert/watch products.
+
+    These are intentionally unlocated. D.O.M. must not invent a geographic pin
+    for global/polar space-weather products.
+    """
+    url = "https://services.swpc.noaa.gov/products/alerts.json"
+    data = get_json(url)
+    if not isinstance(data, list):
+        return []
+    out = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        product = str(item.get("product_id") or "").strip()
+        issued = _iso(item.get("issue_datetime"))
+        message = str(item.get("message") or "").strip()
+        if not product or not issued or not message:
+            continue
+        first = next((x.strip() for x in message.splitlines() if x.strip() and not x.startswith("Space Weather Message Code")), product)
+        status = "forecast" if re.search(r"\b(WATCH|PREDICTED|EXPECTED)\b", message, re.I) else "observed" if re.search(r"\b(ALERT|THRESHOLD REACHED)\b", message, re.I) else "reported"
+        scale = re.search(r"(?:NOAA\s+Scale|Noaa\s+Scale)\s*:\s*([A-Z]\d(?:\s*-\s*[^\r\n]+)?)", message)
+        r = make_record(
+            source_id=f"swpc:{product}:{issued}", lineage="noaa-swpc-alerts", agency="NOAA SWPC", network="NOAA SWPC",
+            kind="Space Weather", modality="space-weather-alert", observed_at=issued, lat=None, lon=None, source=url,
+            title=first[:240], authoritative=True, observationStatus=status, severityText=scale.group(1).strip() if scale else "",
+            quality=1.0, upstream={"productId": product},
+        )
+        if r:
+            out.append(r)
+    return out
+
+
+def builtin_adapters(get_json, make_record, valid_lat_lon) -> Dict[str, Callable[[], List[dict]]]:
+    return {
+        "nws-alerts": lambda: poll_nws(get_json, make_record, valid_lat_lon),
+        "swpc": lambda: poll_swpc(get_json, make_record, valid_lat_lon),
+    }
+
+
+__all__ = ["poll_nws", "poll_swpc", "builtin_adapters"]
