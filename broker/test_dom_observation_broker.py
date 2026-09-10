@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 import dom_observation_broker as dom
-from dom_adapters import poll_nws
+from dom_adapters import poll_nws, poll_swpc
 
 
 class BrokerTests(unittest.TestCase):
@@ -32,7 +32,7 @@ class BrokerTests(unittest.TestCase):
         b = dom.Broker()
         try:
             self.assertEqual(len(b.sources), len(dom.REGISTERED_SOURCE_IDS))
-            self.assertEqual(set(b.adapters), {"usgs-eq", "nasa-eonet", "nws-alerts"})
+            self.assertEqual(set(b.adapters), {"usgs-eq", "nasa-eonet", "nws-alerts", "swpc"})
             self.assertEqual(b.sources["wmo-gos"].status, "registered-not-ingesting")
         finally:
             b.close()
@@ -111,6 +111,26 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual(r["locationPrecision"], "alert-geometry-centroid")
         self.assertGreater(abs(r["lon"]), 170)
         self.assertEqual(r["severityText"], "Severe")
+
+    def test_swpc_alert_is_authoritative_but_not_fake_geolocated(self):
+        fixture = [{"product_id": "K05A", "issue_datetime": "2026-09-10 12:00:00.000",
+                    "message": "ALERT: Geomagnetic K-index of 5\nThreshold Reached: 2026 Sep 10 1200 UTC\nNOAA Scale: G1 - Minor"}]
+        rows = poll_swpc(lambda _: fixture, dom.record, dom.valid_lat_lon)
+        self.assertEqual(len(rows), 1)
+        r = rows[0]
+        self.assertEqual(r["kind"], "Space Weather")
+        self.assertEqual(r["observationStatus"], "observed")
+        self.assertTrue(r["authoritative"])
+        self.assertFalse(r["officialAlert"])
+        self.assertIsNone(r["lat"])
+        self.assertIsNone(r["lon"])
+        self.assertEqual(r["severityText"], "G1 - Minor")
+
+    def test_swpc_watch_is_forecast_not_observation(self):
+        fixture = [{"product_id": "A20F", "issue_datetime": "2026-09-10 12:00:00.000",
+                    "message": "WATCH: Geomagnetic Storm Category G1 Predicted"}]
+        rows = poll_swpc(lambda _: fixture, dom.record, dom.valid_lat_lon)
+        self.assertEqual(rows[0]["observationStatus"], "forecast")
 
 
 if __name__ == "__main__":
