@@ -19,6 +19,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable, Dict, List, Optional
+from urllib.parse import urlparse
 
 from dom_adapters import builtin_adapters
 
@@ -29,7 +30,8 @@ SOURCE_STALE_SECONDS = max(POLL_SECONDS * 2, int(os.getenv("DOM_SOURCE_STALE_SEC
 MAX_RECORDS = max(1000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "20000")))
 DB_PATH = os.getenv("DOM_BROKER_DB", os.path.join(os.path.dirname(__file__), "dom_observations.sqlite3"))
 ALLOWED_ORIGINS = {x.strip() for x in os.getenv("DOM_ALLOWED_ORIGINS", "https://domenicleonetti8-dev.github.io,http://localhost,http://127.0.0.1").split(",") if x.strip()}
-USER_AGENT = "DOMS-Living-Archival-Observatory/0.8 public-research-broker"
+USER_AGENT = "DOMS-Living-Archival-Observatory/0.9 public-research-broker"
+OBSERVATION_STATUSES = {"observed", "aggregated", "reported", "forecast", "projection", "modeled"}
 REGISTERED_SOURCE_IDS = (
     "wmo-gos", "gcos", "copernicus-era5", "argo", "usgs-eq", "usgs-water",
     "ndbc-stdmet", "ndbc-ocean", "ndbc-waterlevel", "ndbc-dart", "nws-alerts",
@@ -50,7 +52,7 @@ def iso_ms(ms) -> Optional[str]:
 
 
 def parse_iso(value) -> Optional[datetime]:
-    if not value:
+    if value is None or value == "":
         return None
     try:
         dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
@@ -59,6 +61,23 @@ def parse_iso(value) -> Optional[datetime]:
         return dt.astimezone(timezone.utc)
     except (TypeError, ValueError):
         return None
+
+
+def normalize_iso(value) -> Optional[str]:
+    dt = parse_iso(value)
+    return dt.isoformat().replace("+00:00", "Z") if dt else None
+
+
+def clamp01(value) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(n):
+        return None
+    return max(0.0, min(1.0, n))
 
 
 def valid_lat_lon(lat, lon) -> bool:
@@ -78,34 +97,49 @@ def get_json(url: str, timeout: int = 15):
 
 
 def source_url(url) -> Optional[str]:
-    if isinstance(url, str) and (url.startswith("https://") or url.startswith("http://")):
-        return url
-    return None
+    if not isinstance(url, str):
+        return None
+    value = url.strip()
+    try:
+        parsed = urlparse(value)
+    except ValueError:
+        return None
+    if parsed.scheme not in {"https", "http"} or not parsed.netloc:
+        return None
+    return value
 
 
 def record(*, source_id: str, lineage: str, agency: str, network: str, kind: str,
            modality: str, observed_at: Optional[str], lat=None, lon=None,
            source: Optional[str], title: str, authoritative: bool = True, **extra):
     loc_ok = valid_lat_lon(lat, lon)
+    observed = normalize_iso(observed_at)
     r = {
         "schema": "dom.observation.v1",
-        "sourceId": str(source_id or ""),
-        "lineageId": str(lineage or ""),
-        "sourceAgency": str(agency or ""),
-        "network": str(network or ""),
-        "kind": str(kind or "observation"),
-        "modality": str(modality or ""),
+        "sourceId": str(source_id or "").strip(),
+        "lineageId": str(lineage or "").strip(),
+        "sourceAgency": str(agency or "").strip(),
+        "network": str(network or "").strip(),
+        "kind": str(kind or "observation").strip(),
+        "modality": str(modality or "").strip(),
         "lat": float(lat) if loc_ok else None,
         "lon": float(lon) if loc_ok else None,
         "locationPrecision": extra.pop("locationPrecision", "source-coordinate" if loc_ok else "unresolved"),
-        "observedAt": observed_at,
+        "observedAt": observed,
         "receivedAt": iso_now(),
         "sourceUrl": source_url(source),
         "authoritative": bool(authoritative),
         "officialAlert": False,
-        "title": str(title or kind or "observation"),
+        "title": str(title or kind or "observation").strip(),
     }
     r.update(extra)
+    status = str(r.get("observationStatus") or "reported").strip().lower()
+    r["observationStatus"] = status if status in OBSERVATION_STATUSES else "reported"
+    if "expiresAt" in r:
+        r["expiresAt"] = normalize_iso(r.get("expiresAt"))
+    for name in ("quality", "freshness", "corroboration", "persistence", "hazardCoupling", "anomaly"):
+        if name in r:
+            r[name] = clamp01(r.get(name))
     if r.get("officialAlert") and not (r.get("authoritative") and r.get("sourceAgency") and r.get("sourceUrl")):
         r["officialAlert"] = False
     if not all((r["sourceId"], r["lineageId"], r["sourceAgency"], r["observedAt"], r["sourceUrl"])):
@@ -151,14 +185,8 @@ def poll_eonet() -> List[dict]:
         lon = co[0] if len(co) >= 2 else None
         srcs = e.get("sources") or []
         url = next((x.get("url") for x in srcs if source_url(x.get("url"))), None) or e.get("link")
-        observed = g.get("date")
-        if observed:
-            try:
-                datetime.fromisoformat(observed.replace("Z", "+00:00"))
-            except Exception:
-                observed = None
         r = record(source_id=f"eonet:{eid}", lineage="nasa-eonet", agency="NASA EONET", network="NASA EONET",
-                   kind=kind, modality="event-aggregation", observed_at=observed, lat=lat, lon=lon, source=url,
+                   kind=kind, modality="event-aggregation", observed_at=g.get("date"), lat=lat, lon=lon, source=url,
                    title=e.get("title") or kind, locationPrecision="event-geometry-point" if valid_lat_lon(lat, lon) else "unresolved",
                    authoritative=True, quality=0.84, observationStatus="aggregated")
         if r:
@@ -304,7 +332,7 @@ BROKER = Broker(DB_PATH)
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DOMObservationBroker/0.8"
+    server_version = "DOMObservationBroker/0.9"
 
     def log_message(self, fmt, *args):
         print(f"[{iso_now()}] {self.client_address[0]} {fmt % args}")
