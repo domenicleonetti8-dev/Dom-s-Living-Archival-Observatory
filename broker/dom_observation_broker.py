@@ -25,10 +25,11 @@ from dom_adapters import builtin_adapters
 HOST = os.getenv("DOM_BROKER_HOST", "0.0.0.0")
 PORT = int(os.getenv("DOM_BROKER_PORT", "8787"))
 POLL_SECONDS = max(30, int(os.getenv("DOM_BROKER_POLL_SECONDS", "60")))
+SOURCE_STALE_SECONDS = max(POLL_SECONDS * 2, int(os.getenv("DOM_SOURCE_STALE_SECONDS", str(POLL_SECONDS * 3))))
 MAX_RECORDS = max(1000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "20000")))
 DB_PATH = os.getenv("DOM_BROKER_DB", os.path.join(os.path.dirname(__file__), "dom_observations.sqlite3"))
 ALLOWED_ORIGINS = {x.strip() for x in os.getenv("DOM_ALLOWED_ORIGINS", "https://domenicleonetti8-dev.github.io,http://localhost,http://127.0.0.1").split(",") if x.strip()}
-USER_AGENT = "DOMS-Living-Archival-Observatory/0.7 public-research-broker"
+USER_AGENT = "DOMS-Living-Archival-Observatory/0.8 public-research-broker"
 REGISTERED_SOURCE_IDS = (
     "wmo-gos", "gcos", "copernicus-era5", "argo", "usgs-eq", "usgs-water",
     "ndbc-stdmet", "ndbc-ocean", "ndbc-waterlevel", "ndbc-dart", "nws-alerts",
@@ -45,6 +46,18 @@ def iso_ms(ms) -> Optional[str]:
     try:
         return datetime.fromtimestamp(float(ms) / 1000, timezone.utc).isoformat().replace("+00:00", "Z")
     except (TypeError, ValueError, OSError):
+        return None
+
+
+def parse_iso(value) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except (TypeError, ValueError):
         return None
 
 
@@ -269,7 +282,17 @@ class Broker:
             return list(self.last_batch)
 
     def source_snapshot(self):
-        return [asdict(self.sources[sid]) for sid in REGISTERED_SOURCE_IDS]
+        now = datetime.now(timezone.utc)
+        out = []
+        for sid in REGISTERED_SOURCE_IDS:
+            row = asdict(self.sources[sid])
+            row["stale_after_seconds"] = SOURCE_STALE_SECONDS
+            if row["status"] == "active":
+                last = parse_iso(row.get("last_success"))
+                if last is None or (now - last).total_seconds() > SOURCE_STALE_SECONDS:
+                    row["status"] = "stale"
+            out.append(row)
+        return out
 
     def close(self):
         with self.lock:
@@ -281,7 +304,7 @@ BROKER = Broker(DB_PATH)
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DOMObservationBroker/0.7"
+    server_version = "DOMObservationBroker/0.8"
 
     def log_message(self, fmt, *args):
         print(f"[{iso_now()}] {self.client_address[0]} {fmt % args}")
@@ -326,7 +349,8 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/v1/sources":
             sources = BROKER.source_snapshot()
             self.send_json(200, {"sources": sources, "registered": len(sources), "activeAdapters": len(BROKER.adapters),
-                                 "active": sum(1 for x in sources if x["status"] == "active")})
+                                 "active": sum(1 for x in sources if x["status"] == "active"),
+                                 "stale": sum(1 for x in sources if x["status"] == "stale")})
         elif path == "/v1/stream":
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
