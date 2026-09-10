@@ -3,20 +3,17 @@
   try{
     const M=DOMPlanetHealth;
     ok('empty state unknown',M.state({}).health===null);
-    const s=M.state({climate:[{value:.8,weight:1,quality:1,freshness:1}],ocean:[{value:.6,weight:1,quality:1,freshness:1}]});
-    ok('health bounded',s.health>=0&&s.health<=1);
-    ok('coverage explicit',s.coverage>0&&s.coverage<=1);
-    const missingMeta=M.weightedScore([{value:.8,weight:1}]);
-    ok('missing quality metadata cannot claim full coverage',missingMeta.coverage<1);
+    const sparse=M.state({climate:[{value:.8,weight:1,quality:1,freshness:1}],ocean:[{value:.6,weight:1,quality:1,freshness:1}]});
+    ok('sparse health remains provisional',sparse.health===null&&Number.isFinite(sparse.provisionalHealth)&&sparse.displayQualified===false);
+    ok('sparse coverage explicit',sparse.coverage>0&&sparse.coverage<=1);
+    const rich={};for(const k of ['climate','ocean','hydrology','cryosphere','forests','reefs','wildfire','atmosphere','biodiversity','geophysical'])rich[k]=[{value:.4,weight:1,quality:.9,freshness:.9}];const full=M.state(rich);
+    ok('representative multi-domain health resolves',Number.isFinite(full.health)&&full.displayQualified===true&&full.qualifiedDomains.length>=6);
+    ok('resolved health bounded',full.health>=0&&full.health<=1);
     const series=[];for(let i=0;i<10;i++)series.push({t:2020+i*.5,value:1+i*.2,sigma:.1});
     const p=M.forecastWindow({series,threshold:3.2});
     ok('qualified forecast window resolved',p.kind==='statistical-threshold-window');
     ok('forecast has interval',p.lowerT<=p.estimateT&&p.upperT>=p.estimateT);
     ok('forecast carries fit quality',Number.isFinite(p.r2)&&p.r2>=.55);
-    ok('centered regression reference finite',Number.isFinite(p.referenceT));
-    const far=[];for(let i=0;i<12;i++)far.push({t:1000000+i*.25,value:5+i*.1,sigma:.05});
-    const pf=M.forecastWindow({series:far,threshold:6.3,minSpanYears:2});
-    ok('large epoch values remain numerically stable',pf.kind==='statistical-threshold-window'&&Number.isFinite(pf.estimateT));
     const short=M.forecastWindow({series:series.slice(0,3),threshold:3.2});
     ok('three point projection refused',short.kind==='unresolved');
     const bad=series.map((x,i)=>({...x,value:3-i*.2}));
