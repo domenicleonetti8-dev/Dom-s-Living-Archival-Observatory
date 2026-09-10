@@ -45,11 +45,44 @@ class BrokerTests(unittest.TestCase):
                                  observed_at="2026-09-10T00:00:00Z", lat=40, lon=-74,
                                  source="https://example.com/fixture", title="Fixture")
             b.adapters = {"usgs-eq": lambda: [fixture]}
-            b.poll_once()
+            rows = b.poll_once()
             self.assertEqual(b.sources["usgs-eq"].status, "active")
             self.assertEqual(b.sources["usgs-eq"].record_count, 1)
             self.assertEqual(b.sources["wmo-gos"].status, "registered-not-ingesting")
             self.assertEqual(len(b.snapshot()), 1)
+            self.assertEqual(len(b.stream_batch()), 1)
+            self.assertEqual(rows[0]["sourceId"], "fixture")
+        finally:
+            b.close()
+
+    def test_atomic_multi_source_cycle_publishes_all_sources_once(self):
+        b = dom.Broker()
+        try:
+            a = dom.record(source_id="a", lineage="lineage-a", agency="A", network="A", kind="Earthquake",
+                           modality="seismic", observed_at="2026-09-10T00:00:00Z", lat=40, lon=-74,
+                           source="https://example.com/a", title="A")
+            c = dom.record(source_id="c", lineage="lineage-c", agency="C", network="C", kind="Wildfire",
+                           modality="satellite", observed_at="2026-09-10T00:01:00Z", lat=41, lon=-73,
+                           source="https://example.com/c", title="C")
+            b.adapters = {"usgs-eq": lambda: [a], "nasa-eonet": lambda: [c]}
+            before = b.version
+            cycle = b.poll_once()
+            self.assertEqual(b.version, before + 1)
+            self.assertEqual({r["sourceId"] for r in cycle}, {"a", "c"})
+            self.assertEqual({r["sourceId"] for r in b.stream_batch()}, {"a", "c"})
+            self.assertEqual({r["sourceId"] for r in b.snapshot()}, {"a", "c"})
+        finally:
+            b.close()
+
+    def test_cycle_deduplicates_same_canonical_observation(self):
+        b = dom.Broker()
+        try:
+            r = dom.record(source_id="same", lineage="same-lineage", agency="A", network="A", kind="Earthquake",
+                           modality="seismic", observed_at="2026-09-10T00:00:00Z", lat=40, lon=-74,
+                           source="https://example.com/same", title="Same")
+            b.adapters = {"usgs-eq": lambda: [r], "nasa-eonet": lambda: [dict(r)]}
+            cycle = b.poll_once()
+            self.assertEqual(len(cycle), 1)
             self.assertEqual(len(b.stream_batch()), 1)
         finally:
             b.close()
@@ -64,6 +97,17 @@ class BrokerTests(unittest.TestCase):
             self.assertEqual(b.sources["usgs-eq"].status, "error")
             self.assertEqual(b.sources["usgs-eq"].consecutive_failures, 1)
             self.assertIn("fixture failure", b.sources["usgs-eq"].last_error)
+        finally:
+            b.close()
+
+    def test_malformed_adapter_result_is_rejected(self):
+        b = dom.Broker()
+        try:
+            b.adapters = {"usgs-eq": lambda: {"not": "a list"}}
+            b.poll_once()
+            self.assertEqual(b.sources["usgs-eq"].status, "error")
+            self.assertIn("adapter result must be a list", b.sources["usgs-eq"].last_error)
+            self.assertEqual(b.stream_batch(), [])
         finally:
             b.close()
 
