@@ -1,5 +1,6 @@
 const DOMSensorActivation=(()=>{
-  const clamp=x=>Math.max(0,Math.min(1,Number(x)||0));
+  const clamp=x=>{const n=Number(x);return Number.isFinite(n)?Math.max(0,Math.min(1,n)):0};
+  const validLatLon=(lat,lon)=>Number.isFinite(Number(lat))&&Number.isFinite(Number(lon))&&Number(lat)>=-90&&Number(lat)<=90&&Number(lon)>=-180&&Number(lon)<=180;
   const LEVELS=[
     {min:.90,id:'critical',label:'Critical invocation',color:'#ff2b2b',pulse:1.00},
     {min:.72,id:'heavy',label:'Heavy invocation',color:'#ff7a1a',pulse:.86},
@@ -14,14 +15,24 @@ const DOMSensorActivation=(()=>{
     const score=clamp(.18*freshness+.18*quality+.24*anomaly+.14*persistence+.14*corroboration+.12*hazardCoupling);
     return{score,percent:Math.round(score*100),...level(score)};
   }
-  function cycloneFromKnots(knots){const w=Number(knots);if(!Number.isFinite(w))return{type:'Tropical cyclone',category:'unknown',windKt:null};if(w<34)return{type:'Tropical disturbance/depression',category:'Depression',windKt:w};if(w<64)return{type:'Tropical storm',category:'Tropical Storm',windKt:w};if(w<83)return{type:'Hurricane / Typhoon',category:'Category 1',windKt:w};if(w<96)return{type:'Hurricane / Typhoon',category:'Category 2',windKt:w};if(w<113)return{type:'Major hurricane / Typhoon',category:'Category 3',windKt:w};if(w<137)return{type:'Major hurricane / Typhoon',category:'Category 4',windKt:w};return{type:'Major hurricane / Super typhoon range',category:'Category 5',windKt:w}}
+  function cycloneFromKnots(knots){
+    const w=Number(knots),scale='Saffir-Simpson one-minute sustained-wind thresholds';
+    if(!Number.isFinite(w)||w<0)return{type:'Tropical cyclone',category:'unknown',windKt:null,scale,reason:'invalid or missing sustained wind'};
+    if(w<34)return{type:'Tropical disturbance/depression',category:'Depression',windKt:w,scale};
+    if(w<64)return{type:'Tropical storm',category:'Tropical Storm',windKt:w,scale};
+    if(w<83)return{type:'Hurricane / Typhoon',category:'Category 1',windKt:w,scale};
+    if(w<96)return{type:'Hurricane / Typhoon',category:'Category 2',windKt:w,scale};
+    if(w<113)return{type:'Major hurricane / Typhoon',category:'Category 3',windKt:w,scale};
+    if(w<137)return{type:'Major hurricane / Typhoon',category:'Category 4',windKt:w,scale};
+    return{type:'Major hurricane / Super typhoon range',category:'Category 5',windKt:w,scale};
+  }
   function stormLabel(input={}){
-    if(input.officialCategory)return{type:input.officialType||'Storm',category:String(input.officialCategory),source:'official'};
-    if(Number.isFinite(Number(input.windKts)))return{...cycloneFromKnots(input.windKts),source:'wind-threshold'};
-    return{type:input.type||'Storm',category:'strength unresolved',source:'insufficient-measurement'};
+    if(input.officialCategory)return{type:input.officialType||'Storm',category:String(input.officialCategory),source:'official',scale:input.officialScale||null};
+    if(Number.isFinite(Number(input.windKts))&&Number(input.windKts)>=0)return{...cycloneFromKnots(input.windKts),source:'wind-threshold'};
+    return{type:input.type||'Storm',category:'strength unresolved',source:'insufficient-measurement',scale:null};
   }
   function sensorPacket(obs={}){
-    const hasPoint=Number.isFinite(Number(obs.lat))&&Number.isFinite(Number(obs.lon));
+    const hasPoint=validLatLon(obs.lat,obs.lon);
     return{
       sensorId:String(obs.sensorId||obs.stationId||obs.instrumentId||'unknown-sensor'),
       network:String(obs.network||obs.sourceAgency||'unknown-network'),
@@ -38,5 +49,5 @@ const DOMSensorActivation=(()=>{
       storm:obs.storm?stormLabel(obs.storm):null
     };
   }
-  return{LEVELS,level,activation,cycloneFromKnots,stormLabel,sensorPacket};
+  return{LEVELS,validLatLon,level,activation,cycloneFromKnots,stormLabel,sensorPacket};
 })();
