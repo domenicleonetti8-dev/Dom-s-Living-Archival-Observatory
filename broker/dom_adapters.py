@@ -3,8 +3,12 @@ from __future__ import annotations
 
 import math
 import re
+import urllib.request
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Callable
+
+ADAPTER_USER_AGENT = "DOMS-Living-Archival-Observatory/0.1 public-research-adapters"
 
 
 def _iso(value) -> Optional[str]:
@@ -43,6 +47,89 @@ def _centroid(geometry, valid_lat_lon):
     cos_lon = sum(math.cos(math.radians(p[1])) for p in points)
     lon = math.degrees(math.atan2(sin_lon, cos_lon))
     return (lat, lon) if valid_lat_lon(lat, lon) else None
+
+
+def _get_text(url: str, timeout: int = 15) -> str:
+    req = urllib.request.Request(url, headers={"Accept": "application/atom+xml,text/xml,application/xml", "User-Agent": ADAPTER_USER_AGENT})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        charset = resp.headers.get_content_charset() or "utf-8"
+        return resp.read().decode(charset, errors="replace")
+
+
+def _local(tag: str) -> str:
+    return str(tag).rsplit("}", 1)[-1].lower()
+
+
+def _child_text(node, name: str) -> str:
+    want = name.lower()
+    for child in list(node):
+        if _local(child.tag) == want:
+            return "".join(child.itertext()).strip()
+    return ""
+
+
+def _entry_link(entry) -> str:
+    fallback = ""
+    for child in list(entry):
+        if _local(child.tag) != "link":
+            continue
+        href = str(child.attrib.get("href") or "").strip()
+        rel = str(child.attrib.get("rel") or "alternate").lower()
+        if href and rel == "alternate":
+            return href
+        if href and not fallback:
+            fallback = href
+    return fallback
+
+
+def poll_tsunami_atom(get_text, make_record, center: str) -> List[dict]:
+    """Official U.S. Tsunami Warning Center Atom products.
+
+    Product metadata is authoritative, but this adapter intentionally does not
+    invent event coordinates from free text. Warning/watch/advisory products are
+    official alerts; information/cancellation products remain official reports.
+    """
+    center = str(center or "").strip().lower()
+    if center == "ntwc":
+        url, agency, network, lineage = "https://www.tsunami.gov/events/xml/PAAQAtom.xml", "NOAA NTWC", "National Tsunami Warning Center", "noaa-ntwc-atom"
+    elif center == "ptwc":
+        url, agency, network, lineage = "https://www.tsunami.gov/events/xml/PHEBAtom.xml", "NOAA PTWC", "Pacific Tsunami Warning Center", "noaa-ptwc-atom"
+    else:
+        raise ValueError("unknown tsunami warning center")
+    text = get_text(url)
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError as exc:
+        raise ValueError(f"invalid Atom XML: {exc}") from exc
+    out = []
+    for entry in root.iter():
+        if _local(entry.tag) != "entry":
+            continue
+        entry_id = _child_text(entry, "id")
+        title = _child_text(entry, "title") or "Tsunami Warning Center product"
+        updated = _iso(_child_text(entry, "updated") or _child_text(entry, "published"))
+        link = _entry_link(entry) or entry_id
+        if not entry_id or not updated or not link:
+            continue
+        product = title.upper()
+        alert_class = next((x for x in ("WARNING", "ADVISORY", "WATCH") if x in product), None)
+        cancellation = "CANCEL" in product
+        official_alert = bool(alert_class and not cancellation)
+        status = "forecast" if official_alert else "reported"
+        severity = f"Tsunami {alert_class.title()}" if alert_class else "Tsunami product"
+        if cancellation:
+            severity = "Tsunami cancellation"
+        r = make_record(
+            source_id=f"{center}:{entry_id}", lineage=lineage, agency=agency, network=network,
+            kind="Tsunami", modality="official-tsunami-product", observed_at=updated,
+            lat=None, lon=None, source=link, title=title[:300], authoritative=True,
+            officialAlert=official_alert, observationStatus=status, locationPrecision="unresolved",
+            severityText=severity, quality=1.0,
+            upstream={"atomEntryId": entry_id, "center": center.upper(), "feed": url},
+        )
+        if r:
+            out.append(r)
+    return out
 
 
 def poll_nws(get_json, make_record, valid_lat_lon) -> List[dict]:
@@ -110,7 +197,9 @@ def builtin_adapters(get_json, make_record, valid_lat_lon) -> Dict[str, Callable
     return {
         "nws-alerts": lambda: poll_nws(get_json, make_record, valid_lat_lon),
         "swpc": lambda: poll_swpc(get_json, make_record, valid_lat_lon),
+        "ntwc": lambda: poll_tsunami_atom(_get_text, make_record, "ntwc"),
+        "ptwc": lambda: poll_tsunami_atom(_get_text, make_record, "ptwc"),
     }
 
 
-__all__ = ["poll_nws", "poll_swpc", "builtin_adapters"]
+__all__ = ["poll_nws", "poll_swpc", "poll_tsunami_atom", "builtin_adapters"]
