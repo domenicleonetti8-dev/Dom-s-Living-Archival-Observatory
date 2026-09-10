@@ -13,9 +13,11 @@
   try{if(typeof DOMGlobalSensorGlobe!=='undefined')exports.DOMGlobalSensorGlobe=DOMGlobalSensorGlobe}catch(_){}
   try{if(typeof DOMOrganismRuntime!=='undefined')exports.DOMOrganismRuntime=DOMOrganismRuntime}catch(_){}
   try{if(typeof DOMLiveGlobeRenderer!=='undefined')exports.DOMLiveGlobeRenderer=DOMLiveGlobeRenderer}catch(_){}
+  try{if(typeof DOMHazardObservationBridge!=='undefined')exports.DOMHazardObservationBridge=DOMHazardObservationBridge}catch(_){}
+  try{if(typeof DOMObservationHazardBridge!=='undefined')exports.DOMObservationHazardBridge=DOMObservationHazardBridge}catch(_){}
   try{if(typeof DOMSHazardResearch!=='undefined')exports.DOMSHazardResearch=DOMSHazardResearch}catch(_){}
   try{if(typeof DOMSHazardVoice!=='undefined')exports.DOMSHazardVoice=DOMSHazardVoice}catch(_){}
   for(const [k,v] of Object.entries(exports)){if(!window[k])window[k]=v}
-  const required=['DOMObservationModel','DOMHazardTaxonomy','DOMEnvironmentalFusion','DOMEnvironmentalDefense','DOMPlanetHealth','DOMPlanetaryEcosystemDefense','DOMPublicSensorRegistry','DOMSensorActivation','DOMObservationIngress','DOMObservationBroker','DOMGlobalSensorGlobe','DOMOrganismRuntime','DOMLiveGlobeRenderer','DOMSHazardResearch','DOMSHazardVoice'];
+  const required=['DOMObservationModel','DOMHazardTaxonomy','DOMEnvironmentalFusion','DOMEnvironmentalDefense','DOMPlanetHealth','DOMPlanetaryEcosystemDefense','DOMPublicSensorRegistry','DOMSensorActivation','DOMObservationIngress','DOMObservationBroker','DOMGlobalSensorGlobe','DOMOrganismRuntime','DOMLiveGlobeRenderer','DOMHazardObservationBridge','DOMObservationHazardBridge','DOMSHazardResearch','DOMSHazardVoice'];
   window.DOMGlobalCompat={count:Object.keys(exports).length,exports:Object.keys(exports),missing:required.filter(k=>!exports[k]),ok:required.every(k=>!!exports[k])};
 })();
