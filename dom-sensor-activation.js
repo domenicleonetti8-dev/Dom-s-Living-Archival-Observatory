@@ -10,10 +10,11 @@ const DOMSensorActivation=(()=>{
     {min:0,id:'idle',label:'Idle / no qualified signal',color:'#65707d',pulse:.10}
   ];
   function level(score){const s=clamp(score);return LEVELS.find(x=>s>=x.min)||LEVELS[LEVELS.length-1]}
+  function anomalyScore(sensor={}){if(sensor.anomaly!=null&&Number.isFinite(Number(sensor.anomaly)))return clamp(sensor.anomaly);if(sensor.anomalyZ!=null&&Number.isFinite(Number(sensor.anomalyZ)))return clamp(Math.abs(Number(sensor.anomalyZ))/6);return 0}
   function activation(sensor={}){
-    const freshness=clamp(sensor.freshness),quality=clamp(sensor.quality),anomaly=clamp(sensor.anomaly),persistence=clamp(sensor.persistence),corroboration=clamp(sensor.corroboration),hazardCoupling=clamp(sensor.hazardCoupling);
+    const freshness=clamp(sensor.freshness),quality=clamp(sensor.quality),anomaly=anomalyScore(sensor),persistence=clamp(sensor.persistence),corroboration=clamp(sensor.corroboration),hazardCoupling=clamp(sensor.hazardCoupling);
     const score=clamp(.18*freshness+.18*quality+.24*anomaly+.14*persistence+.14*corroboration+.12*hazardCoupling);
-    return{score,percent:Math.round(score*100),...level(score)};
+    return{score,percent:Math.round(score*100),components:{freshness,quality,anomaly,persistence,corroboration,hazardCoupling},...level(score)};
   }
   function cycloneFromKnots(knots){
     const w=Number(knots),scale='Saffir-Simpson one-minute sustained-wind thresholds';
@@ -66,5 +67,5 @@ const DOMSensorActivation=(()=>{
       storm:obs.storm?stormLabel(obs.storm):null
     };
   }
-  return{LEVELS,validLatLon,level,activation,cycloneFromKnots,stormLabel,sensorPacket};
+  return{LEVELS,validLatLon,level,anomalyScore,activation,cycloneFromKnots,stormLabel,sensorPacket};
 })();
