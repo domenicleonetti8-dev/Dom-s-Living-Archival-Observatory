@@ -29,9 +29,9 @@ const DOMEnvironmentFusion=(()=>{
   }
   function horizon(x={}){
     const distanceKm=finite(x.distanceToImpactKm)?Math.max(0,Number(x.distanceToImpactKm)):null,speedKmh=finite(x.motionSpeedKmh)?Math.max(0,Number(x.motionSpeedKmh)):null,officialETA=x.officialETA||null;
-    if(officialETA)return{kind:'official',label:String(officialETA),confidence:clamp(x.etaConfidence==null?.9:x.etaConfidence)};
-    if(distanceKm!=null&&distanceKm>0&&speedKmh!=null&&speedKmh>0){const h=distanceKm/speedKmh,tc=clamp(x.trackConfidence==null?.5:x.trackConfidence),uncertainty=Math.max(.5,h*(1-tc));return{kind:'physics-estimate',hours:h,plusMinusHours:uncertainty,confidence:tc}}
-    if(finite(x.trendVelocity)&&Number(x.trendVelocity)>.05&&finite(x.currentLoad)&&finite(x.overwhelmThreshold)){const velocity=Number(x.trendVelocity),gap=clamp(x.overwhelmThreshold)-clamp(x.currentLoad);if(gap>0){const steps=gap/velocity;return{kind:'trend-estimate',hours:steps*Math.max(.25,finite(x.stepHours)?Number(x.stepHours):1),confidence:clamp(x.trendConfidence==null?.4:x.trendConfidence)}}}
+    if(officialETA)return{kind:'official',label:String(officialETA),confidence:clamp(x.etaConfidence==null ? .9 : x.etaConfidence)};
+    if(distanceKm!=null&&distanceKm>0&&speedKmh!=null&&speedKmh>0){const h=distanceKm/speedKmh,tc=clamp(x.trackConfidence==null ? .5 : x.trackConfidence),uncertainty=Math.max(.5,h*(1-tc));return{kind:'physics-estimate',hours:h,plusMinusHours:uncertainty,confidence:tc}}
+    if(finite(x.trendVelocity)&&Number(x.trendVelocity)>.05&&finite(x.currentLoad)&&finite(x.overwhelmThreshold)){const velocity=Number(x.trendVelocity),gap=clamp(x.overwhelmThreshold)-clamp(x.currentLoad);if(gap>0){const steps=gap/velocity;return{kind:'trend-estimate',hours:steps*Math.max(.25,finite(x.stepHours)?Number(x.stepHours):1),confidence:clamp(x.trendConfidence==null ? .4 : x.trendConfidence)}}}
     return{kind:'unknown',confidence:0};
   }
   function actionStage(x={}){
