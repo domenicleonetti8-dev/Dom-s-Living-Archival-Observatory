@@ -6,7 +6,7 @@ const DOMSHazardVoice=(()=>{
   function summary(e){if(e&&e.evidence&&e.evidence.text)return e.evidence.text;const bits=[];bits.push(`${e.kind}. ${e.title}.`);if(Number.isFinite(e.mag))bits.push(`Magnitude ${Number(e.mag).toFixed(1)}.`);if(Number.isFinite(e.score))bits.push(`Decision score ${e.score} out of 100.`);if(Number.isFinite(e.confidence))bits.push(`Evidence confidence ${Math.round(e.confidence*100)} percent.`);bits.push('Use the linked source for authoritative details.');return bits.join(' ')}
   function announce(e){return speak(summary(e),{tag:e.id})}
   function describe(e){return speak(summary(e),{force:true})}
-  function enable(){if(!supported())return{ok:false,message:'Speech synthesis is unavailable in this browser.'};S.enabled=true;S.muted=false;chooseVoice();speak('DOMS voice enabled. Spoken hazard statements are tied to the visible evidence block for each event.',{force:true});return{ok:true,message:'DOMS voice on · evidence locked'}}
+  function enable(){if(!supported())return{ok:false,message:'Speech synthesis is unavailable in this browser.'};S.enabled=true;S.muted=false;chooseVoice();speak('DOM voice enabled. Spoken hazard statements are tied to the visible evidence block for each event.',{force:true});return{ok:true,message:'DOM voice on · evidence locked'}}
   function mute(v=true){S.muted=!!v;if(S.muted&&supported())speechSynthesis.cancel();return S.muted}
   function stop(){if(supported())speechSynthesis.cancel()}
   function state(){return{enabled:S.enabled,muted:S.muted,supported:supported()}}
