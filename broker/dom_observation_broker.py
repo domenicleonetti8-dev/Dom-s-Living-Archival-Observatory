@@ -28,7 +28,7 @@ POLL_SECONDS = max(30, int(os.getenv("DOM_BROKER_POLL_SECONDS", "60")))
 MAX_RECORDS = max(1000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "20000")))
 DB_PATH = os.getenv("DOM_BROKER_DB", os.path.join(os.path.dirname(__file__), "dom_observations.sqlite3"))
 ALLOWED_ORIGINS = {x.strip() for x in os.getenv("DOM_ALLOWED_ORIGINS", "https://domenicleonetti8-dev.github.io,http://localhost,http://127.0.0.1").split(",") if x.strip()}
-USER_AGENT = "DOMS-Living-Archival-Observatory/0.5 public-research-broker"
+USER_AGENT = "DOMS-Living-Archival-Observatory/0.6 public-research-broker"
 REGISTERED_SOURCE_IDS = (
     "wmo-gos", "gcos", "copernicus-era5", "argo", "usgs-eq", "usgs-water",
     "ndbc-stdmet", "ndbc-ocean", "ndbc-waterlevel", "ndbc-dart", "nws-alerts",
@@ -210,20 +210,35 @@ class Broker:
                 keep = {row[0] for row in self.db.execute("SELECT record_key FROM observations").fetchall()}
                 self.records = {k: v for k, v in self.records.items() if k in keep}
 
+    @classmethod
+    def _dedupe_cycle(cls, rows: List[dict]) -> List[dict]:
+        merged: Dict[str, dict] = {}
+        for r in rows:
+            if not isinstance(r, dict) or r.get("schema") != "dom.observation.v1":
+                continue
+            k = cls.key(r)
+            old = merged.get(k)
+            if old is None or str(r.get("receivedAt") or "") >= str(old.get("receivedAt") or ""):
+                merged[k] = r
+        return list(merged.values())
+
     def poll_once(self):
+        cycle_rows: List[dict] = []
+        attempted = 0
         for sid, fn in self.adapters.items():
+            attempted += 1
             st = self.sources[sid]
             started = time.monotonic()
             try:
                 rows = fn()
-                self._persist_batch(rows)
-                with self.lock:
-                    self.last_batch = list(rows)
-                    self.version += 1
+                if not isinstance(rows, list):
+                    raise TypeError("adapter result must be a list")
+                valid_rows = [r for r in rows if isinstance(r, dict) and r.get("schema") == "dom.observation.v1"]
+                cycle_rows.extend(valid_rows)
                 st.status = "active"
                 st.last_success = iso_now()
                 st.last_error = None
-                st.record_count = len(rows)
+                st.record_count = len(valid_rows)
                 st.consecutive_failures = 0
             except Exception as exc:
                 st.status = "error"
@@ -231,6 +246,14 @@ class Broker:
                 st.consecutive_failures += 1
             finally:
                 st.last_duration_ms = round((time.monotonic() - started) * 1000)
+        cycle_rows = self._dedupe_cycle(cycle_rows)
+        if cycle_rows:
+            self._persist_batch(cycle_rows)
+        if attempted:
+            with self.lock:
+                self.last_batch = list(cycle_rows)
+                self.version += 1
+        return list(cycle_rows)
 
     def loop(self):
         while not self.stop_event.is_set():
@@ -258,7 +281,7 @@ BROKER = Broker(DB_PATH)
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DOMObservationBroker/0.5"
+    server_version = "DOMObservationBroker/0.6"
 
     def log_message(self, fmt, *args):
         print(f"[{iso_now()}] {self.client_address[0]} {fmt % args}")
@@ -315,7 +338,8 @@ class Handler(BaseHTTPRequestHandler):
                 while not BROKER.stop_event.is_set():
                     if BROKER.version != last:
                         last = BROKER.version
-                        payload = json.dumps({"schema": "dom.observation.batch.v1", "records": BROKER.stream_batch()}, separators=(",", ":"))
+                        payload = json.dumps({"schema": "dom.observation.batch.v1", "version": last,
+                                              "generatedAt": iso_now(), "records": BROKER.stream_batch()}, separators=(",", ":"))
                         self.wfile.write(f"event: observations\ndata: {payload}\n\n".encode())
                         self.wfile.flush()
                     else:
