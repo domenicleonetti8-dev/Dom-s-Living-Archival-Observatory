@@ -1,6 +1,6 @@
 const DOMEnvironmentalDefense=(()=>{
   const finite=x=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x));
-  const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,Number(x)||0));
+  const clamp=(x,a=0,b=1)=>{const n=Number(x);return Number.isFinite(n)?Math.max(a,Math.min(b,n)):a};
   const rad=d=>Number(d)*Math.PI/180;
   const kahanSum=values=>{let s=0,c=0;for(const v of values||[]){if(!Number.isFinite(v))continue;const y=v-c,t=s+y;c=(t-s)-y;s=t}return s};
   function normalizeTemperature(obs={}){
@@ -18,34 +18,37 @@ const DOMEnvironmentalDefense=(()=>{
     return q*f*u;
   }
   function fusePoint(observations=[]){
-    const rows=observations.map(normalizeTemperature).filter(Boolean);
+    const rows=(observations||[]).map(normalizeTemperature).filter(Boolean);
     if(!rows.length)return{valueC:null,uncertaintyC:null,count:0,effectiveWeight:0,spreadC:null};
     const weights=rows.map(observationWeight),sw=kahanSum(weights);
     if(!(sw>0))return{valueC:null,uncertaintyC:null,count:rows.length,effectiveWeight:0,spreadC:null};
     const mean=kahanSum(rows.map((r,i)=>r.valueC*weights[i]))/sw;
     const variance=kahanSum(rows.map((r,i)=>weights[i]*(r.valueC-mean)**2))/sw;
-    const propagated=1/Math.sqrt(sw);
-    return{valueC:mean,uncertaintyC:Math.max(propagated,Math.sqrt(Math.max(0,variance))),count:rows.length,effectiveWeight:sw,spreadC:Math.sqrt(Math.max(0,variance))};
+    const propagated=1/Math.sqrt(sw),spread=Math.sqrt(Math.max(0,variance));
+    return{valueC:mean,uncertaintyC:Math.max(propagated,spread),count:rows.length,effectiveWeight:sw,spreadC:spread};
   }
-  function areaWeight(lat){if(!finite(lat))return 0;return Math.max(0,Math.cos(rad(Number(lat))))}
-  function globalAreaWeightedMean(cells=[]){
-    const usable=(cells||[]).filter(c=>finite(c.valueC)&&finite(c.lat));
-    if(!usable.length)return{valueC:null,uncertaintyC:null,coverage:0,count:0};
-    const contributions=[],weights=[],uncertaintyTerms=[];let coverageWeight=0;
-    for(const c of usable){const area=finite(c.areaWeight)?Math.max(0,Number(c.areaWeight)):areaWeight(c.lat);const quality=finite(c.quality)?clamp(c.quality):1;const coverage=finite(c.coverage)?clamp(c.coverage):1;const w=area*quality*coverage;if(!(w>0))continue;weights.push(w);contributions.push(Number(c.valueC)*w);coverageWeight+=area*coverage;if(finite(c.uncertaintyC))uncertaintyTerms.push((w*Number(c.uncertaintyC))**2)}
-    const sw=kahanSum(weights);if(!(sw>0))return{valueC:null,uncertaintyC:null,coverage:0,count:0};
-    return{valueC:kahanSum(contributions)/sw,uncertaintyC:uncertaintyTerms.length?Math.sqrt(kahanSum(uncertaintyTerms))/sw:null,coverage:clamp(coverageWeight/Math.max(kahanSum(usable.map(c=>areaWeight(c.lat))),1e-12)),count:weights.length};
+  function areaWeight(lat){if(!finite(lat))return 0;const n=Number(lat);if(n<-90||n>90)return 0;return Math.max(0,Math.cos(rad(n)))}
+  function globalAreaWeightedMean(cells=[],options={}){
+    const usable=(cells||[]).filter(c=>finite(c.valueC)&&finite(c.lat)&&Number(c.lat)>=-90&&Number(c.lat)<=90);
+    if(!usable.length)return{valueC:null,uncertaintyC:null,coverage:0,count:0,coverageResolved:true};
+    const contributions=[],weights=[],uncertaintyTerms=[];let representedArea=0;
+    for(const c of usable){const nominal=finite(c.nominalAreaWeight)?Math.max(0,Number(c.nominalAreaWeight)):areaWeight(c.lat);const quality=finite(c.quality)?clamp(c.quality):1;const localCoverage=finite(c.coverage)?clamp(c.coverage):1;const w=nominal*quality*localCoverage;if(!(w>0))continue;weights.push(w);contributions.push(Number(c.valueC)*w);representedArea+=nominal*localCoverage;if(finite(c.uncertaintyC))uncertaintyTerms.push((w*Math.max(0,Number(c.uncertaintyC)))**2)}
+    const sw=kahanSum(weights);if(!(sw>0))return{valueC:null,uncertaintyC:null,coverage:0,count:0,coverageResolved:true};
+    const expected=finite(options.expectedAreaWeight)&&Number(options.expectedAreaWeight)>0?Number(options.expectedAreaWeight):null;
+    const coverage=expected==null?null:clamp(representedArea/expected);
+    return{valueC:kahanSum(contributions)/sw,uncertaintyC:uncertaintyTerms.length?Math.sqrt(kahanSum(uncertaintyTerms))/sw:null,coverage,count:weights.length,coverageResolved:expected!=null,representedAreaWeight:representedArea,expectedAreaWeight:expected};
   }
   function anomaly(current,baseline){if(!finite(current)||!finite(baseline))return null;return Number(current)-Number(baseline)}
-  function robustStats(values=[]){const v=values.filter(Number.isFinite).slice().sort((a,b)=>a-b);if(!v.length)return{median:null,mad:null};const m=v.length%2?v[(v.length-1)/2]:(v[v.length/2-1]+v[v.length/2])/2;const d=v.map(x=>Math.abs(x-m)).sort((a,b)=>a-b),md=d.length%2?d[(d.length-1)/2]:(d[d.length/2-1]+d[d.length/2])/2;return{median:m,mad:md}}
+  function robustStats(values=[]){const v=(values||[]).filter(Number.isFinite).slice().sort((a,b)=>a-b);if(!v.length)return{median:null,mad:null};const m=v.length%2?v[(v.length-1)/2]:(v[v.length/2-1]+v[v.length/2])/2;const d=v.map(x=>Math.abs(x-m)).sort((a,b)=>a-b),md=d.length%2?d[(d.length-1)/2]:(d[d.length/2-1]+d[d.length/2])/2;return{median:m,mad:md}}
   function robustZ(value,baseline=[]){if(!finite(value))return null;const s=robustStats(baseline);if(!finite(s.median)||!finite(s.mad)||s.mad===0)return null;return(Number(value)-s.median)/(1.4826*s.mad)}
   function confidenceEnvelope({measurementUncertainty=null,modelUncertainty=null,representativenessUncertainty=null}={}){
-    const terms=[measurementUncertainty,modelUncertainty,representativenessUncertainty].filter(finite).map(Number);if(!terms.length)return null;return Math.sqrt(kahanSum(terms.map(x=>x*x)));
+    const terms=[measurementUncertainty,modelUncertainty,representativenessUncertainty].filter(finite).map(x=>Math.max(0,Number(x)));if(!terms.length)return null;return Math.sqrt(kahanSum(terms.map(x=>x*x)));
   }
-  function assessTemperatureField({cells=[],baselineC=null}={}){
-    const global=globalAreaWeightedMean(cells);const anom=anomaly(global.valueC,baselineC);
-    const uncertainty=confidenceEnvelope({measurementUncertainty:global.uncertaintyC,representativenessUncertainty:global.coverage<1?(1-global.coverage):0});
-    return{globalMeanC:global.valueC,globalMeanUncertaintyC:uncertainty,coverage:global.coverage,count:global.count,anomalyC:anom,precisionPolicy:'display only digits supported by source resolution and uncertainty'};
+  function assessTemperatureField({cells=[],baselineC=null,expectedAreaWeight=null,modelUncertaintyC=null}={}){
+    const global=globalAreaWeightedMean(cells,{expectedAreaWeight});const anom=anomaly(global.valueC,baselineC);
+    const representativeness=global.coverage==null?null:1-global.coverage;
+    const uncertainty=confidenceEnvelope({measurementUncertainty:global.uncertaintyC,modelUncertainty:modelUncertaintyC,representativenessUncertainty:representativeness});
+    return{globalMeanC:global.valueC,globalMeanUncertaintyC:uncertainty,coverage:global.coverage,count:global.count,anomalyC:anom,coverageResolved:global.coverageResolved,precisionPolicy:'display only digits supported by measurement, model and representativeness uncertainty'};
   }
   function activationFromEvidence({anomalyZ=null,quality=null,freshness=null,corroboration=null,persistence=null}={}){
     const a=finite(anomalyZ)?clamp(Math.abs(Number(anomalyZ))/6):0,q=finite(quality)?clamp(quality):0,f=finite(freshness)?clamp(freshness):0,c=finite(corroboration)?clamp(corroboration):0,p=finite(persistence)?clamp(persistence):0;
