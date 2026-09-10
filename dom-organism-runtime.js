@@ -15,6 +15,8 @@ const DOMOrganismRuntime=(()=>{
   function snapshot(){const sensors=[...state.sensors.values()],records=[...state.records.values()],lineages=new Set(records.map(r=>r.lineageId).filter(Boolean)),agencies=new Set(records.map(r=>r.sourceAgency).filter(Boolean));return{recordCount:records.length,sensorCount:sensors.length,lineages:lineages.size,agencies:agencies.size,lastBatchAt:state.lastBatchAt,lastMode:state.lastMode,lastSummary:state.lastSummary,sensors}}
   function renderPlan(options={}){if(!globeReady())return null;return DOMGlobalSensorGlobe.renderPlan({...options,sensors:[...state.sensors.values()]})}
   function clear(){state.records.clear();state.sensors.clear();state.lastBatchAt=null;state.lastMode=null;state.lastSummary=null;return emit()}
+  function boot(){emit();if(typeof DOMObservationBroker!=='undefined')DOMObservationBroker.configureFromPage()}
   window.addEventListener('dom:observation-batch',ev=>{const d=ev.detail||{};accept(d.records||[],d.mode||'event')});
-  return{accept,snapshot,renderPlan,clear};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
+  return{accept,snapshot,renderPlan,clear,boot};
 })();
