@@ -52,6 +52,14 @@ assert.equal(value('__swEvent.observationStatus'),'forecast');
 assert.equal(value('Number.isNaN(__swEvent.lat)&&Number.isNaN(__swEvent.lon)'),true,'Space Weather must remain unlocated without source geometry');
 assert.equal(value('DOMObservationHazardBridge.stale({...__swEvent,time:new Date(Date.now()-80*3600e3).toISOString()},Date.now())'),true,'old Space Weather forecast must expire');
 
+value(`globalThis.__tsunami=DOMObservationIngress.normalize({id:'ntwc-ci',sourceAgency:'NOAA NTWC',network:'National Tsunami Warning Center',lineageId:'noaa-ntwc-atom',kind:'Tsunami',modality:'official-tsunami-product',time:${JSON.stringify(now)},url:'https://www.tsunami.gov/events/fixture',authoritative:true,officialAlert:true,observationStatus:'forecast',severityText:'Tsunami Warning'}).record`);
+value('globalThis.__tsEvent=DOMObservationHazardBridge.toEvent(__tsunami)');
+assert.equal(value('__tsEvent.kind'),'Tsunami','official tsunami product must preserve Tsunami hazard class');
+assert.equal(value('__tsEvent.officialAlert'),true,'official tsunami warning must retain official alert provenance');
+assert.equal(value('__tsEvent.observationStatus'),'forecast');
+assert.equal(value('Number.isNaN(__tsEvent.lat)&&Number.isNaN(__tsEvent.lon)'),true,'tsunami product must remain unlocated without source geometry');
+assert.equal(value('DOMObservationHazardBridge.stale({...__tsEvent,time:new Date(Date.now()-25*3600e3).toISOString()},Date.now())'),true,'old tsunami product must expire from live state');
+
 function canonical(id,minute){return value(`DOMObservationIngress.normalize({id:${JSON.stringify(id)},sourceAgency:'CI Agency',network:'CI Net',lineageId:'ci-alert-lineage',kind:'Earthquake',modality:'seismic',lat:40,lon:-74,time:new Date(Date.now()+${minute}*60000).toISOString(),url:'https://example.com/'+${JSON.stringify(id)},authoritative:true}).record`)}
 sandbox.__snapshotRecord=canonical('snapshot-hydration',0);
 sandbox.__primeRecord=canonical('first-stream-prime',1);
