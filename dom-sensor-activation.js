@@ -49,6 +49,7 @@ const DOMSensorActivation=(()=>{
       lon:hasPoint?Number(obs.lon):null,
       elevation:optionalNumber(obs.elevation),
       depth:optionalNumber(obs.depth),
+      nominalAreaWeight:optionalNumber(obs.nominalAreaWeight),
       locationPrecision:hasPoint?(obs.locationPrecision||'source-coordinate'):'unresolved',
       observedAt:obs.observedAt||null,
       receivedAt:obs.receivedAt||null,
