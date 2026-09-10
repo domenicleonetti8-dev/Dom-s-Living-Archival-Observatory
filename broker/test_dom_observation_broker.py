@@ -13,8 +13,10 @@ class BrokerTests(unittest.TestCase):
         self.assertFalse(dom.valid_lat_lon(91, 0))
         self.assertTrue(dom.valid_lat_lon(40, -74))
 
-    def test_source_url_rejects_non_http(self):
+    def test_source_url_rejects_non_http_and_malformed(self):
         self.assertIsNone(dom.source_url("javascript:alert(1)"))
+        self.assertIsNone(dom.source_url("https://"))
+        self.assertIsNone(dom.source_url("not a url"))
         self.assertEqual(dom.source_url("https://example.com/x"), "https://example.com/x")
 
     def test_record_requires_canonical_provenance(self):
@@ -27,6 +29,19 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual(good["schema"], "dom.observation.v1")
         self.assertEqual(good["lat"], 40.0)
         self.assertEqual(good["lineageId"], "L")
+
+    def test_record_rejects_bad_time_and_normalizes_adapter_fields(self):
+        bad = dom.record(source_id="x", lineage="L", agency="A", network="N", kind="Earthquake",
+                         modality="seismic", observed_at="not-a-time", source="https://example.com", title="x")
+        self.assertIsNone(bad)
+        good = dom.record(source_id="x", lineage="L", agency="A", network="N", kind="Earthquake",
+                          modality="seismic", observed_at="2026-09-10 12:00:00", source="https://example.com", title="x",
+                          quality=7, freshness=-2, observationStatus="made-up", expiresAt="bad-expiry")
+        self.assertEqual(good["observedAt"], "2026-09-10T12:00:00Z")
+        self.assertEqual(good["quality"], 1.0)
+        self.assertEqual(good["freshness"], 0.0)
+        self.assertEqual(good["observationStatus"], "reported")
+        self.assertIsNone(good["expiresAt"])
 
     def test_registry_truth_separates_registered_from_active_adapters(self):
         b = dom.Broker()
