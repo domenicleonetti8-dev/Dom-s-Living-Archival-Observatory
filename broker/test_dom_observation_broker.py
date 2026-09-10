@@ -111,6 +111,19 @@ class BrokerTests(unittest.TestCase):
         finally:
             b.close()
 
+    def test_active_source_ages_into_stale_without_becoming_error(self):
+        b = dom.Broker()
+        try:
+            st = b.sources["usgs-eq"]
+            st.status = "active"
+            st.last_success = "2000-01-01T00:00:00Z"
+            rows = {r["id"]: r for r in b.source_snapshot()}
+            self.assertEqual(rows["usgs-eq"]["status"], "stale")
+            self.assertEqual(st.status, "active")
+            self.assertEqual(rows["wmo-gos"]["status"], "registered-not-ingesting")
+        finally:
+            b.close()
+
     def test_sqlite_survives_broker_restart(self):
         fd, path = tempfile.mkstemp(prefix="dom-broker-", suffix=".sqlite3")
         os.close(fd)
