@@ -32,20 +32,37 @@ const DOMSensorActivation=(()=>{
     return{type:input.type||'Storm',category:'strength unresolved',source:'insufficient-measurement',scale:null};
   }
   function sensorPacket(obs={}){
-    const hasPoint=validLatLon(obs.lat,obs.lon);
+    const hasPoint=validLatLon(obs.lat,obs.lon),a=activation(obs);
     return{
       sensorId:String(obs.sensorId||obs.stationId||obs.instrumentId||'unknown-sensor'),
-      network:String(obs.network||obs.sourceAgency||'unknown-network'),
+      stationId:String(obs.stationId||obs.sensorId||''),
+      agency:String(obs.agency||obs.sourceAgency||''),
+      sourceAgency:String(obs.sourceAgency||obs.agency||''),
+      network:String(obs.network||obs.sourceAgency||obs.agency||'unknown-network'),
       instrument:String(obs.instrument||obs.modality||'unknown-instrument'),
+      modality:String(obs.modality||obs.instrument||''),
       lat:hasPoint?Number(obs.lat):null,
       lon:hasPoint?Number(obs.lon):null,
+      elevation:Number.isFinite(Number(obs.elevation))?Number(obs.elevation):null,
+      depth:Number.isFinite(Number(obs.depth))?Number(obs.depth):null,
       locationPrecision:hasPoint?(obs.locationPrecision||'source-coordinate'):'unresolved',
       observedAt:obs.observedAt||null,
       receivedAt:obs.receivedAt||null,
       measurement:obs.measurement||null,
+      measurements:Array.isArray(obs.measurements)?obs.measurements:[],
       unit:obs.unit||null,
+      temperature:obs.temperature||null,
       lineageId:obs.lineageId||null,
-      activation:activation(obs),
+      sourceUrl:obs.sourceUrl||null,
+      authoritative:!!obs.authoritative,
+      quality:obs.quality==null?null:clamp(obs.quality),
+      freshness:obs.freshness==null?null:clamp(obs.freshness),
+      anomaly:obs.anomaly==null?null:clamp(obs.anomaly),
+      anomalyZ:Number.isFinite(Number(obs.anomalyZ))?Number(obs.anomalyZ):null,
+      persistence:obs.persistence==null?null:clamp(obs.persistence),
+      corroboration:obs.corroboration==null?null:clamp(obs.corroboration),
+      hazardCoupling:obs.hazardCoupling==null?null:clamp(obs.hazardCoupling),
+      activation:a,
       storm:obs.storm?stormLabel(obs.storm):null
     };
   }
