@@ -14,14 +14,15 @@ const DOMPlanetHealth=(()=>{
     const xbar=ksum(xs.map((x,i)=>x*ws[i]))/sw,ybar=ksum(ys.map((y,i)=>y*ws[i]))/sw;
     const dx=xs.map(x=>x-xbar),dy=ys.map(y=>y-ybar),sxx=ksum(dx.map((x,i)=>ws[i]*x*x)),sxy=ksum(dx.map((x,i)=>ws[i]*x*dy[i]));
     if(!(sxx>1e-14))return unresolved('trend geometry singular');
-    const slope=sxy/sxx,intercept=ybar-slope*xbar;
+    const slope=sxy/sxx;
     if((direction==='above'&&slope<=0)||(direction==='below'&&slope>=0))return unresolved('trend is not moving toward threshold',{slope});
     let sse=0,sst=0;for(let i=0;i<pts.length;i++){const fit=ybar+slope*dx[i],r=ys[i]-fit;sse+=ws[i]*r*r;sst+=ws[i]*dy[i]*dy[i]}
     const r2=sst>0?Math.max(0,Math.min(1,1-sse/sst)):0;if(r2<minR2)return unresolved('trend fit too weak for a month/year crossing',{slope,r2});
     const deltaToThreshold=Number(threshold)-ybar,t=xbar+deltaToThreshold/slope,lastT=xs[xs.length-1];if(!Number.isFinite(t))return unresolved('no finite threshold crossing');if(t<lastT)return unresolved('threshold crossing is not in the future',{estimateT:t,lastT});if(t-lastT>maxHorizonYears)return unresolved('crossing lies beyond configured projection horizon',{estimateT:t,lastT});
     const dof=Math.max(1,pts.length-2),reducedChi2=sse/dof,scale=Math.max(1,reducedChi2),varYbar=scale/sw,varSlope=scale/sxx,dY=-1/slope,dSlope=-deltaToThreshold/(slope*slope),varT=Math.max(0,dY*dY*varYbar+dSlope*dSlope*varSlope),sigmaT=Math.sqrt(varT);
     if(!Number.isFinite(sigmaT))return unresolved('projection uncertainty unresolved',{slope,r2});
-    return{kind:'statistical-threshold-window',estimateT:t,lowerT:t-1.96*sigmaT,upperT:t+1.96*sigmaT,slope,r2,reducedChi2,sigmaT,count:pts.length,spanYears:span,referenceT:xbar,warning:'statistical trend window only; scenario ensembles and authoritative projections take precedence'}
+    return{kind:'statistical-threshold-window',estimateT:t,lowerT:t-1.96*sigmaT,upperT:t+1.96*sigmaT,slope,r2,reducedChi2,sigmaT,count:pts.length,spanYears:span,referenceT:xbar,warning:'statistical trend window only; scenario ensembles and authoritative projections take precedence'};
+  }
   function monthYearFromDecimalYear(y){if(!finite(y))return null;let year=Math.floor(Number(y)),fraction=Number(y)-year,month=Math.floor(fraction*12+1e-10)+1;month=Math.max(1,Math.min(12,month));return{year,month}}
   function projectionLabel(p){if(!p||p.kind!=='statistical-threshold-window')return{status:'UNRESOLVED'};return{status:'PROJECTED WINDOW',estimate:monthYearFromDecimalYear(p.estimateT),lower:monthYearFromDecimalYear(p.lowerT),upper:monthYearFromDecimalYear(p.upperT),warning:p.warning,r2:p.r2,count:p.count,spanYears:p.spanYears}}
   return{weightedScore,state,forecastWindow,monthYearFromDecimalYear,projectionLabel};
