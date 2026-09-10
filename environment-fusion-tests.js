@@ -11,16 +11,20 @@
     t('partial coverage is explicit',partial.coverage>0&&partial.coverage<1);
     const noImpact=F.explain({wind:.8,pressureAnomaly:.7});
     t('low coverage does not fabricate compound impact',noImpact.impact===null&&noImpact.action.stage==='unknown');
-    const official=F.horizon({officialETA:'18:00 UTC'});
-    t('official ETA outranks estimates',official.kind==='official');
+    const unverifiedETA=F.horizon({officialETA:'18:00 UTC'});
+    t('unsourced official ETA is rejected',unverifiedETA.kind==='unverified-official-claim');
+    const official=F.horizon({officialETA:'18:00 UTC',officialAuthority:'National Weather Service',officialSourceUrl:'https://weather.gov/example'});
+    t('sourced official ETA outranks estimates',official.kind==='official'&&official.authority==='National Weather Service');
     const physics=F.horizon({distanceToImpactKm:120,motionSpeedKmh:40,trackConfidence:.8});
     t('physics horizon carries uncertainty',physics.kind==='physics-estimate'&&physics.hours===3&&physics.plusMinusHours>0);
     const trend=F.horizon({trendVelocity:.1,currentLoad:.4,overwhelmThreshold:.8,stepHours:1,trendConfidence:.6});
     t('qualified trend horizon is bounded',trend.kind==='trend-estimate'&&trend.hours>0);
     const none=F.horizon({distanceToImpactKm:100});
     t('insufficient timing evidence stays unknown',none.kind==='unknown');
-    const evac=F.actionStage({officialEvacuation:true});
-    t('official evacuation retains authority',evac.stage==='evacuate'&&evac.authority==='official');
+    const forged=F.actionStage({officialEvacuation:true});
+    t('unsourced evacuation flag cannot become official order',forged.stage==='unknown'&&forged.authority==='unverified');
+    const evac=F.actionStage({officialEvacuation:true,officialAuthority:'County Emergency Management',officialSourceUrl:'https://example.gov/evacuation'});
+    t('sourced official evacuation retains authority',evac.stage==='evacuate'&&evac.authority==='official');
     const research=F.actionStage({localImpact:.9,evidence:.9});
     t('research cannot create official evacuation',research.stage==='consider-early-departure'&&research.authority==='research');
   }catch(err){t('test execution',false,String(err&&err.message||err))}
