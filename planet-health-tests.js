@@ -3,12 +3,15 @@
   try{
     const M=DOMPlanetHealth;
     ok('empty state unknown',M.state({}).health===null);
-    const sparse=M.state({climate:[{value:.8,weight:1,quality:1,freshness:1}],ocean:[{value:.6,weight:1,quality:1,freshness:1}]});
+    const sparse=M.state({climate:[{value:.8,weight:1,quality:1,freshness:1,coverage:1}],ocean:[{value:.6,weight:1,quality:1,freshness:1,coverage:1}]});
     ok('sparse health remains provisional',sparse.health===null&&Number.isFinite(sparse.provisionalHealth)&&sparse.displayQualified===false);
-    ok('sparse coverage explicit',sparse.coverage>0&&sparse.coverage<=1);
-    const rich={};for(const k of ['climate','ocean','hydrology','cryosphere','forests','reefs','wildfire','atmosphere','biodiversity','geophysical'])rich[k]=[{value:.4,weight:1,quality:.9,freshness:.9}];const full=M.state(rich);
+    ok('sparse coverage counts missing domains',sparse.coverage>0&&sparse.coverage<.5);
+    const one=M.weightedScore([{value:.4,weight:1,quality:1,freshness:1}]);
+    ok('missing spatial coverage cannot claim complete domain',one.coverage<1);
+    const rich={};for(const k of ['climate','ocean','hydrology','cryosphere','forests','reefs','wildfire','atmosphere','biodiversity','geophysical'])rich[k]=[{value:.4,weight:1,quality:.9,freshness:.9,coverage:.9}];const full=M.state(rich);
     ok('representative multi-domain health resolves',Number.isFinite(full.health)&&full.displayQualified===true&&full.qualifiedDomains.length>=6);
     ok('resolved health bounded',full.health>=0&&full.health<=1);
+    ok('full-domain coverage uses whole planetary prior',full.coverage>.6&&full.coverage<=1&&full.observedPriorWeight>.9);
     const series=[];for(let i=0;i<10;i++)series.push({t:2020+i*.5,value:1+i*.2,sigma:.1});
     const p=M.forecastWindow({series,threshold:3.2});
     ok('qualified forecast window resolved',p.kind==='statistical-threshold-window');
