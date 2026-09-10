@@ -26,7 +26,7 @@ jobs:
       - name: Canonical JavaScript organism execution
         run: node ci/dom-canonical-runtime-test.js
       - name: Broker compile qualification
-        run: python -m py_compile broker/dom_observation_broker.py broker/dom_adapters.py broker/test_dom_observation_broker.py broker/test_static_graph.py
+        run: python -m compileall -q broker
       - name: Canonical path and broker regression suites
         working-directory: broker
-        run: python -m unittest -v test_dom_observation_broker.py test_static_graph.py
+        run: python -m unittest discover -v -p 'test_*.py'
