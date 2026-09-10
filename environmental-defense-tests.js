@@ -16,7 +16,10 @@
     const expected=cells.reduce((a,c)=>a+D.areaWeight(c.lat),0),g=D.globalAreaWeightedMean(cells,{expectedAreaWeight:expected});
     t('area weighting favors equator',g.valueC>15);
     t('global coverage bounded when denominator supplied',g.coverage>=0&&g.coverage<=1&&g.coverageResolved===true);
-    t('missing global data remains unknown',D.globalAreaWeightedMean([]).valueC===null);
+    const empty=D.globalAreaWeightedMean([]);
+    t('missing global data remains unknown',empty.valueC===null&&empty.coverage===null&&empty.coverageResolved===false);
+    const emptyKnown=D.globalAreaWeightedMean([],{expectedAreaWeight:100});
+    t('known denominator empty field reports zero coverage',emptyKnown.coverage===0&&emptyKnown.coverageResolved===true);
     t('anomaly exact difference',Math.abs(D.anomaly(14.2,13.9)-.3)<1e-12);
     const z=D.robustZ(20,[10,11,12,13,14]);
     t('robust z detects strong outlier',Number.isFinite(z)&&z>3);
@@ -24,9 +27,9 @@
     const env=D.confidenceEnvelope({measurementUncertainty:.1,modelUncertainty:.2,representativenessUncertainty:.2});
     t('uncertainty combines in quadrature',Math.abs(env-.3)<1e-12);
     const f=D.assessTemperatureField({cells:[],baselineC:14});
-    t('empty temperature field stays unknown',f.globalMeanC===null&&f.coverage===0);
+    t('empty temperature field stays unresolved',f.globalMeanC===null&&f.coverage===null&&f.coverageResolved===false&&f.uncertaintyResolved===false);
     const partial=D.assessTemperatureField({cells,baselineC:14});
-    t('partial field refuses fake global coverage',partial.coverage===null&&partial.coverageResolved===false);
+    t('partial field refuses fake global coverage',partial.coverage===null&&partial.coverageResolved===false&&partial.globalMeanUncertaintyC===null);
     const v=D.verdict({evidenceStrength:.95,coverage:.1});
     t('low coverage blocks strong judgment',v.level==='unknown');
     const o=D.verdict({officialAlert:true});
