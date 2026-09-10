@@ -1,0 +1,14 @@
+const DOMSHazardResearch=(()=>{
+  const enc=encodeURIComponent;
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  async function getJSON(url,ms=9000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,headers:{Accept:'application/json'}});if(!r.ok)throw new Error(String(r.status));return await r.json()}finally{clearTimeout(t)}}
+  function phrase(e){const parts=[e.kind,e.title];if(Number.isFinite(e.lat)&&Number.isFinite(e.lon))parts.push(`${e.lat.toFixed(2)} ${e.lon.toFixed(2)}`);return parts.filter(Boolean).join(' ')}
+  async function crossref(q){const d=await getJSON(`https://api.crossref.org/works?query.bibliographic=${enc(q)}&rows=4`);return(d.message&&d.message.items||[]).map(x=>({source:'Crossref',title:Array.isArray(x.title)?x.title[0]:(x.title||x.DOI),url:x.URL||`https://doi.org/${x.DOI}`}))}
+  async function openalex(q){const d=await getJSON(`https://api.openalex.org/works?search=${enc(q)}&per-page=4`);return(d.results||[]).map(x=>({source:'OpenAlex',title:x.display_name,url:x.doi||(x.primary_location&&x.primary_location.landing_page_url)||x.id}))}
+  async function datagov(q){const d=await getJSON(`https://catalog.data.gov/api/3/action/package_search?q=${enc(q)}&rows=4`);return(d.result&&d.result.results||[]).map(x=>({source:'Data.gov',title:x.title||x.name,url:`https://catalog.data.gov/dataset/${x.name}`}))}
+  async function earthdata(q){const d=await getJSON(`https://cmr.earthdata.nasa.gov/search/collections.json?keyword=${enc(q)}&page_size=4`);return(d.feed&&d.feed.entry||[]).map(x=>({source:'NASA Earthdata',title:x.title||x.short_name,url:(x.links||[]).find(l=>l.href&&/^https?:/i.test(l.href))?.href||`https://search.earthdata.nasa.gov/search?q=${enc(q)}`}))}
+  function dedupe(rows){const seen=new Set();return rows.filter(r=>{const k=String(r.title||'').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,140);if(!k||seen.has(k))return false;seen.add(k);return true})}
+  async function contextForEvent(e){const q=phrase(e),jobs=[crossref(q),openalex(q),datagov(q),earthdata(q)],s=await Promise.allSettled(jobs),rows=dedupe(s.filter(x=>x.status==='fulfilled').flatMap(x=>x.value)).slice(0,12);return{query:q,responded:s.filter(x=>x.status==='fulfilled').length,total:s.length,rows}}
+  function render(ctx){if(!ctx.rows.length)return'<div class="tiny">No inline research context returned. Use DOMS Research for a broader search.</div>';return `<div class="tiny">${ctx.responded}/${ctx.total} research connectors responded</div><div class="research-links">${ctx.rows.map(r=>`<a target="_blank" rel="noopener" href="${esc(r.url)}"><small>${esc(r.source)}</small> ${esc(r.title)}</a>`).join('')}</div>`}
+  return{contextForEvent,render};
+})();
