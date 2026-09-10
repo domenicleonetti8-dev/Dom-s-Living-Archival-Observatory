@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """D.O.M. persistent observation broker.
 
-Standard-library service for a Pi/server host. It keeps source state separate from
-planet state and emits only normalized dom.observation.v1 records.
+Standard-library service for a Pi/server host. Source/network health remains
+separate from Earth health. Canonical observations are persisted in SQLite and
+emitted as dom.observation.v1 records.
 """
 from __future__ import annotations
 
@@ -10,6 +11,7 @@ import json
 import math
 import os
 import signal
+import sqlite3
 import threading
 import time
 import urllib.request
@@ -22,8 +24,9 @@ HOST = os.getenv("DOM_BROKER_HOST", "0.0.0.0")
 PORT = int(os.getenv("DOM_BROKER_PORT", "8787"))
 POLL_SECONDS = max(30, int(os.getenv("DOM_BROKER_POLL_SECONDS", "60")))
 MAX_RECORDS = max(1000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "20000")))
+DB_PATH = os.getenv("DOM_BROKER_DB", os.path.join(os.path.dirname(__file__), "dom_observations.sqlite3"))
 ALLOWED_ORIGINS = {x.strip() for x in os.getenv("DOM_ALLOWED_ORIGINS", "https://domenicleonetti8-dev.github.io,http://localhost,http://127.0.0.1").split(",") if x.strip()}
-USER_AGENT = "DOMS-Living-Archival-Observatory/0.2 public-research-broker"
+USER_AGENT = "DOMS-Living-Archival-Observatory/0.3 public-research-broker"
 REGISTERED_SOURCE_IDS = (
     "wmo-gos", "gcos", "copernicus-era5", "argo", "usgs-eq", "usgs-water",
     "ndbc-stdmet", "ndbc-ocean", "ndbc-waterlevel", "ndbc-dart", "nws-alerts",
@@ -106,7 +109,8 @@ def poll_usgs() -> List[dict]:
         r = record(source_id=f"usgs:{fid}", lineage="usgs-comcat", agency="USGS", network="USGS ComCat",
                    kind="Earthquake", modality="seismic", observed_at=iso_ms(p.get("time")), lat=co[1], lon=co[0],
                    source=p.get("url"), title=p.get("place") or "Earthquake", locationPrecision="epicenter",
-                   mag=float(mag) if isinstance(mag, (int, float)) else None, quality=0.98)
+                   mag=float(mag) if isinstance(mag, (int, float)) else None, quality=0.98,
+                   observationStatus="observed")
         if r:
             out.append(r)
     return out
@@ -139,7 +143,7 @@ def poll_eonet() -> List[dict]:
         r = record(source_id=f"eonet:{eid}", lineage="nasa-eonet", agency="NASA EONET", network="NASA EONET",
                    kind=kind, modality="event-aggregation", observed_at=observed, lat=lat, lon=lon, source=url,
                    title=e.get("title") or kind, locationPrecision="event-geometry-point" if valid_lat_lon(lat, lon) else "unresolved",
-                   authoritative=True, quality=0.84)
+                   authoritative=True, quality=0.84, observationStatus="aggregated")
         if r:
             out.append(r)
     return out
@@ -157,18 +161,49 @@ class SourceState:
 
 
 class Broker:
-    def __init__(self):
+    def __init__(self, db_path: str = ":memory:"):
         self.lock = threading.RLock()
+        self.db_path = db_path
+        self.db = sqlite3.connect(db_path, check_same_thread=False)
+        self.db.execute("PRAGMA journal_mode=WAL")
+        self.db.execute("CREATE TABLE IF NOT EXISTS observations (record_key TEXT PRIMARY KEY, received_at TEXT NOT NULL, payload TEXT NOT NULL)")
+        self.db.execute("CREATE INDEX IF NOT EXISTS observations_received_idx ON observations(received_at)")
+        self.db.commit()
         self.records: Dict[str, dict] = {}
         self.sources: Dict[str, SourceState] = {sid: SourceState(sid) for sid in REGISTERED_SOURCE_IDS}
         self.adapters: Dict[str, Callable[[], List[dict]]] = {"usgs-eq": poll_usgs, "nasa-eonet": poll_eonet}
         self.last_batch: List[dict] = []
         self.version = 0
         self.stop_event = threading.Event()
+        self._load_persisted()
 
     @staticmethod
     def key(r: dict) -> str:
         return f"{r.get('lineageId','')}|{r.get('sourceId','')}|{r.get('observedAt','')}"
+
+    def _load_persisted(self):
+        with self.lock:
+            rows = self.db.execute("SELECT record_key,payload FROM observations ORDER BY received_at DESC LIMIT ?", (MAX_RECORDS,)).fetchall()
+            for k, payload in rows:
+                try:
+                    r = json.loads(payload)
+                    if r.get("schema") == "dom.observation.v1":
+                        self.records[k] = r
+                except (TypeError, json.JSONDecodeError):
+                    continue
+
+    def _persist_batch(self, rows: List[dict]):
+        with self.lock:
+            for r in rows:
+                k = self.key(r)
+                self.records[k] = r
+                self.db.execute("INSERT OR REPLACE INTO observations(record_key,received_at,payload) VALUES(?,?,?)",
+                                (k, r.get("receivedAt") or iso_now(), json.dumps(r, separators=(",", ":"), ensure_ascii=False)))
+            self.db.execute("DELETE FROM observations WHERE record_key NOT IN (SELECT record_key FROM observations ORDER BY received_at DESC LIMIT ?)", (MAX_RECORDS,))
+            self.db.commit()
+            if len(self.records) > MAX_RECORDS:
+                keep = {row[0] for row in self.db.execute("SELECT record_key FROM observations").fetchall()}
+                self.records = {k: v for k, v in self.records.items() if k in keep}
 
     def poll_once(self):
         for sid, fn in self.adapters.items():
@@ -176,13 +211,8 @@ class Broker:
             started = time.monotonic()
             try:
                 rows = fn()
+                self._persist_batch(rows)
                 with self.lock:
-                    for r in rows:
-                        self.records[self.key(r)] = r
-                    if len(self.records) > MAX_RECORDS:
-                        oldest = sorted(self.records, key=lambda k: self.records[k].get("receivedAt") or "")[: len(self.records) - MAX_RECORDS]
-                        for k in oldest:
-                            self.records.pop(k, None)
                     self.last_batch = list(rows)
                     self.version += 1
                 st.status = "active"
@@ -213,12 +243,17 @@ class Broker:
     def source_snapshot(self):
         return [asdict(self.sources[sid]) for sid in REGISTERED_SOURCE_IDS]
 
+    def close(self):
+        with self.lock:
+            self.db.commit()
+            self.db.close()
 
-BROKER = Broker()
+
+BROKER = Broker(DB_PATH)
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DOMObservationBroker/0.2"
+    server_version = "DOMObservationBroker/0.3"
 
     def log_message(self, fmt, *args):
         print(f"[{iso_now()}] {self.client_address[0]} {fmt % args}")
@@ -255,7 +290,8 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/health":
             self.send_json(200, {"ok": True, "service": "dom-observation-broker", "version": BROKER.version,
-                                 "records": len(BROKER.snapshot()), "sources": BROKER.source_snapshot(), "time": iso_now()})
+                                 "records": len(BROKER.snapshot()), "sources": BROKER.source_snapshot(), "time": iso_now(),
+                                 "persistent": BROKER.db_path != ":memory:"})
         elif path == "/v1/observations":
             self.send_json(200, {"schema": "dom.observation.batch.v1", "generatedAt": iso_now(), "records": BROKER.snapshot()})
         elif path == "/v1/sources":
@@ -296,12 +332,13 @@ def main():
         threading.Thread(target=server.shutdown, daemon=True).start()
     signal.signal(signal.SIGINT, stop)
     signal.signal(signal.SIGTERM, stop)
-    print(f"D.O.M. observation broker listening on http://{HOST}:{PORT} · {len(BROKER.adapters)} active adapters · {len(BROKER.sources)} registered source families")
+    print(f"D.O.M. observation broker listening on http://{HOST}:{PORT} · {len(BROKER.adapters)} active adapters · {len(BROKER.sources)} registered source families · SQLite {DB_PATH}")
     try:
         server.serve_forever(poll_interval=0.5)
     finally:
         BROKER.stop_event.set()
         server.server_close()
+        BROKER.close()
 
 
 if __name__ == "__main__":
