@@ -3,6 +3,7 @@ import tempfile
 import unittest
 
 import dom_observation_broker as dom
+from dom_adapters import poll_nws
 
 
 class BrokerTests(unittest.TestCase):
@@ -31,7 +32,7 @@ class BrokerTests(unittest.TestCase):
         b = dom.Broker()
         try:
             self.assertEqual(len(b.sources), len(dom.REGISTERED_SOURCE_IDS))
-            self.assertEqual(set(b.adapters), {"usgs-eq", "nasa-eonet"})
+            self.assertEqual(set(b.adapters), {"usgs-eq", "nasa-eonet", "nws-alerts"})
             self.assertEqual(b.sources["wmo-gos"].status, "registered-not-ingesting")
         finally:
             b.close()
@@ -92,6 +93,24 @@ class BrokerTests(unittest.TestCase):
                     os.unlink(path + suffix)
                 except FileNotFoundError:
                     pass
+
+    def test_nws_adapter_preserves_official_semantics(self):
+        fixture = {"features": [{
+            "id": "https://api.weather.gov/alerts/test",
+            "geometry": {"type": "Polygon", "coordinates": [[[179, 10], [-179, 10], [-179, 12], [179, 12], [179, 10]]]},
+            "properties": {"event": "Test Warning", "sent": "2026-09-10T00:00:00Z", "expires": "2026-09-10T06:00:00Z",
+                           "severity": "Severe", "certainty": "Observed", "urgency": "Immediate",
+                           "@id": "https://api.weather.gov/alerts/test"}
+        }]}
+        rows = poll_nws(lambda _: fixture, dom.record, dom.valid_lat_lon)
+        self.assertEqual(len(rows), 1)
+        r = rows[0]
+        self.assertTrue(r["officialAlert"])
+        self.assertEqual(r["observationStatus"], "observed")
+        self.assertEqual(r["expiresAt"], "2026-09-10T06:00:00Z")
+        self.assertEqual(r["locationPrecision"], "alert-geometry-centroid")
+        self.assertGreater(abs(r["lon"]), 170)
+        self.assertEqual(r["severityText"], "Severe")
 
 
 if __name__ == "__main__":
