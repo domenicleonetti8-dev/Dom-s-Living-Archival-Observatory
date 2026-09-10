@@ -23,7 +23,13 @@ PORT = int(os.getenv("DOM_BROKER_PORT", "8787"))
 POLL_SECONDS = max(30, int(os.getenv("DOM_BROKER_POLL_SECONDS", "60")))
 MAX_RECORDS = max(1000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "20000")))
 ALLOWED_ORIGINS = {x.strip() for x in os.getenv("DOM_ALLOWED_ORIGINS", "https://domenicleonetti8-dev.github.io,http://localhost,http://127.0.0.1").split(",") if x.strip()}
-USER_AGENT = "DOMS-Living-Archival-Observatory/0.1 public-research-broker"
+USER_AGENT = "DOMS-Living-Archival-Observatory/0.2 public-research-broker"
+REGISTERED_SOURCE_IDS = (
+    "wmo-gos", "gcos", "copernicus-era5", "argo", "usgs-eq", "usgs-water",
+    "ndbc-stdmet", "ndbc-ocean", "ndbc-waterlevel", "ndbc-dart", "nws-alerts",
+    "ntwc", "ptwc", "nasa-firms", "nasa-eonet", "gdacs", "swpc", "gfw",
+    "noaa-crw", "nasa-sea-level",
+)
 
 
 def iso_now() -> str:
@@ -39,6 +45,8 @@ def iso_ms(ms) -> Optional[str]:
 
 def valid_lat_lon(lat, lon) -> bool:
     try:
+        if lat is None or lon is None or lat == "" or lon == "":
+            return False
         a, b = float(lat), float(lon)
         return math.isfinite(a) and math.isfinite(b) and -90 <= a <= 90 and -180 <= b <= 180
     except (TypeError, ValueError):
@@ -140,7 +148,7 @@ def poll_eonet() -> List[dict]:
 @dataclass
 class SourceState:
     id: str
-    status: str = "registered"
+    status: str = "registered-not-ingesting"
     last_success: Optional[str] = None
     last_error: Optional[str] = None
     last_duration_ms: Optional[int] = None
@@ -152,14 +160,9 @@ class Broker:
     def __init__(self):
         self.lock = threading.RLock()
         self.records: Dict[str, dict] = {}
-        self.sources: Dict[str, SourceState] = {
-            "usgs-eq": SourceState("usgs-eq"),
-            "nasa-eonet": SourceState("nasa-eonet"),
-        }
-        self.adapters: Dict[str, Callable[[], List[dict]]] = {
-            "usgs-eq": poll_usgs,
-            "nasa-eonet": poll_eonet,
-        }
+        self.sources: Dict[str, SourceState] = {sid: SourceState(sid) for sid in REGISTERED_SOURCE_IDS}
+        self.adapters: Dict[str, Callable[[], List[dict]]] = {"usgs-eq": poll_usgs, "nasa-eonet": poll_eonet}
+        self.last_batch: List[dict] = []
         self.version = 0
         self.stop_event = threading.Event()
 
@@ -180,6 +183,7 @@ class Broker:
                         oldest = sorted(self.records, key=lambda k: self.records[k].get("receivedAt") or "")[: len(self.records) - MAX_RECORDS]
                         for k in oldest:
                             self.records.pop(k, None)
+                    self.last_batch = list(rows)
                     self.version += 1
                 st.status = "active"
                 st.last_success = iso_now()
@@ -202,22 +206,31 @@ class Broker:
         with self.lock:
             return list(self.records.values())
 
+    def stream_batch(self):
+        with self.lock:
+            return list(self.last_batch)
+
     def source_snapshot(self):
-        return [asdict(s) for s in self.sources.values()]
+        return [asdict(self.sources[sid]) for sid in REGISTERED_SOURCE_IDS]
 
 
 BROKER = Broker()
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DOMObservationBroker/0.1"
+    server_version = "DOMObservationBroker/0.2"
 
     def log_message(self, fmt, *args):
         print(f"[{iso_now()}] {self.client_address[0]} {fmt % args}")
 
+    def origin_allowed(self, origin: Optional[str]) -> bool:
+        if not origin:
+            return False
+        return origin in ALLOWED_ORIGINS or origin.startswith("http://localhost:") or origin.startswith("http://127.0.0.1:")
+
     def cors(self):
         origin = self.headers.get("Origin")
-        if origin and origin in ALLOWED_ORIGINS:
+        if self.origin_allowed(origin):
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
 
@@ -244,10 +257,11 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"ok": True, "service": "dom-observation-broker", "version": BROKER.version,
                                  "records": len(BROKER.snapshot()), "sources": BROKER.source_snapshot(), "time": iso_now()})
         elif path == "/v1/observations":
-            rows = BROKER.snapshot()
-            self.send_json(200, {"schema": "dom.observation.batch.v1", "generatedAt": iso_now(), "records": rows})
+            self.send_json(200, {"schema": "dom.observation.batch.v1", "generatedAt": iso_now(), "records": BROKER.snapshot()})
         elif path == "/v1/sources":
-            self.send_json(200, {"sources": BROKER.source_snapshot(), "registered": len(BROKER.sources), "activeAdapters": len(BROKER.adapters)})
+            sources = BROKER.source_snapshot()
+            self.send_json(200, {"sources": sources, "registered": len(sources), "activeAdapters": len(BROKER.adapters),
+                                 "active": sum(1 for x in sources if x["status"] == "active")})
         elif path == "/v1/stream":
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
@@ -260,10 +274,13 @@ class Handler(BaseHTTPRequestHandler):
                 while not BROKER.stop_event.is_set():
                     if BROKER.version != last:
                         last = BROKER.version
-                        payload = json.dumps({"schema": "dom.observation.batch.v1", "records": BROKER.snapshot()}, separators=(",", ":"))
+                        payload = json.dumps({"schema": "dom.observation.batch.v1", "records": BROKER.stream_batch()}, separators=(",", ":"))
                         self.wfile.write(f"event: observations\ndata: {payload}\n\n".encode())
                         self.wfile.flush()
-                    time.sleep(5)
+                    else:
+                        self.wfile.write(b": keepalive\n\n")
+                        self.wfile.flush()
+                    time.sleep(10)
             except (BrokenPipeError, ConnectionResetError):
                 pass
         else:
@@ -279,7 +296,7 @@ def main():
         threading.Thread(target=server.shutdown, daemon=True).start()
     signal.signal(signal.SIGINT, stop)
     signal.signal(signal.SIGTERM, stop)
-    print(f"D.O.M. observation broker listening on http://{HOST}:{PORT} · {len(BROKER.adapters)} active adapters")
+    print(f"D.O.M. observation broker listening on http://{HOST}:{PORT} · {len(BROKER.adapters)} active adapters · {len(BROKER.sources)} registered source families")
     try:
         server.serve_forever(poll_interval=0.5)
     finally:
