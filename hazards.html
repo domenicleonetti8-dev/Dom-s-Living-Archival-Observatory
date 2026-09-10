@@ -16,13 +16,13 @@ body{min-height:100vh}.hazard-shell{max-width:1400px;margin:auto;padding:24px}.h
 <section class="hazard-hero">
 <div class="status-row"><div><div class="hazard-badge"><span class="pulse"></span><span>ISOLATED PROTOTYPE · GLOBAL HAZARD OBSERVATORY</span></div><h1>D.O.M. — Diverse Observation Machine</h1><p>One global observation tower for mathematically scored, evidence-backed natural and civilian public-safety hazards using diverse sensors, authoritative feeds, research and transparent uncertainty.</p></div><a href="./index.html">← DOMS home</a></div>
 <div class="notice"><strong>Safety boundary:</strong> D.O.M. is a research and situational-awareness layer. It does not replace emergency services or official warnings. Future month/year values are scenario or statistical projection windows, never deterministic promises.</div>
-<div class="alert-mode"><button id="enableLocal" type="button">Enable local hazard awareness</button><button id="refreshAll" type="button">Refresh global network</button><span id="localState" class="tiny">Location off · alerts off</span></div>
-<div class="voice-panel"><strong>DOM Voice</strong><div class="alert-mode"><button id="voiceOn" type="button">Enable DOM voice</button><button id="voiceMute" type="button">Mute DOM</button><span id="voiceState" class="tiny">Voice off · manual enable required</span></div><div class="tiny">Every spoken event statement must come from the same evidence object displayed beside that event.</div></div>
+<div class="alert-mode"><button id="enableLocal" type="button">Enable local hazard awareness</button><button id="refreshAll" type="button">Refresh global network</button><span id="localState" class="tiny" aria-live="polite">Location off · alerts off</span></div>
+<div class="voice-panel"><strong>DOM Voice</strong><div class="alert-mode"><button id="voiceOn" type="button">Enable DOM voice</button><button id="voiceMute" type="button">Mute DOM</button><span id="voiceState" class="tiny" aria-live="polite">Voice off · manual enable required</span></div><div class="tiny">Every spoken event statement must come from the same evidence object displayed beside that event.</div></div>
 </section>
 <div class="hazard-layout">
 <div class="hazard-main">
 <section class="hazard-grid"><article class="hazard-card"><small>EARTHQUAKES</small><strong id="quakeCount">—</strong><span class="hazard-meta">USGS M2.5+ · past 24h</span></article><article class="hazard-card"><small>SEVERE STORMS</small><strong id="stormCount">—</strong><span class="hazard-meta">NASA EONET open events</span></article><article class="hazard-card"><small>WILDFIRES</small><strong id="fireCount">—</strong><span class="hazard-meta">NASA EONET event layer</span></article><article class="hazard-card"><small>VOLCANOES</small><strong id="volcanoCount">—</strong><span class="hazard-meta">NASA EONET event layer</span></article></section>
-<section style="margin-top:24px"><div class="status-row"><div><p class="eyebrow">GLOBAL EVENT + SENSOR FIELD</p><h2>Highest-priority active signals</h2></div><div class="risk-strip"><span class="risk-pill">Evidence strength %</span><span class="risk-pill">Hazard intensity</span><span class="risk-pill">Independent lineages</span><span class="risk-pill">Uncertainty</span><span class="risk-pill">Impact horizon</span></div></div><div class="sensor-legend"><span><i class="dot gray"></i>idle</span><span><i class="dot cyan"></i>watching</span><span><i class="dot green"></i>active</span><span><i class="dot yellow"></i>elevated</span><span><i class="dot orange"></i>heavy</span><span><i class="dot red"></i>critical contribution</span></div><div class="map-shell" id="map"><div class="globe-grid"></div></div><div id="sourceState" class="source-state">Loading authoritative feeds…</div></section>
+<section style="margin-top:24px"><div class="status-row"><div><p class="eyebrow">GLOBAL EVENT + SENSOR FIELD</p><h2>Highest-priority active signals</h2></div><div class="risk-strip"><span class="risk-pill">Evidence strength %</span><span class="risk-pill">Hazard intensity</span><span class="risk-pill">Independent lineages</span><span class="risk-pill">Uncertainty</span><span class="risk-pill">Impact horizon</span></div></div><div class="sensor-legend"><span><i class="dot gray"></i>idle</span><span><i class="dot cyan"></i>watching</span><span><i class="dot green"></i>active</span><span><i class="dot yellow"></i>elevated</span><span><i class="dot orange"></i>heavy</span><span><i class="dot red"></i>critical contribution</span></div><div class="map-shell" id="map"><div class="globe-grid"></div></div><div id="sourceState" class="source-state" aria-live="polite">Loading authoritative feeds…</div></section>
 <section style="margin-top:28px"><p class="eyebrow">EVENT FUSION + RESEARCH + EVIDENCE VOICE</p><h2>Correlated active events</h2><p>Each event carries visible evidence, source lineage, location, measurement strength and uncertainty.</p><div id="events" class="hazard-card event-list"></div></section>
 <section style="margin-top:28px"><p class="eyebrow">PLANETARY DEFENSE DOMAINS</p><div class="hazard-grid"><article class="hazard-card"><h3>Atmosphere + climate</h3><p>WMO observing networks, Copernicus/ECMWF reanalysis, temperature fields, pressure, wind, moisture, precipitation and extremes.</p></article><article class="hazard-card"><h3>Ocean + sea level</h3><p>Buoys, Argo profiling floats, tide gauges, satellites, storm surge, wave state, ocean heat and NASA/IPCC regional sea-level projections.</p></article><article class="hazard-card"><h3>Forests</h3><p>Satellite disturbance alerts, vegetation loss, fire interaction and confirmed deforestation evidence separated from preliminary disturbance.</p></article><article class="hazard-card"><h3>Coral reefs</h3><p>NOAA Coral Reef Watch SST, anomaly, HotSpot, Degree Heating Week, bleaching alerts and outlooks.</p></article><article class="hazard-card"><h3>Ice + snow</h3><p>Snow-water equivalent, snowfall, freeze-thaw, ice instability, glacier/ice-sheet change and runoff coupling.</p></article><article class="hazard-card"><h3>Geophysical + biosphere</h3><p>Earthquakes, volcanoes, hydrology, ecosystem change, biodiversity observations and multi-hazard interactions.</p></article></div></section>
 </div>
@@ -32,19 +32,19 @@ body{min-height:100vh}.hazard-shell{max-width:1400px;margin:auto;padding:24px}.h
 <script src="./dom-observation-model.js?v=2" defer></script>
 <script src="./dom-hazard-taxonomy.js?v=1" defer></script>
 <script src="./dom-environment-fusion.js?v=2" defer></script>
-<script src="./dom-environmental-defense.js?v=2" defer></script>
+<script src="./dom-environmental-defense.js?v=3" defer></script>
 <script src="./dom-planet-health.js?v=3" defer></script>
 <script src="./dom-planetary-ecosystem-defense.js?v=2" defer></script>
 <script src="./dom-public-sensor-registry.js?v=2" defer></script>
-<script src="./dom-sensor-activation.js?v=1" defer></script>
+<script src="./dom-sensor-activation.js?v=2" defer></script>
 <script src="./dom-global-sensor-globe.js?v=4" defer></script>
 <script src="./hazard-research-bridge.js?v=2" defer></script>
-<script src="./hazard-voice.js?v=5" defer></script>
+<script src="./hazard-voice.js?v=6" defer></script>
 <script src="./dom-global-compat.js?v=2" defer></script>
 <script src="./dom-observation-model-tests.js?v=1" defer></script>
 <script src="./environment-fusion-tests.js?v=1" defer></script>
-<script src="./environmental-defense-tests.js?v=2" defer></script>
-<script src="./sensor-activation-tests.js?v=1" defer></script>
+<script src="./environmental-defense-tests.js?v=3" defer></script>
+<script src="./sensor-activation-tests.js?v=2" defer></script>
 <script src="./planet-health-tests.js?v=3" defer></script>
 <script src="./ecosystem-defense-tests.js?v=1" defer></script>
 <script src="./hazards.js?v=11" defer></script>
