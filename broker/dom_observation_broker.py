@@ -39,7 +39,7 @@ OBSERVATION_STATUSES = {"observed", "aggregated", "reported", "forecast", "proje
 REGISTERED_SOURCE_IDS = (
     "wmo-gos", "gcos", "copernicus-era5", "argo", "usgs-eq", "usgs-water",
     "ndbc-stdmet", "ndbc-ocean", "ndbc-waterlevel", "ndbc-dart", "nws-alerts",
-    "ntwc", "ptwc", "nasa-firms", "nasa-eonet", "gdacs", "swpc", "gfw",
+    "ntwc", "ptwc", "nhc-tropical", "nasa-firms", "nasa-eonet", "gdacs", "swpc", "gfw",
     "noaa-crw", "nasa-sea-level", "earthscope-fdsn", "usgs-water-sites",
 )
 
