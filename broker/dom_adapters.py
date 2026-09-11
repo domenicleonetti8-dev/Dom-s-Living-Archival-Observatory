@@ -8,6 +8,8 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Callable
 
+from nhc_gis_adapter import poll_nhc_current_storms
+
 ADAPTER_USER_AGENT = "DOMS-Living-Archival-Observatory/0.1 public-research-adapters"
 
 
@@ -220,6 +222,7 @@ def builtin_adapters(get_json, make_record, valid_lat_lon) -> Dict[str, Callable
         "swpc": lambda: poll_swpc(get_json, make_record, valid_lat_lon),
         "ntwc": lambda: poll_tsunami_atom(_get_text, make_record, "ntwc"),
         "ptwc": lambda: poll_tsunami_atom(_get_text, make_record, "ptwc"),
+        "nhc-tropical": lambda: poll_nhc_current_storms(get_json, make_record, valid_lat_lon),
     }
 
 
