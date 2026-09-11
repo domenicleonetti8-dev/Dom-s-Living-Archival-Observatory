@@ -45,7 +45,7 @@ class CombinedServerIntegrationTests(unittest.TestCase):
             body = response.read()
             return response.status, response.headers, json.loads(body) if body else None
 
-    def test_one_server_exposes_observation_and_visitor_surfaces(self):
+    def test_one_server_exposes_observation_visitor_and_apple_ar_surfaces(self):
         status, _, health = self.json_request("/health")
         self.assertEqual(status, 200)
         self.assertTrue(health["ok"])
@@ -60,6 +60,14 @@ class CombinedServerIntegrationTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(sources["activeAdapters"], 0)
         self.assertGreater(sources["registered"], 0)
+
+        status, _, ar = self.json_request("/v1/ar/state")
+        self.assertEqual(status, 200)
+        self.assertEqual(ar["schema"], "dom.apple-ar.state.v1")
+        self.assertEqual(ar["objects"], [])
+        self.assertEqual(ar["coverage"]["registeredSourceFamilies"], sources["registered"])
+        self.assertGreaterEqual(ar["coverage"]["satelliteLayerFamilies"], 8)
+        self.assertTrue(ar["truth"]["missingFeedMeaning"])
 
         status, _, before = self.json_request("/v1/visitors")
         self.assertEqual(status, 200)
@@ -80,6 +88,33 @@ class CombinedServerIntegrationTests(unittest.TestCase):
         _, _, after = self.json_request("/v1/visitors")
         self.assertEqual(after["totalVisitors"], 1)
         self.assertEqual(after["liveNow"], 1)
+
+    def test_ar_state_projects_canonical_observation_without_fake_location(self):
+        located = core.record(
+            source_id="station-a", lineage="test-lineage", agency="Test Agency", network="Test Network",
+            kind="Ocean Sensor", modality="buoy", observed_at="2026-09-11T00:00:00Z",
+            lat=40.1, lon=-73.9, source="https://example.com/station-a", title="Station A",
+            observationStatus="observed", quality=1.0,
+        )
+        unlocated = core.record(
+            source_id="space-a", lineage="space-lineage", agency="Test Agency", network="Test Space",
+            kind="Space Weather", modality="space-weather-alert", observed_at="2026-09-11T00:01:00Z",
+            lat=None, lon=None, source="https://example.com/space-a", title="Space product",
+            observationStatus="reported", quality=1.0,
+        )
+        self.broker._persist_batch([located, unlocated])
+        self.broker.version = 1
+
+        _, _, ar = self.json_request("/v1/ar/state")
+        by_id = {row["id"]: row for row in ar["objects"]}
+        self.assertEqual(by_id["station-a"]["lat"], 40.1)
+        self.assertEqual(by_id["station-a"]["lon"], -73.9)
+        self.assertEqual(by_id["station-a"]["role"], "sensor")
+        self.assertIsNone(by_id["space-a"]["lat"])
+        self.assertIsNone(by_id["space-a"]["lon"])
+        self.assertEqual(by_id["space-a"]["role"], "event")
+        self.assertEqual(ar["coverage"]["locatedRecords"], 1)
+        self.assertEqual(ar["coverage"]["unlocatedRecords"], 1)
 
     def test_cors_preflight_allows_visitor_post(self):
         req = urllib.request.Request(
