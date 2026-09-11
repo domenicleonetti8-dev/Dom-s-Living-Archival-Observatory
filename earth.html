@@ -76,6 +76,26 @@
     <p class="earth-truth">One instrument must correspond to one source-backed object with agency, network, modality, location, live/stale state, provenance and observation time. Surface stations stay on Earth, marine instruments stay at sea, depth instruments retain depth, and satellites/orbital platforms remain separate from surface geometry. Private, classified, inaccessible or non-geolocated instruments are never invented.</p>
   </section>
 
+  <section class="earth-grid">
+    <article class="earth-panel">
+      <p class="eyebrow">APPLE AR DATA BRIDGE</p>
+      <h2>Same canonical objects as the Earth view</h2>
+      <p id="arSystemState" class="earth-note" aria-live="polite">Checking AR data path…</p>
+      <div class="earth-actions">
+        <button id="checkAR" type="button">Check AR data path</button>
+        <button id="exportAR" type="button">Export AR scene snapshot</button>
+      </div>
+      <p class="earth-truth">The AR scene packet carries source-backed coordinates, network, modality, timestamps, elevation/depth when supplied, provenance and measurement metadata. A static JSON/USDZ snapshot is never mislabeled as continuously live RealityKit.</p>
+    </article>
+    <article class="earth-panel">
+      <p class="eyebrow">MATH + STATISTICAL OUTLOOK</p>
+      <h2>Predict only when evidence supports prediction</h2>
+      <p id="predictionState" class="earth-note" aria-live="polite">Prediction engine ready for qualified time series.</p>
+      <div class="earth-actions"><button id="runPrediction" type="button">Evaluate prediction readiness</button></div>
+      <p class="earth-truth">D.O.M. uses explicit statistical models with sample counts, fit quality and uncertainty intervals. It withholds prediction when there is not enough numeric history and never presents extrapolation as certainty or official guidance.</p>
+    </article>
+  </section>
+
   <section class="earth-panel earth-wide">
     <p class="eyebrow">APPLE AR BOUNDARY</p>
     <h2>Native walk-around AR is a separate delivery target</h2>
@@ -85,8 +105,10 @@
 <script src="./dom-runtime-config.js?v=1"></script>
 <script src="./dom-public-sensor-registry.js?v=2"></script>
 <script src="./dom-scientific-instrument-fabric.js?v=1"></script>
+<script src="./dom-statistical-prediction.js?v=1"></script>
 <script src="./earth-source-audit.js?v=1"></script>
 <script src="./earth-scientific-fabric-ui.js?v=1"></script>
+<script src="./earth-ar-prediction-ui.js?v=1"></script>
 <script type="module" src="./earth.js?v=1"></script>
 </body>
 </html>
