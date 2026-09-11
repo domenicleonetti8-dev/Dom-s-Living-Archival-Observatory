@@ -37,6 +37,8 @@ jobs:
         run: node ci/dom-scientific-broker-integration-test.js
       - name: Earth controls, AR bridge and prediction qualification
         run: node ci/dom-control-ar-prediction-test.js
+      - name: Extreme events and Earth vitals qualification
+        run: node ci/dom-extreme-events-vitals-test.js
       - name: Canonical JavaScript organism execution
         run: node ci/dom-canonical-runtime-test.js
       - name: Hazard semantics execution
