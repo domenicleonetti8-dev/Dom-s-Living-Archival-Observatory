@@ -7,6 +7,7 @@ const recordKeys=new Set();
 const areaKeys=new Set();
 const sourceStates=new Map();
 const windFeatures=[];
+const windCellKeys=new Set();
 let map=null;
 let googleMap=null;
 let googleMarkers=[];
@@ -14,6 +15,7 @@ let earthImageryVisible=true;
 let stormsVisible=true;
 let airCurrentsVisible=true;
 let windValidTime=null;
+let windFetchedAt=null;
 
 const colorFor={earthquake:'#5ae5ff',hazard:'#ffd43b',station:'#36e58b',alert:'#ff536f'};
 const NASA_BLUE_MARBLE_WMS='https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=BlueMarble_ShadedRelief_Bathymetry&STYLES=&FORMAT=image/jpeg&TRANSPARENT=FALSE&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}';
@@ -100,17 +102,29 @@ function destinationPoint(lat,lon,bearingDeg,distanceKm){
   return [outLon,phi2/rad];
 }
 function windSampleGrid(){const out=[];for(let lat=-75;lat<=75;lat+=15)for(let lon=-170;lon<=170;lon+=20)out.push({lat,lon});return out}
-function nearestHourlyWind(row){const h=row?.hourly;if(!h||!Array.isArray(h.time))return null;const now=Date.now();let best=-1,bestDelta=Infinity;for(let i=0;i<h.time.length;i++){const t=Date.parse(`${h.time[i]}Z`);if(!Number.isFinite(t))continue;const d=Math.abs(t-now);if(d<bestDelta){bestDelta=d;best=i}}if(best<0)return null;const speed=finiteOrNull(h.wind_speed_10m?.[best]),from=finiteOrNull(h.wind_direction_10m?.[best]);if(speed==null||from==null||speed<0)return null;return{time:h.time[best],speedMs:speed,fromDeg:((from%360)+360)%360}}
-function addWindVector(sample,row){const w=nearestHourlyWind(row);if(!w)return false;const flow=(w.fromDeg+180)%360;const visualKm=Math.max(55,Math.min(280,55+w.speedMs*7));const end=destinationPoint(sample.lat,sample.lon,flow,visualKm);const base={source:'ECMWF IFS via Open-Meteo',speedMs:w.speedMs,windFromDeg:w.fromDeg,flowBearingDeg:flow,validTime:w.time,levelMeters:10,visualLengthKm:visualKm,modelNature:'forecast-model-field',displayNote:'Vector length is a visual magnitude encoding, not atmospheric parcel displacement.'};windFeatures.push({type:'Feature',geometry:{type:'LineString',coordinates:[[sample.lon,sample.lat],end]},properties:{...base,featureKind:'vector-line'}});windFeatures.push({type:'Feature',geometry:{type:'Point',coordinates:[sample.lon,sample.lat]},properties:{...base,featureKind:'vector-point'}});windValidTime=windValidTime||w.time;return true}
+function parseUtcHour(v){const s=safeText(v);if(!s)return NaN;return Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(s)?s:`${s}Z`)}
+function nearestHourlyWind(row){const h=row?.hourly;if(!h||!Array.isArray(h.time))return null;const now=Date.now();let best=-1,bestDelta=Infinity;for(let i=0;i<h.time.length;i++){const t=parseUtcHour(h.time[i]);if(!Number.isFinite(t))continue;const d=Math.abs(t-now);if(d<bestDelta){bestDelta=d;best=i}}if(best<0)return null;const speed=finiteOrNull(h.wind_speed_10m?.[best]),from=finiteOrNull(h.wind_direction_10m?.[best]);if(speed==null||from==null||speed<0)return null;return{time:h.time[best],timeMs:parseUtcHour(h.time[best]),speedMs:speed,fromDeg:((from%360)+360)%360}}
+function windTimeOffsetMinutes(validTimeMs,now=Date.now()){return Number.isFinite(validTimeMs)?Math.round((validTimeMs-now)/60000):null}
+function addWindVector(sample,row){
+  const w=nearestHourlyWind(row);if(!w)return false;
+  const cellLat=validLatLon(row?.latitude,row?.longitude)?Number(row.latitude):Number(sample.lat),cellLon=validLatLon(row?.latitude,row?.longitude)?Number(row.longitude):Number(sample.lon);
+  const key=`${cellLat.toFixed(6)}|${cellLon.toFixed(6)}|${safeText(w.time)}`;if(windCellKeys.has(key))return false;windCellKeys.add(key);
+  const flow=(w.fromDeg+180)%360,visualKm=Math.max(55,Math.min(280,55+w.speedMs*7)),end=destinationPoint(cellLat,cellLon,flow,visualKm),offsetMin=windTimeOffsetMinutes(w.timeMs);
+  const base={source:'ECMWF IFS via Open-Meteo',speedMs:w.speedMs,windFromDeg:w.fromDeg,flowBearingDeg:flow,validTime:w.time,validOffsetMinutes:offsetMin,levelMeters:10,visualLengthKm:visualKm,modelNature:'forecast-model-field',sourceCellLatitude:cellLat,sourceCellLongitude:cellLon,requestedSampleLatitude:Number(sample.lat),requestedSampleLongitude:Number(sample.lon),fetchedAt:windFetchedAt,displayNote:'Vector length is a visual magnitude encoding, not atmospheric parcel displacement.'};
+  windFeatures.push({type:'Feature',geometry:{type:'LineString',coordinates:[[cellLon,cellLat],end]},properties:{...base,featureKind:'vector-line'}});
+  windFeatures.push({type:'Feature',geometry:{type:'Point',coordinates:[cellLon,cellLat]},properties:{...base,featureKind:'vector-point'}});
+  windValidTime=windValidTime||w.time;return true
+}
 async function pollWindField(){
   const id='ecmwf-wind';setSource(id,'ECMWF IFS 10 m wind via Open-Meteo','LOADING',0,'global sampled model field · not direct anemometer observations');
-  windFeatures.length=0;windValidTime=null;
+  windFeatures.length=0;windCellKeys.clear();windValidTime=null;windFetchedAt=new Date().toISOString();
   const samples=windSampleGrid(),batchSize=45;let vectors=0,failedBatches=0;
   for(let i=0;i<samples.length;i+=batchSize){const batch=samples.slice(i,i+batchSize),lats=batch.map(x=>x.lat).join(','),lons=batch.map(x=>x.lon).join(',');const url=`${ECMWF_WIND_ENDPOINT}?latitude=${encodeURIComponent(lats)}&longitude=${encodeURIComponent(lons)}&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&forecast_hours=3&timezone=GMT&cell_selection=nearest`;try{const data=await getJSON(url,18000),rows=Array.isArray(data)?data:[data];rows.forEach((row,j)=>{if(batch[j]&&addWindVector(batch[j],row))vectors++})}catch(_){failedBatches++}}
   map?.getSource('dom-air-currents')?.setData(toWindGeoJSON());
-  const state=vectors?(failedBatches?'DEGRADED':'MODEL'):'FAILED';
-  setSource(id,'ECMWF IFS 10 m wind via Open-Meteo',state,vectors,vectors?`${vectors} source-backed model samples · valid ${windValidTime||'time unavailable'} UTC · 15° latitude × 20° longitude display sampling${failedBatches?` · ${failedBatches} batch failures`:''}`:'no usable model-wind samples returned');
-  const s=$('#layerControlState');if(s&&vectors)s.textContent=`Air-current layer loaded from ECMWF IFS model wind via Open-Meteo · ${vectors} sampled 10 m vectors · valid ${windValidTime||'unknown'} UTC. This is model output, not direct wind-station observation.`;
+  const validMs=parseUtcHour(windValidTime),offset=windTimeOffsetMinutes(validMs),stale=offset!=null&&Math.abs(offset)>180,state=vectors?(stale?'STALE MODEL':failedBatches?'DEGRADED':'MODEL'):'FAILED';
+  const timing=offset==null?'valid-time offset unknown':`${Math.abs(offset)} min ${offset>0?'ahead of':'behind'} browser time`;
+  setSource(id,'ECMWF IFS 10 m wind via Open-Meteo',state,vectors,vectors?`${vectors} unique model-grid samples · valid ${windValidTime||'time unavailable'} UTC · ${timing} · display request grid 15° latitude × 20° longitude${failedBatches?` · ${failedBatches} batch failures`:''}`:'no usable model-wind samples returned');
+  const s=$('#layerControlState');if(s&&vectors)s.textContent=`Air-current layer loaded from ECMWF IFS model wind via Open-Meteo · ${vectors} unique returned model-grid cells · valid ${windValidTime||'unknown'} UTC · ${timing}. This is model output, not direct wind-station observation.`;
 }
 
 async function pollUSGS(){const id='usgs';setSource(id,'USGS earthquakes','LOADING',0,'M2.5+ · past day');try{const j=await getJSON('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson');let n=0;for(const f of j.features||[]){const c=f?.geometry?.coordinates;if(!Array.isArray(c)||!validLatLon(c[1],c[0]))continue;if(addRecord({id:`usgs:${f.id}`,source:'USGS',type:'earthquake',title:f.properties?.title||'Earthquake',lat:c[1],lon:c[0],time:f.properties?.time||null,url:f.properties?.url||null,detail:`M${f.properties?.mag??'?'}`,locationPrecision:'epicenter'}))n++}setSource(id,'USGS earthquakes','LIVE',n,'M2.5+ · past day')}catch(e){setSource(id,'USGS earthquakes','FAILED',0,String(e.message||e))}}
@@ -136,7 +150,7 @@ map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-righ
 map.on('load',()=>{installEarthImagery();installObservationLayers();refreshFabric();const s=$('#providerState');if(s)s.textContent='NASA Blue Marble geographic baseline active · source-backed D.O.M. records use published coordinates or authoritative source geometry. Baseline imagery is not live.'});
 map.on('click','dom-observations',e=>{const f=e.features?.[0];if(!f)return;const p=f.properties||{},c=f.geometry?.coordinates||[];new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<strong>${escapeHtml(p.title)}</strong><br><small>${escapeHtml(p.source)} · ${escapeHtml(p.detail)}</small><br><small>${Number(c[1]).toFixed(6)}, ${Number(c[0]).toFixed(6)} · ${escapeHtml(precisionLabel(p.locationPrecision))}</small><br><small>${escapeHtml(uncertaintyText(p,false))}</small><br><small>coordinate display precision is not a claim of physical accuracy</small>${p.time?`<br><small>${escapeHtml(p.time)}</small>`:''}${p.url?`<br><a target="_blank" rel="noopener noreferrer" href="${escapeHtml(p.url)}">official source ↗</a>`:''}`).addTo(map)});
 function geometryPopup(e){const f=e.features?.[0];if(!f)return;const p=f.properties||{};new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<strong>${escapeHtml(p.title)}</strong><br><small>${escapeHtml(p.source)} · authoritative ${escapeHtml(p.geometryRole||'source geometry')}</small><br><small>${escapeHtml(precisionLabel(p.locationPrecision))}; geometry retained instead of inventing an exact point</small><br><small>${escapeHtml(uncertaintyText(p,true))}</small>${p.detail?`<br><small>${escapeHtml(p.detail)}</small>`:''}${p.time?`<br><small>${escapeHtml(p.time)}</small>`:''}${p.url?`<br><a target="_blank" rel="noopener noreferrer" href="${escapeHtml(p.url)}">official source ↗</a>`:''}`).addTo(map)}
-function windPopup(e){const f=e.features?.[0];if(!f)return;const p=f.properties||{};new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<strong>ECMWF IFS 10 m wind</strong><br><small>${Number(p.speedMs).toFixed(1)} m/s · meteorological wind from ${Number(p.windFromDeg).toFixed(0)}° · flow toward ${Number(p.flowBearingDeg).toFixed(0)}°</small><br><small>valid ${escapeHtml(p.validTime||'unknown')} UTC · model forecast field via Open-Meteo</small><br><small>sample location is source-requested WGS84 coordinate; line length is display encoding, not a parcel trajectory</small>`).addTo(map)}
+function windPopup(e){const f=e.features?.[0];if(!f)return;const p=f.properties||{},offset=finiteOrNull(p.validOffsetMinutes),timing=offset==null?'valid-time offset unavailable':`${Math.abs(offset)} min ${offset>0?'ahead of':'behind'} browser time`;new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<strong>ECMWF IFS 10 m wind</strong><br><small>${Number(p.speedMs).toFixed(1)} m/s · meteorological wind from ${Number(p.windFromDeg).toFixed(0)}° · flow toward ${Number(p.flowBearingDeg).toFixed(0)}°</small><br><small>model grid cell ${Number(p.sourceCellLatitude).toFixed(4)}, ${Number(p.sourceCellLongitude).toFixed(4)} · valid ${escapeHtml(p.validTime||'unknown')} UTC · ${escapeHtml(timing)}</small><br><small>requested display sample ${Number(p.requestedSampleLatitude).toFixed(2)}, ${Number(p.requestedSampleLongitude).toFixed(2)} · fetched ${escapeHtml(p.fetchedAt||'unknown')}</small><br><small>returned model-grid coordinate is rendered; line length is a magnitude encoding, not a parcel trajectory</small>`).addTo(map)}
 map.on('click','dom-event-area-fill',geometryPopup);
 map.on('click','dom-event-track-line',geometryPopup);
 map.on('click','dom-air-current-streamlines',windPopup);
@@ -151,4 +165,4 @@ $('#openGoogle')?.addEventListener('click',openGoogle);
 $('#toggleStorms')?.addEventListener('click',toggleStorms);
 $('#toggleAirCurrents')?.addEventListener('click',toggleAirCurrents);
 setInterval(refreshFabric,300000);
-window.DOMEarthRuntime=Object.freeze({refreshFabric,records:()=>records.slice(),areaFeatures:()=>areaFeatures.slice(),windFeatures:()=>windFeatures.slice(),sourceStates:()=>[...sourceStates.values()],validLatLon,googleUrl,sourceGeometryTypes:()=>[...SOURCE_GEOMETRY_TYPES],toggleStorms,toggleAirCurrents,precisionLabel,uncertaintyText,visibleRecords:()=>visibleRecords().slice(),destinationPoint});
+window.DOMEarthRuntime=Object.freeze({refreshFabric,records:()=>records.slice(),areaFeatures:()=>areaFeatures.slice(),windFeatures:()=>windFeatures.slice(),sourceStates:()=>[...sourceStates.values()],validLatLon,googleUrl,sourceGeometryTypes:()=>[...SOURCE_GEOMETRY_TYPES],toggleStorms,toggleAirCurrents,precisionLabel,uncertaintyText,visibleRecords:()=>visibleRecords().slice(),destinationPoint,parseUtcHour,windTimeOffsetMinutes});
