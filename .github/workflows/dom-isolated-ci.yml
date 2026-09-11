@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - global-hazard-observatory-isolated
+      - apple-ar-global-sensor-fabric-isolated
   workflow_dispatch:
 
 permissions:
