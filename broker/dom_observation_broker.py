@@ -22,21 +22,25 @@ from typing import Callable, Dict, List, Optional
 from urllib.parse import urlparse
 
 from dom_adapters import builtin_adapters
+from scientific_station_adapters import poll_earthscope_fdsn, poll_usgs_monitoring_locations
 
 HOST = os.getenv("DOM_BROKER_HOST", "0.0.0.0")
 PORT = int(os.getenv("DOM_BROKER_PORT", "8787"))
 POLL_SECONDS = max(30, int(os.getenv("DOM_BROKER_POLL_SECONDS", "60")))
 SOURCE_STALE_SECONDS = max(POLL_SECONDS * 2, int(os.getenv("DOM_SOURCE_STALE_SECONDS", str(POLL_SECONDS * 3))))
-MAX_RECORDS = max(1000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "20000")))
+INVENTORY_POLL_SECONDS = max(1800, int(os.getenv("DOM_INVENTORY_POLL_SECONDS", "21600")))
+MAX_RECORDS = max(10000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "150000")))
+USGS_SITE_PAGE_LIMIT = max(100, min(10000, int(os.getenv("DOM_USGS_SITE_PAGE_LIMIT", "10000"))))
+USGS_SITE_MAX_PAGES = max(1, min(25, int(os.getenv("DOM_USGS_SITE_MAX_PAGES", "5"))))
 DB_PATH = os.getenv("DOM_BROKER_DB", os.path.join(os.path.dirname(__file__), "dom_observations.sqlite3"))
 ALLOWED_ORIGINS = {x.strip() for x in os.getenv("DOM_ALLOWED_ORIGINS", "https://domenicleonetti8-dev.github.io,http://localhost,http://127.0.0.1").split(",") if x.strip()}
-USER_AGENT = "DOMS-Living-Archival-Observatory/0.9 public-research-broker"
+USER_AGENT = "DOMS-Living-Archival-Observatory/1.0 public-research-broker"
 OBSERVATION_STATUSES = {"observed", "aggregated", "reported", "forecast", "projection", "modeled"}
 REGISTERED_SOURCE_IDS = (
     "wmo-gos", "gcos", "copernicus-era5", "argo", "usgs-eq", "usgs-water",
     "ndbc-stdmet", "ndbc-ocean", "ndbc-waterlevel", "ndbc-dart", "nws-alerts",
     "ntwc", "ptwc", "nasa-firms", "nasa-eonet", "gdacs", "swpc", "gfw",
-    "noaa-crw", "nasa-sea-level",
+    "noaa-crw", "nasa-sea-level", "earthscope-fdsn", "usgs-water-sites",
 )
 
 
@@ -199,6 +203,7 @@ class SourceState:
     id: str
     status: str = "registered-not-ingesting"
     last_success: Optional[str] = None
+    last_attempt: Optional[str] = None
     last_error: Optional[str] = None
     last_duration_ms: Optional[int] = None
     record_count: int = 0
@@ -218,6 +223,14 @@ class Broker:
         self.sources: Dict[str, SourceState] = {sid: SourceState(sid) for sid in REGISTERED_SOURCE_IDS}
         self.adapters: Dict[str, Callable[[], List[dict]]] = {"usgs-eq": poll_usgs, "nasa-eonet": poll_eonet}
         self.adapters.update(builtin_adapters(get_json, record, valid_lat_lon))
+        self.adapters["earthscope-fdsn"] = lambda: poll_earthscope_fdsn(record, valid_lat_lon)
+        self.adapters["usgs-water-sites"] = lambda: poll_usgs_monitoring_locations(
+            record, valid_lat_lon, limit=USGS_SITE_PAGE_LIMIT, max_pages=USGS_SITE_MAX_PAGES)
+        self.adapter_intervals: Dict[str, int] = {
+            "earthscope-fdsn": INVENTORY_POLL_SECONDS,
+            "usgs-water-sites": INVENTORY_POLL_SECONDS,
+        }
+        self.adapter_last_attempt_monotonic: Dict[str, float] = {}
         self.last_batch: List[dict] = []
         self.version = 0
         self.stop_event = threading.Event()
@@ -225,6 +238,8 @@ class Broker:
 
     @staticmethod
     def key(r: dict) -> str:
+        if r.get("inventorySnapshot"):
+            return f"{r.get('lineageId','')}|{r.get('sourceId','')}|inventory"
         return f"{r.get('lineageId','')}|{r.get('sourceId','')}|{r.get('observedAt','')}"
 
     def _load_persisted(self):
@@ -263,12 +278,24 @@ class Broker:
                 merged[k] = r
         return list(merged.values())
 
+    def _adapter_due(self, sid: str, now_mono: float) -> bool:
+        interval = max(0, int(self.adapter_intervals.get(sid, 0)))
+        last = self.adapter_last_attempt_monotonic.get(sid)
+        return last is None or interval <= 0 or now_mono - last >= interval
+
     def poll_once(self):
         cycle_rows: List[dict] = []
         attempted = 0
+        now_mono = time.monotonic()
         for sid, fn in self.adapters.items():
+            if sid not in self.sources:
+                self.sources[sid] = SourceState(sid)
+            if not self._adapter_due(sid, now_mono):
+                continue
             attempted += 1
+            self.adapter_last_attempt_monotonic[sid] = now_mono
             st = self.sources[sid]
+            st.last_attempt = iso_now()
             started = time.monotonic()
             try:
                 rows = fn()
@@ -314,10 +341,12 @@ class Broker:
         out = []
         for sid in REGISTERED_SOURCE_IDS:
             row = asdict(self.sources[sid])
-            row["stale_after_seconds"] = SOURCE_STALE_SECONDS
+            interval = int(self.adapter_intervals.get(sid, POLL_SECONDS))
+            row["poll_interval_seconds"] = interval
+            row["stale_after_seconds"] = max(SOURCE_STALE_SECONDS, interval * 2)
             if row["status"] == "active":
                 last = parse_iso(row.get("last_success"))
-                if last is None or (now - last).total_seconds() > SOURCE_STALE_SECONDS:
+                if last is None or (now - last).total_seconds() > row["stale_after_seconds"]:
                     row["status"] = "stale"
             out.append(row)
         return out
@@ -332,7 +361,7 @@ BROKER = Broker(DB_PATH)
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DOMObservationBroker/0.9"
+    server_version = "DOMObservationBroker/1.0"
 
     def log_message(self, fmt, *args):
         print(f"[{iso_now()}] {self.client_address[0]} {fmt % args}")
