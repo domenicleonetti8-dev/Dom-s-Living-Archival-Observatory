@@ -17,6 +17,6 @@ assert(xo.includes('observedAt:null,publishedAt:p.sent')&&xo.includes('validAt:p
 assert(xo.includes('fetch time never substitutes for event/valid time')&&xo.includes("schema:'dom.ar.extreme-events.v2'"),'extreme-events UI and AR packet preserve temporal truth boundary');
 assert(earth.includes('Station inventory points without observation times remain age UNKNOWN')&&earth.includes('Browser fetch time never makes an old event current'),'Earth freshness audit keeps inventory age unknown and fetch time separate');
 assert(earthHtml.includes('SOURCE TIME + FRESHNESS')&&earthHtml.includes('dom-source-time.js')&&earthHtml.includes('earth-freshness-ui.js'),'Earth page exposes canonical source-time audit');
-assert(xoHtml.includes('observedAt is the source observation/event time')&&xoHtml.includes('fetchedAt is only when D.O.M. retrieved it'),'Extreme Events page explains temporal field meanings');
+assert(xoHtml.includes('observedAt means the source says the phenomenon or position was observed at that time')&&xoHtml.includes('fetchedAt is only when this browser retrieved the source'),'Extreme Events page explains temporal field meanings');
 assert(search.includes('requestedAt')&&search.includes('respondedAt')&&search.includes('Connector response time is not the publication, observation, or update time'),'search connector timing is explicitly separated from record freshness');
 if(process.exitCode)process.exit(process.exitCode);
