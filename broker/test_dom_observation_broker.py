@@ -48,7 +48,7 @@ class BrokerTests(unittest.TestCase):
         try:
             self.assertEqual(len(b.sources), len(dom.REGISTERED_SOURCE_IDS))
             self.assertEqual(set(b.adapters), {
-                "usgs-eq", "nasa-eonet", "nws-alerts", "swpc", "ntwc", "ptwc",
+                "usgs-eq", "nasa-eonet", "nws-alerts", "swpc", "ntwc", "ptwc", "nhc-tropical",
                 "earthscope-fdsn", "usgs-water-sites",
             })
             self.assertEqual(b.sources["wmo-gos"].status, "registered-not-ingesting")
