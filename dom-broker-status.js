@@ -1,10 +1,11 @@
 const DOMBrokerStatus=(()=>{
-  let broker={configured:false,connected:false,error:null,records:0,baseUrl:null,registeredSources:0,activeAdapters:0,activeSources:0,staleSources:0,errorSources:0,notIngestingSources:0},organism={recordCount:0,sensorCount:0,lineages:0,agencies:0},visitorTimer=null,visitor={totalVisitors:null,liveNow:null,error:null,lastUpdate:null};
+  let broker={configured:false,connected:false,error:null,records:0,baseUrl:null,registeredSources:0,activeAdapters:0,activeSources:0,staleSources:0,errorSources:0,notIngestingSources:0},organism={recordCount:0,sensorCount:0,lineages:0,agencies:0},visitorTimer=null,ephemeralVisitorId=null,visitor={totalVisitors:null,liveNow:null,error:null,lastUpdate:null};
   const set=(id,text)=>{const n=document.getElementById(id);if(n)n.textContent=text};
   const validVisitorId=x=>/^[A-Za-z0-9_-]{16,128}$/.test(String(x||''));
+  function makeVisitorId(){if(typeof crypto!=='undefined'&&crypto&&typeof crypto.getRandomValues==='function'){const b=new Uint8Array(18);crypto.getRandomValues(b);return 'v_'+[...b].map(x=>x.toString(16).padStart(2,'0')).join('')}return 'v_'+Math.random().toString(36).slice(2)+Date.now().toString(36)}
   function visitorId(){
     const key='domsAnonymousVisitorV1';
-    try{const old=localStorage.getItem(key);if(validVisitorId(old))return old;let id='';if(crypto&&crypto.getRandomValues){const b=new Uint8Array(18);crypto.getRandomValues(b);id='v_'+[...b].map(x=>x.toString(16).padStart(2,'0')).join('')}else id='v_'+Math.random().toString(36).slice(2)+Date.now().toString(36);localStorage.setItem(key,id);return id}catch(_){return 'v_'+Math.random().toString(36).slice(2)+Date.now().toString(36)}
+    try{const old=localStorage.getItem(key);if(validVisitorId(old))return old;const id=makeVisitorId();localStorage.setItem(key,id);return id}catch(_){if(!validVisitorId(ephemeralVisitorId))ephemeralVisitorId=makeVisitorId();return ephemeralVisitorId}
   }
   function render(){
     const configured=broker.configured===true,connected=broker.connected===true;
