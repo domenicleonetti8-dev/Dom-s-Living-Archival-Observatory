@@ -1,4 +1,5 @@
 const fs=require('fs');
+const vm=require('vm');
 const assert=(ok,msg)=>{if(!ok){console.error('FAIL',msg);process.exitCode=1}else console.log('PASS',msg)};
 const html=fs.readFileSync('extreme-events.html','utf8');
 const js=fs.readFileSync('extreme-events.js','utf8');
@@ -14,6 +15,15 @@ assert(html.includes('must refuse a month/year result'),'forecast boundary refus
 assert(vitals.includes('census.gov/popclock/data/population.php'),'Earth vitals polls Census world population');
 assert(vitals.includes('GLB.Ts+dSST.csv'),'Earth vitals polls NASA GISTEMP monthly anomaly data');
 assert(vitals.includes('LSA_SLR_timeseries_global.php'),'Earth vitals polls NOAA sea-level altimetry product');
-for(const id of ['phPopulation','phTemperature','phSeaLevel','phVitalsFreshness'])assert(sidebar.includes(id),`health gauge exposes ${id}`);
-assert(sidebar.includes('Population is demographic context, not itself a health score'),'health gauge does not turn population into a fake health score');
+assert(vitals.includes('deforestationMillionHaPerYear:10.9')&&vitals.includes('forestAreaBillionHa:4.14'),'forest vital retains FAO FRA 2025 global area and annual deforestation facts');
+assert(vitals.includes('annualLossMillionHa:4.22')&&vitals.includes('forestAreaMillionHa:849'),'forest vital retains FAO South America location-specific facts');
+assert(vitals.includes('globalCoralLossPct:14')&&vitals.includes("period:'2009–2018'"),'coral vital retains GCRMN global observed cover-loss basis');
+assert(vitals.includes('declinePct:48')&&vitals.includes("period:'1980–2024'"),'coral vital retains GCRMN Caribbean observed decline basis');
+assert(vitals.includes('reefAreaExposedPct:84.4'),'coral vital retains NOAA bleaching heat-exposure fact');
+for(const id of ['phPopulation','phTemperature','phSeaLevel','phVitalsFreshness','phDeforestation','phForestWhere','phCoralLoss','phCoralWhere','phCoralHeat','phCoralBasis'])assert(sidebar.includes(id),`health gauge exposes ${id}`);
+assert(sidebar.includes('Population is demographic context, not a health score'),'health gauge does not turn population into a fake health score');
+assert(sidebar.includes('Bleaching heat exposure is not death'),'health gauge separates bleaching exposure from mortality');
+const pct=10.9/4140*100;assert(Math.abs(pct-0.2632850241545894)<1e-12,'FAO global deforestation percentage derivation is exact');
+const coralAnnual=100*(1-Math.pow(.86,1/9));assert(Math.abs(coralAnnual-1.6618463019184682)<1e-12,'global coral annualized compound-equivalent rate derivation is exact');
+const caribAnnual=100*(1-Math.pow(.52,1/44));assert(Math.abs(caribAnnual-1.475207125077782)<1e-12,'Caribbean coral annualized compound-equivalent rate derivation is exact');
 if(process.exitCode)process.exit(process.exitCode);
