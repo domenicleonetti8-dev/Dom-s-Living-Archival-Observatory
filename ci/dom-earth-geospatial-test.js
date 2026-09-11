@@ -13,8 +13,13 @@ assert(earth.includes('id="earthMap"')&&earth.includes('Google Maps overlay'),'E
 assert(js.includes("style:'https://demotiles.maplibre.org/globe.json'")&&js.includes("map.setProjection({type:'globe'})"),'renderer uses geographic globe projection');
 assert(js.includes('validLatLon')&&js.includes("coordinates:[r.lon,r.lat]"),'observations are surface-anchored from validated longitude/latitude');
 assert(js.includes('earthquake.usgs.gov')&&js.includes('eonet.gsfc.nasa.gov')&&js.includes('ndbc.noaa.gov')&&js.includes('tidesandcurrents.noaa.gov')&&js.includes('api.weather.gov'),'multi-source live fabric is wired');
+assert(js.includes("'dom-event-areas'")&&js.includes("'dom-event-area-fill'")&&js.includes("'dom-event-area-line'"),'Earth renderer has dedicated authoritative polygon geometry layers');
+assert(js.includes("['Polygon','MultiPolygon']")&&js.includes("placement:'source-geometry'"),'polygon/multipolygon source geometry is preserved rather than collapsed to a fake exact point');
+assert(js.includes('authoritative polygons')&&js.includes('without geometry'),'NWS Earth status distinguishes rendered source polygons from unlocated alerts');
+assert(js.includes("getJSON(`${root}/v1/sources`")&&js.includes("x.status==='stale'")&&js.includes("x.status==='error'"),'Earth broker panel consumes active/stale/error source health');
 assert(!/Math\.random\s*\(/.test(js),'Earth renderer does not randomly scatter sensor positions');
 assert(audit.includes("DIRECT_BROWSER=new Set(['usgs-eq','nasa-eonet','nws-alerts'])"),'source audit limits direct-browser measurement claims to feeds actually fetched');
 assert(audit.includes("INVENTORY_ONLY=new Set(['ndbc-stdmet','ndbc-ocean','ndbc-waterlevel'])"),'NDBC measurement families are explicitly marked inventory-only on the Earth audit');
-assert(audit.includes('neither means the measurement feed is live'),'source audit explicitly refuses to equate adapter/inventory presence with live measurements');
+assert(audit.includes("label:'LIVE'")&&audit.includes("label:'STALE'")&&audit.includes("label:'FAILED'")&&audit.includes('/v1/sources'),'source audit exposes broker live/stale/failed states when configured');
+assert(audit.includes('LIVE/STALE/FAILED come from the configured broker'),'source audit explains runtime truth semantics');
 if(process.exitCode)process.exit(process.exitCode);
