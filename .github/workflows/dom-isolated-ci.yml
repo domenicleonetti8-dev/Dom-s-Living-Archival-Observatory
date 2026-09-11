@@ -33,6 +33,8 @@ jobs:
         run: node ci/dom-scientific-instrument-fabric-test.js
       - name: Scientific broker integration qualification
         run: node ci/dom-scientific-broker-integration-test.js
+      - name: Earth controls, AR bridge and prediction qualification
+        run: node ci/dom-control-ar-prediction-test.js
       - name: Canonical JavaScript organism execution
         run: node ci/dom-canonical-runtime-test.js
       - name: Hazard semantics execution
