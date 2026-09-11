@@ -27,6 +27,8 @@ jobs:
         run: find . -maxdepth 1 -type f -name '*.js' -print0 | xargs -0 -n1 node --check
       - name: Geographic Earth routing and anchoring
         run: node ci/dom-earth-geospatial-test.js
+      - name: Geographic Earth 20,000-case invariant qualification
+        run: node ci/dom-earth-20000-invariant-test.js
       - name: Canonical JavaScript organism execution
         run: node ci/dom-canonical-runtime-test.js
       - name: Hazard semantics execution
