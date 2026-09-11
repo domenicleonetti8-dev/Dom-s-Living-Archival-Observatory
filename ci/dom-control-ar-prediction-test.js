@@ -20,11 +20,12 @@ const ah=C.headingFromEvent({absolute:true,alpha:90});assert(ah&&Math.abs(ah.hea
 assert(C.shortestDelta(359,1)===2&&C.shortestDelta(1,359)===-2,'compass crosses north by the shortest angular path without a long visual spin');
 assert(earth.includes('BlueMarble_ShadedRelief_Bathymetry')&&earth.includes('gibs.earthdata.nasa.gov'),'Earth physical imagery uses NASA GIBS Blue Marble rather than invented texture');
 assert(earth.includes("type:'raster'")&&earth.includes("'dom-earth-imagery-layer'"),'NASA Earth imagery is installed as a real map raster layer');
-assert(html.includes('not a claim of live satellite photography'),'UI distinguishes physical Earth baseline imagery from live satellite evidence');
+assert(html.includes('not live satellite photography')&&html.includes('acquisition timestamp'),'UI distinguishes baseline imagery from separately timestamped live/near-real-time evidence');
 assert(html.indexOf('dom-earth-geodesy.js')<html.indexOf('earth-ar-prediction-ui.js'),'geodesy loads before AR bridge');
 assert(ui.includes("schema:'dom.ar.scene.v2'")&&ui.includes('latitude:lat')&&ui.includes('longitude:lon'),'AR packet uses canonical source-backed geographic coordinates');
 assert(ui.includes('r.lat??r.latitude')&&ui.includes('r.lon??r.longitude'),'AR bridge accepts canonical and connector latitude/longitude field names without inventing coordinates');
 assert(ui.includes('measurementValue')&&ui.includes('measurementUnit'),'AR bridge preserves canonical broker measurement values and units');
+assert(ui.includes('horizontalAccuracyMeters')&&ui.includes('uncertaintyRadiusMeters')&&ui.includes('confidenceLevel'),'AR bridge preserves source-supplied positional uncertainty');
 assert(ui.includes("Date.parse(m.observedAt||r.observedAt||'')"),'prediction grouping respects measurement-level observation timestamps');
 assert(ui.includes('ecef_m')&&ui.includes('ar_position_m')&&ui.includes('measurements:measurementsOf(r)'),'AR packet carries WGS84 placement and measurement metadata');
 assert(ui.includes('/v1/observations'),'AR and prediction paths consume canonical broker observations');
