@@ -30,8 +30,11 @@ assert(js.includes('horizontalAccuracyMeters')&&js.includes('uncertaintyRadiusMe
 assert(js.includes('source did not publish a numeric horizontal uncertainty'),'Earth popup reports missing numeric uncertainty instead of inferring it');
 assert(ar.includes('horizontalAccuracyMeters')&&ar.includes('uncertaintyRadiusMeters')&&ar.includes('confidenceLevel')&&ar.includes('uncertaintyBasis'),'AR scene contract preserves positional uncertainty metadata');
 assert(ar.includes('Missing accuracy fields remain null rather than inferred'),'AR export states uncertainty null behavior truthfully');
-assert(js.includes('stormAware')&&js.includes('toggleStorms')&&js.includes('AIR_CURRENT_LAYER_IDS')&&js.includes('toggleAirCurrents'),'storm and air-current obstruction controls are wired without inventing current data');
-assert(js.includes('No timestamped air-current data layer is loaded'),'air-current control reports absence instead of fabricating atmospheric data');
+assert(js.includes('stormAware')&&js.includes('toggleStorms')&&js.includes('AIR_CURRENT_LAYER_IDS')&&js.includes('toggleAirCurrents'),'storm and air-current obstruction controls are wired');
+assert(js.includes('api.open-meteo.com/v1/ecmwf')&&js.includes('wind_speed_10m,wind_direction_10m')&&js.includes('forecast_hours=3'),'Earth requests timestamped ECMWF IFS 10 m wind vectors through Open-Meteo');
+assert(js.includes("'dom-air-current-streamlines'")&&js.includes("'dom-air-current-arrows'")&&js.includes("'dom-air-currents'"),'timestamped wind vectors have dedicated source, line and arrow layers');
+assert(js.includes("modelNature:'forecast-model-field'")&&js.includes('Vector length is a visual magnitude encoding')&&earth.includes('forecast-model output, not a direct global anemometer network'),'wind layer is labeled as model output and does not masquerade as direct observation or trajectory');
+assert(js.includes('meteorological wind from')&&js.includes('flow toward'),'wind popup distinguishes meteorological from-direction from displayed flow direction');
 assert(js.includes('authoritative source geometries')&&js.includes('without geometry'),'NWS Earth status distinguishes rendered source geometry from unlocated alerts');
 assert(js.includes("getJSON(`${root}/v1/sources`")&&js.includes("x.status==='stale'")&&js.includes("x.status==='error'"),'Earth broker panel consumes active/stale/error source health');
 assert(broker.includes('"nhc-tropical"'),'NHC tropical source is part of canonical broker source health registry');
