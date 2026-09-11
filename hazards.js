@@ -1,5 +1,5 @@
 const H={events:[],seen:new Set(),user:null,initialized:false,history:new Map(),feedHealth:new Map(),refreshing:false,refreshPending:false,refreshSeq:0,interval:null};
-const q=s=>document.querySelector(s);const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const q=s=>document.querySelector(s);const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const safeUrl=u=>{try{const x=new URL(String(u||''),location.href);return x.protocol==='https:'||x.protocol==='http:'?x.href:'#'}catch(_){return'#'}};
 async function getJSON(url,ms=10000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal,headers:{Accept:'application/json'},cache:'no-store'});if(!r.ok)throw Error(`${r.status} ${r.statusText}`);return await r.json()}finally{clearTimeout(t)}}
 function clamp01(x){const n=Number(x);return Number.isFinite(n)?Math.max(0,Math.min(1,n)):0}
