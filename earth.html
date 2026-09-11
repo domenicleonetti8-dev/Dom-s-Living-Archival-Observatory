@@ -81,37 +81,38 @@
   <section class="earth-grid">
     <article class="earth-panel">
       <p class="eyebrow">APPLE AR DATA BRIDGE</p>
-      <h2>Same canonical objects as the Earth view</h2>
+      <h2>Same Earth, same coordinates, same instruments</h2>
       <p id="arSystemState" class="earth-note" aria-live="polite">Checking AR data path…</p>
       <div class="earth-actions">
         <button id="checkAR" type="button">Check AR data path</button>
         <button id="exportAR" type="button">Export AR scene snapshot</button>
       </div>
-      <p class="earth-truth">The AR scene packet carries source-backed coordinates, network, modality, timestamps, elevation/depth when supplied, provenance and measurement metadata. A static JSON/USDZ snapshot is never mislabeled as continuously live RealityKit.</p>
+      <p class="earth-truth">The AR scene uses the WGS84 reference ellipsoid and converts every valid source coordinate into Earth-centered coordinates before room-scale placement. It carries network, modality, observation time, elevation/depth, provenance and any numeric readings actually supplied by the source. No missing measurement or coordinate is invented.</p>
     </article>
     <article class="earth-panel">
       <p class="eyebrow">MATH + STATISTICAL OUTLOOK</p>
       <h2>Predict only when evidence supports prediction</h2>
       <p id="predictionState" class="earth-note" aria-live="polite">Prediction engine ready for qualified time series.</p>
       <div class="earth-actions"><button id="runPrediction" type="button">Evaluate prediction readiness</button></div>
-      <p class="earth-truth">D.O.M. uses explicit statistical models with sample counts, fit quality and uncertainty intervals. It withholds prediction when there is not enough numeric history and never presents extrapolation as certainty or official guidance.</p>
+      <p class="earth-truth">D.O.M. uses explicit statistical models with sample counts, fit quality, trend significance and prediction intervals. It withholds prediction when there is not enough numeric history and never presents extrapolation as certainty, causal proof or official guidance.</p>
     </article>
   </section>
 
   <section class="earth-panel earth-wide">
     <p class="eyebrow">APPLE AR BOUNDARY</p>
-    <h2>Native walk-around AR is a separate delivery target</h2>
-    <p>This page is the live geographic web Earth. On iPhone it supports touch globe/surface navigation now. A physical room-scale Apple AR launch requires a signed RealityKit client or a qualified USDZ/Quick Look asset; this page will not pretend a normal web canvas is native AR.</p>
+    <h2>Native walk-around AR consumes the same WGS84 scene contract</h2>
+    <p>The web Earth and AR scene now share one geodetic model and one normalized observation contract. The web page still does not pretend to be native room-scale AR: a signed RealityKit client is required for continuous physical walk-around rendering, but it can consume the same Earth shell, instrument coordinates and measurement packets without changing their scientific meaning.</p>
   </section>
 </main>
 <script src="./dom-runtime-config.js?v=1"></script>
 <script src="./dom-public-sensor-registry.js?v=2"></script>
 <script src="./dom-scientific-instrument-fabric.js?v=1"></script>
 <script src="./dom-scientific-measurements.js?v=1"></script>
-<script src="./dom-statistical-prediction.js?v=1"></script>
+<script src="./dom-statistical-prediction.js?v=2"></script>
+<script src="./dom-earth-geodesy.js?v=1"></script>
 <script src="./earth-source-audit.js?v=1"></script>
 <script src="./earth-scientific-fabric-ui.js?v=1"></script>
-<script src="./earth-ar-prediction-ui.js?v=1"></script>
+<script src="./earth-ar-prediction-ui.js?v=2"></script>
 <script type="module" src="./earth.js?v=2"></script>
 </body>
 </html>
