@@ -121,7 +121,7 @@ struct ARGlobeView: UIViewRepresentable {
                     continue
                 }
                 marker.entity.isEnabled = true
-                guard marker.profile.animated, marker.profile.period > 0 else {
+                guard marker.profile.animated, marker.profile.period > 0, !UIAccessibility.isReduceMotionEnabled else {
                     marker.entity.scale = SIMD3<Float>(repeating: 1)
                     continue
                 }
@@ -135,13 +135,17 @@ struct ARGlobeView: UIViewRepresentable {
             guard isLive(status: object.observationStatus, expiresAt: parseDate(object.expiresAt), now: now) else {
                 return LightProfile(id: "off", color: .systemGray, animated: false, period: 0, scaleMin: 1, scaleMax: 1, dimmed: true)
             }
+            if isStale(status: object.observationStatus) {
+                return LightProfile(id: "unknown", color: UIColor(red: 0.44, green: 0.52, blue: 0.58, alpha: 1), animated: false, period: 0, scaleMin: 1, scaleMax: 1, dimmed: true)
+            }
             let activation = object.activation.id.lowercased()
+            let animateAllowed = !UIAccessibility.isReduceMotionEnabled
             let severeOfficial = object.officialAlert && (object.severityText.lowercased().contains("extreme") || object.severityText.lowercased().contains("severe"))
             if severeOfficial || activation == "critical" || activation == "heavy" {
-                return LightProfile(id: "high", color: activation == "heavy" ? .systemOrange : .systemRed, animated: true, period: 1.05, scaleMin: 0.78, scaleMax: 1.34, dimmed: false)
+                return LightProfile(id: "high", color: activation == "heavy" ? .systemOrange : .systemRed, animated: animateAllowed, period: 1.05, scaleMin: 0.78, scaleMax: 1.34, dimmed: false)
             }
             if activation == "elevated" {
-                return LightProfile(id: "medium", color: .systemYellow, animated: true, period: 1.8, scaleMin: 0.88, scaleMax: 1.20, dimmed: false)
+                return LightProfile(id: "medium", color: .systemYellow, animated: animateAllowed, period: 1.8, scaleMin: 0.88, scaleMax: 1.20, dimmed: false)
             }
             if activation == "active" {
                 return LightProfile(id: "low", color: .systemGreen, animated: false, period: 0, scaleMin: 1, scaleMax: 1, dimmed: false)
@@ -150,6 +154,12 @@ struct ARGlobeView: UIViewRepresentable {
                 return LightProfile(id: "steady", color: .systemCyan, animated: false, period: 0, scaleMin: 1, scaleMax: 1, dimmed: false)
             }
             return LightProfile(id: "steady", color: markerColor(for: object), animated: false, period: 0, scaleMin: 1, scaleMax: 1, dimmed: activation == "idle")
+        }
+
+        private func isStale(status: String) -> Bool {
+            status.range(of: "stale", options: .caseInsensitive) != nil ||
+            status.range(of: "unknown", options: .caseInsensitive) != nil ||
+            status.range(of: "unavailable", options: .caseInsensitive) != nil
         }
 
         private func isLive(status: String, expiresAt: Date?, now: Date) -> Bool {
