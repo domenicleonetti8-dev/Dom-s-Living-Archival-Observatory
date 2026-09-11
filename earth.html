@@ -58,6 +58,13 @@
     <p class="earth-truth">This layer is forecast-model output, not a direct global anemometer network and not a continuous fluid simulation. Vector length is only a visual magnitude encoding; it is not a predicted air-parcel trajectory. Model-valid time is compared with browser time and old fields are labeled stale instead of silently presented as current. Sampling gaps or API failures remain visible as degraded or failed source state.</p>
   </section>
 
+  <section class="earth-panel earth-wide">
+    <p class="eyebrow">SOURCE TIME + FRESHNESS</p>
+    <h2>Observation age, publication time, forecast validity and browser fetch time stay separate</h2>
+    <div id="earthFreshnessSummary"><p>Waiting for source-time audit…</p></div>
+    <p class="earth-truth">observedAt is the source observation/event time. publishedAt is when a source issued or published a record. validAt is the time a forecast, model or alert applies to. fetchedAt is only when D.O.M. retrieved it. No one of these is silently substituted for another.</p>
+  </section>
+
   <section class="earth-grid">
     <article class="earth-panel">
       <p class="eyebrow">SOURCE INGESTION STATUS</p>
@@ -130,9 +137,11 @@
 <script src="./dom-scientific-measurements.js?v=1"></script>
 <script src="./dom-statistical-prediction.js?v=2"></script>
 <script src="./dom-earth-geodesy.js?v=1"></script>
+<script src="./dom-source-time.js?v=1"></script>
 <script src="./earth-source-audit.js?v=1"></script>
 <script src="./earth-scientific-fabric-ui.js?v=1"></script>
 <script src="./earth-ar-prediction-ui.js?v=3"></script>
 <script type="module" src="./earth.js?v=6"></script>
+<script src="./earth-freshness-ui.js?v=1"></script>
 </body>
 </html>
