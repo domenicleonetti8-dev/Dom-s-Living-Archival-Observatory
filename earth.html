@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#031416">
+<meta name="description" content="D.O.M. geographic Earth: real map geometry with live observation overlays anchored to latitude and longitude.">
+<title>D.O.M. Geographic Earth</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="./styles.css?v=6">
+<link rel="stylesheet" href="./earth.css?v=1">
+</head>
+<body class="earth-page">
+<header class="earth-header">
+  <a class="brand" href="./index.html"><strong>DOMS</strong><span>Living Archival Observatory</span></a>
+  <div class="earth-header-links"><a href="./hazards.html">⚠ Hazard Observatory</a><a href="./index.html">Home</a></div>
+</header>
+<main class="earth-shell">
+  <section class="earth-intro">
+    <p class="eyebrow">GEOGRAPHIC EARTH · LIVE OBSERVATION FABRIC</p>
+    <h1>Apple Earth / Global Sensor Earth</h1>
+    <p>This is the geographic Earth experience, separate from the hazard dashboard. Continents, coastlines, roads and place labels come from the map layer; D.O.M. observations are overlaid at their real latitude/longitude. Surface stations stay on the surface. D.O.M. does not invent coordinates for unlocated products.</p>
+    <div class="earth-actions">
+      <button id="resetEarth" type="button">Global view</button>
+      <button id="surfaceMode" type="button">Walk / surface mode</button>
+      <button id="locateMe" type="button">My area</button>
+      <button id="googleOverlay" type="button">Google Maps overlay</button>
+      <a id="openGoogle" target="_blank" rel="noopener noreferrer">Open current view in Google Maps ↗</a>
+    </div>
+    <div id="providerState" class="earth-note" aria-live="polite">Loading geographic Earth…</div>
+  </section>
+
+  <section class="earth-map-card" aria-label="Interactive geographic Earth">
+    <div id="earthMap"></div>
+    <div class="earth-map-hud">
+      <strong id="earthCount">0 live geographic records</strong>
+      <span id="earthView">global</span>
+    </div>
+    <div class="earth-legend" aria-label="Observation legend">
+      <span><i class="earth-dot quake"></i>earthquake</span>
+      <span><i class="earth-dot hazard"></i>hazard/event</span>
+      <span><i class="earth-dot station"></i>sensor/station</span>
+      <span><i class="earth-dot alert"></i>official alert</span>
+    </div>
+  </section>
+
+  <section class="earth-grid">
+    <article class="earth-panel">
+      <p class="eyebrow">LIVE SOURCE FABRIC</p>
+      <h2>Ingested now</h2>
+      <div id="sourceFabric" class="source-fabric"><p>Starting adapters…</p></div>
+      <p class="earth-truth">A registered source is not counted as live until its adapter successfully returns usable geographic records. Failed or CORS-blocked sources remain visible as failures rather than being counted as coverage.</p>
+    </article>
+    <article class="earth-panel">
+      <p class="eyebrow">PLANETARY COVERAGE</p>
+      <h2>What this fixes</h2>
+      <p>Geographic basemap, recognizable continents and coastlines, real zoom from globe to surface, latitude/longitude anchoring, and independent routing from the Global Hazard Observatory.</p>
+      <p>Health domains remain UNKNOWN unless qualified observations actually meet D.O.M.'s coverage rules. Network uptime is never substituted for Earth health.</p>
+      <div id="coverageSummary" class="coverage-summary"></div>
+    </article>
+  </section>
+
+  <section class="earth-panel earth-wide">
+    <p class="eyebrow">APPLE AR BOUNDARY</p>
+    <h2>Native walk-around AR is a separate delivery target</h2>
+    <p>This page is the live geographic web Earth. On iPhone it supports touch globe/surface navigation now. A physical room-scale Apple AR launch requires a signed RealityKit client or a qualified USDZ/Quick Look asset; this page will not pretend a normal web canvas is native AR.</p>
+  </section>
+</main>
+<script src="./dom-runtime-config.js?v=1"></script>
+<script type="module" src="./earth.js?v=1"></script>
+</body>
+</html>
