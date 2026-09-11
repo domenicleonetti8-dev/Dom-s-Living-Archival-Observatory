@@ -31,6 +31,8 @@ jobs:
         run: node ci/dom-earth-20000-invariant-test.js
       - name: Scientific instrument fabric 50,000-case qualification
         run: node ci/dom-scientific-instrument-fabric-test.js
+      - name: Scientific broker integration qualification
+        run: node ci/dom-scientific-broker-integration-test.js
       - name: Canonical JavaScript organism execution
         run: node ci/dom-canonical-runtime-test.js
       - name: Hazard semantics execution
