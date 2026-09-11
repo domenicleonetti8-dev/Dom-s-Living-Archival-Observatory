@@ -1,6 +1,7 @@
 const DOMBrokerStatus=(()=>{
-  let broker={configured:false,connected:false,error:null,records:0,baseUrl:null,registeredSources:0,activeAdapters:0,activeSources:0,staleSources:0,errorSources:0,notIngestingSources:0},organism={recordCount:0,sensorCount:0,lineages:0,agencies:0},visitor={configured:false,totalVisitors:null,liveNow:null,error:null,lastUpdate:null},visitorUnsubscribe=null;
+  let broker={configured:false,connected:false,error:null,records:0,baseUrl:null,registeredSources:0,activeAdapters:0,activeSources:0,staleSources:0,errorSources:0,notIngestingSources:0},organism={recordCount:0,sensorCount:0,lineages:0,agencies:0},visitor={configured:false,connected:false,totalVisitors:null,liveNow:null,error:null,lastUpdate:null,lastVerifiedAt:null,status:'unconfigured'},visitorUnsubscribe=null;
   const set=(id,text)=>{const n=document.getElementById(id);if(n)n.textContent=text};
+  function visitorText(){if(!visitor.configured)return visitor.lastVerifiedAt?'Persistent visitor service not connected · showing last verified values':'Persistent visitor service not connected';if(visitor.connected&&visitor.lastUpdate)return'Live anonymous telemetry · updated '+new Date(visitor.lastUpdate).toLocaleTimeString();if(visitor.status==='stale'&&visitor.lastVerifiedAt)return'Visitor service temporarily unavailable · showing last verified values from '+new Date(visitor.lastVerifiedAt).toLocaleTimeString();if(visitor.error)return'Visitor service unavailable · verified totals cannot be refreshed right now';return'Connecting to visitor service…'}
   function render(){
     const configured=broker.configured===true,connected=broker.connected===true;
     const counts=Number(broker.registeredSources)>0?` · ${Number(broker.activeSources)||0}/${Number(broker.registeredSources)||0} source families active · ${Number(broker.staleSources)||0} stale · ${Number(broker.errorSources)||0} error · ${Number(broker.notIngestingSources)||0} registered/not ingesting`:'';
@@ -9,7 +10,7 @@ const DOMBrokerStatus=(()=>{
     set('organismState',`${Number(organism.recordCount)||0} canonical observations · ${Number(organism.sensorCount)||0} sensor states · ${Number(organism.lineages)||0} lineages · ${Number(organism.agencies)||0} agencies`);
     set('domTotalVisitors',visitor.totalVisitors==null?'—':Number(visitor.totalVisitors).toLocaleString());
     set('domLiveVisitors',visitor.liveNow==null?'—':Number(visitor.liveNow).toLocaleString());
-    set('domVisitorState',!visitor.configured?'Persistent visitor service not configured yet':visitor.error?`Counter unavailable · ${visitor.error}`:visitor.lastUpdate?'Live anonymous telemetry · updated '+new Date(visitor.lastUpdate).toLocaleTimeString():'Connecting to visitor service…');
+    set('domVisitorState',visitorText());
   }
   function mountVisitor(){
     const shell=document.querySelector('.hazard-shell')||document.querySelector('main')||document.body;if(!shell)return false;
