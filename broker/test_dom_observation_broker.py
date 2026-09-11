@@ -208,9 +208,10 @@ class BrokerTests(unittest.TestCase):
                     pass
 
     def test_nws_adapter_preserves_official_semantics(self):
+        polygon = {"type": "Polygon", "coordinates": [[[179, 10], [-179, 10], [-179, 12], [179, 12], [179, 10]]]}
         fixture = {"features": [{
             "id": "https://api.weather.gov/alerts/test",
-            "geometry": {"type": "Polygon", "coordinates": [[[179, 10], [-179, 10], [-179, 12], [179, 12], [179, 10]]]},
+            "geometry": polygon,
             "properties": {"event": "Test Warning", "sent": "2026-09-10T00:00:00Z", "expires": "2026-09-10T06:00:00Z",
                            "severity": "Severe", "certainty": "Observed", "urgency": "Immediate",
                            "@id": "https://api.weather.gov/alerts/test"}
@@ -224,6 +225,9 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual(r["locationPrecision"], "alert-geometry-centroid")
         self.assertGreater(abs(r["lon"]), 170)
         self.assertEqual(r["severityText"], "Severe")
+        self.assertEqual(r["geometry"], polygon)
+        self.assertEqual(r["geometryRole"], "warning-area")
+        self.assertEqual(r["representativePoint"], {"lat": r["lat"], "lon": r["lon"]})
 
     def test_swpc_alert_is_authoritative_but_not_fake_geolocated(self):
         fixture = [{"product_id": "K05A", "issue_datetime": "2026-09-10 12:00:00.000",
