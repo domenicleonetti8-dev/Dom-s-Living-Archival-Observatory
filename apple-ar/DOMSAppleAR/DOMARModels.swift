@@ -39,6 +39,8 @@ struct DOMARObject: Codable, Identifiable {
     let corroboration: Double?
     let hazardCoupling: Double?
     let activation: DOMActivation
+    let hazardIdentification: DOMHazardIdentification
+    let ozone: DOMOzoneState?
     let severityText: String
     let certaintyText: String
     let urgencyText: String
@@ -68,6 +70,27 @@ struct DOMActivationComponents: Codable {
     let persistence: Double
     let corroboration: Double
     let hazardCoupling: Double
+}
+
+struct DOMHazardIdentification: Codable {
+    let contributing: Bool
+    let officialAlert: Bool
+    let inferenceOnly: Bool
+    let activationScore: Double
+    let activationBand: String
+    let reason: String
+    let truth: String
+}
+
+struct DOMOzoneState: Codable {
+    let totalColumnDU: Double?
+    let baselineDU: Double?
+    let anomalyPercent: Double?
+    let trendDUPerYear: Double?
+    let trendPercentPerDecade: Double?
+    let uncertaintyDU: Double?
+    let layer: String
+    let trendMeaning: String
 }
 
 struct DOMSatelliteLayer: Codable, Identifiable {
@@ -117,4 +140,5 @@ struct DOMARTruth: Codable {
     let allSensorsMeaning: String
     let missingFeedMeaning: String
     let imageryMeaning: String
+    let ozoneMeaning: String?
 }
