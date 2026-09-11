@@ -47,8 +47,42 @@ class BrokerTests(unittest.TestCase):
         b = dom.Broker()
         try:
             self.assertEqual(len(b.sources), len(dom.REGISTERED_SOURCE_IDS))
-            self.assertEqual(set(b.adapters), {"usgs-eq", "nasa-eonet", "nws-alerts", "swpc", "ntwc", "ptwc"})
+            self.assertEqual(set(b.adapters), {
+                "usgs-eq", "nasa-eonet", "nws-alerts", "swpc", "ntwc", "ptwc",
+                "earthscope-fdsn", "usgs-water-sites",
+            })
             self.assertEqual(b.sources["wmo-gos"].status, "registered-not-ingesting")
+            self.assertIn("earthscope-fdsn", b.adapter_intervals)
+            self.assertIn("usgs-water-sites", b.adapter_intervals)
+            self.assertGreaterEqual(b.adapter_intervals["earthscope-fdsn"], 1800)
+        finally:
+            b.close()
+
+    def test_inventory_key_replaces_snapshot_instead_of_growing_forever(self):
+        first = dom.record(source_id="station-a", lineage="inventory-net", agency="A", network="N",
+                           kind="Scientific Station", modality="station", observed_at="2026-09-10T00:00:00Z",
+                           lat=40, lon=-74, source="https://example.com/stations", title="A",
+                           inventorySnapshot=True)
+        second = dict(first)
+        second["observedAt"] = "2026-09-11T00:00:00Z"
+        second["receivedAt"] = "2026-09-11T00:00:01Z"
+        self.assertEqual(dom.Broker.key(first), dom.Broker.key(second))
+        self.assertTrue(dom.Broker.key(first).endswith("|inventory"))
+
+    def test_inventory_cadence_prevents_heavy_repoll_every_minute(self):
+        b = dom.Broker()
+        try:
+            calls = []
+            fixture = dom.record(source_id="station-a", lineage="inventory-net", agency="A", network="N",
+                                 kind="Scientific Station", modality="station", observed_at="2026-09-10T00:00:00Z",
+                                 lat=40, lon=-74, source="https://example.com/stations", title="A",
+                                 inventorySnapshot=True)
+            b.adapters = {"earthscope-fdsn": lambda: calls.append(1) or [fixture]}
+            b.adapter_intervals = {"earthscope-fdsn": 999999}
+            b.poll_once()
+            b.poll_once()
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(b.sources["earthscope-fdsn"].record_count, 1)
         finally:
             b.close()
 
@@ -60,6 +94,7 @@ class BrokerTests(unittest.TestCase):
                                  observed_at="2026-09-10T00:00:00Z", lat=40, lon=-74,
                                  source="https://example.com/fixture", title="Fixture")
             b.adapters = {"usgs-eq": lambda: [fixture]}
+            b.adapter_intervals = {}
             rows = b.poll_once()
             self.assertEqual(b.sources["usgs-eq"].status, "active")
             self.assertEqual(b.sources["usgs-eq"].record_count, 1)
@@ -80,6 +115,7 @@ class BrokerTests(unittest.TestCase):
                            modality="satellite", observed_at="2026-09-10T00:01:00Z", lat=41, lon=-73,
                            source="https://example.com/c", title="C")
             b.adapters = {"usgs-eq": lambda: [a], "nasa-eonet": lambda: [c]}
+            b.adapter_intervals = {}
             before = b.version
             cycle = b.poll_once()
             self.assertEqual(b.version, before + 1)
@@ -96,6 +132,7 @@ class BrokerTests(unittest.TestCase):
                            modality="seismic", observed_at="2026-09-10T00:00:00Z", lat=40, lon=-74,
                            source="https://example.com/same", title="Same")
             b.adapters = {"usgs-eq": lambda: [r], "nasa-eonet": lambda: [dict(r)]}
+            b.adapter_intervals = {}
             cycle = b.poll_once()
             self.assertEqual(len(cycle), 1)
             self.assertEqual(len(b.stream_batch()), 1)
@@ -108,6 +145,7 @@ class BrokerTests(unittest.TestCase):
             def fail():
                 raise RuntimeError("fixture failure")
             b.adapters = {"usgs-eq": fail}
+            b.adapter_intervals = {}
             b.poll_once()
             self.assertEqual(b.sources["usgs-eq"].status, "error")
             self.assertEqual(b.sources["usgs-eq"].consecutive_failures, 1)
@@ -119,6 +157,7 @@ class BrokerTests(unittest.TestCase):
         b = dom.Broker()
         try:
             b.adapters = {"usgs-eq": lambda: {"not": "a list"}}
+            b.adapter_intervals = {}
             b.poll_once()
             self.assertEqual(b.sources["usgs-eq"].status, "error")
             self.assertIn("adapter result must be a list", b.sources["usgs-eq"].last_error)
@@ -136,6 +175,7 @@ class BrokerTests(unittest.TestCase):
             self.assertEqual(rows["usgs-eq"]["status"], "stale")
             self.assertEqual(st.status, "active")
             self.assertEqual(rows["wmo-gos"]["status"], "registered-not-ingesting")
+            self.assertGreaterEqual(rows["earthscope-fdsn"]["stale_after_seconds"], dom.INVENTORY_POLL_SECONDS * 2)
         finally:
             b.close()
 
@@ -149,6 +189,7 @@ class BrokerTests(unittest.TestCase):
                                  observed_at="2026-09-10T00:00:00Z", lat=41, lon=-73,
                                  source="https://example.com/persisted", title="Persistent Fixture")
             first.adapters = {"usgs-eq": lambda: [fixture]}
+            first.adapter_intervals = {}
             first.poll_once()
             first.close()
             second = dom.Broker(path)
