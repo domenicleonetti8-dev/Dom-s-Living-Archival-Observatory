@@ -1,14 +1,17 @@
 const fs=require('fs');const vm=require('vm');
 function read(p){return fs.readFileSync(p,'utf8')}
 function assert(ok,msg){if(!ok){console.error('FAIL',msg);process.exitCode=1}else console.log('PASS',msg)}
-const html=read('earth.html'),earth=read('earth.js'),ui=read('earth-ar-prediction-ui.js'),pred=read('dom-statistical-prediction.js'),geo=read('dom-earth-geodesy.js'),compass=read('earth-compass.js');
-for(const id of ['resetEarth','earthImagery','startCompass','surfaceMode','locateMe','googleOverlay','checkAR','exportAR','runPrediction'])assert(html.includes(`id="${id}"`),`Earth exposes ${id} control`);
+const html=read('earth.html'),home=read('index.html'),homeUI=read('dom-home-visitors-ui.js'),earth=read('earth.js'),ui=read('earth-ar-prediction-ui.js'),pred=read('dom-statistical-prediction.js'),geo=read('dom-earth-geodesy.js'),compass=read('dom-main-compass.js');
+for(const id of ['resetEarth','earthImagery','surfaceMode','locateMe','googleOverlay','checkAR','exportAR','runPrediction'])assert(html.includes(`id="${id}"`),`Earth exposes ${id} control`);
+assert(!html.includes('id="startCompass"')&&!html.includes('id="compassNeedle"')&&!html.includes('earth-compass.js'),'Earth/AR page does not contain the main-page compass');
 for(const id of ['resetEarth','earthImagery','surfaceMode','locateMe','googleOverlay'])assert(earth.includes(`'#${id}'`)||earth.includes(`"#${id}"`),`${id} is connected in Earth runtime`);
 for(const id of ['checkAR','exportAR','runPrediction'])assert(ui.includes(`bind('${id}'`),`${id} is connected in AR/prediction runtime`);
-assert(compass.includes("$('#startCompass')")&&compass.includes("addEventListener('click',start)"),'live compass button is connected');
-assert(compass.includes('DeviceOrientationEvent.requestPermission')&&compass.includes('webkitCompassHeading')&&compass.includes('deviceorientationabsolute'),'compass supports iPhone permission, WebKit heading and absolute orientation');
-assert(html.includes('id="compassNeedle"')&&html.includes('id="compassHeading"')&&html.includes('id="compassSource"'),'compass HUD exposes needle, heading and status');
-const cb={window:{},document:{querySelector:()=>null},console,globalThis:{screen:{orientation:{angle:0}}}};cb.globalThis=cb;vm.runInNewContext(compass,cb);const C=cb.window.DOMCompass;
+assert(home.includes('dom-home-visitors-ui.js'),'main page loads home UI bootstrap');
+for(const id of ['domMainCompass','mainCompassStart','mainCompassRose','mainCompassHeading','mainCompassSource'])assert(homeUI.includes(id),`main page compass exposes ${id}`);
+assert(homeUI.includes("script.src='./dom-main-compass.js?v=1'"),'main page loads live compass runtime');
+assert(compass.includes("$('#mainCompassStart')")&&compass.includes("addEventListener('click',start)"),'main-page live compass button is connected');
+assert(compass.includes('DeviceOrientationEvent.requestPermission')&&compass.includes('webkitCompassHeading')&&compass.includes('deviceorientationabsolute'),'main-page compass supports iPhone permission, WebKit heading and absolute orientation');
+const cb={window:{},document:{querySelector:()=>null},console,globalThis:{screen:{orientation:{angle:0}}}};cb.globalThis=cb;vm.runInNewContext(compass,cb);const C=cb.window.DOMMainCompass;
 assert(C&&C.cardinal(0)==='N'&&C.cardinal(90)==='E'&&C.cardinal(225)==='SW','compass cardinal conversion is correct');
 const wh=C.headingFromEvent({webkitCompassHeading:271.2,webkitCompassAccuracy:4});assert(wh&&Math.abs(wh.heading-271.2)<1e-9&&wh.source==='magnetic','WebKit compass heading is preserved');
 const ah=C.headingFromEvent({absolute:true,alpha:90});assert(ah&&Math.abs(ah.heading-270)<1e-9,'absolute device alpha converts to clockwise heading');
