@@ -1,10 +1,17 @@
 const fs=require('fs');const vm=require('vm');
 function read(p){return fs.readFileSync(p,'utf8')}
 function assert(ok,msg){if(!ok){console.error('FAIL',msg);process.exitCode=1}else console.log('PASS',msg)}
-const html=read('earth.html'),earth=read('earth.js'),ui=read('earth-ar-prediction-ui.js'),pred=read('dom-statistical-prediction.js'),geo=read('dom-earth-geodesy.js');
-for(const id of ['resetEarth','earthImagery','surfaceMode','locateMe','googleOverlay','checkAR','exportAR','runPrediction'])assert(html.includes(`id="${id}"`),`Earth exposes ${id} control`);
+const html=read('earth.html'),earth=read('earth.js'),ui=read('earth-ar-prediction-ui.js'),pred=read('dom-statistical-prediction.js'),geo=read('dom-earth-geodesy.js'),compass=read('earth-compass.js');
+for(const id of ['resetEarth','earthImagery','startCompass','surfaceMode','locateMe','googleOverlay','checkAR','exportAR','runPrediction'])assert(html.includes(`id="${id}"`),`Earth exposes ${id} control`);
 for(const id of ['resetEarth','earthImagery','surfaceMode','locateMe','googleOverlay'])assert(earth.includes(`'#${id}'`)||earth.includes(`"#${id}"`),`${id} is connected in Earth runtime`);
 for(const id of ['checkAR','exportAR','runPrediction'])assert(ui.includes(`bind('${id}'`),`${id} is connected in AR/prediction runtime`);
+assert(compass.includes("$('#startCompass')")&&compass.includes("addEventListener('click',start)"),'live compass button is connected');
+assert(compass.includes('DeviceOrientationEvent.requestPermission')&&compass.includes('webkitCompassHeading')&&compass.includes('deviceorientationabsolute'),'compass supports iPhone permission, WebKit heading and absolute orientation');
+assert(html.includes('id="compassNeedle"')&&html.includes('id="compassHeading"')&&html.includes('id="compassSource"'),'compass HUD exposes needle, heading and status');
+const cb={window:{},document:{querySelector:()=>null},console,globalThis:{screen:{orientation:{angle:0}}}};cb.globalThis=cb;vm.runInNewContext(compass,cb);const C=cb.window.DOMCompass;
+assert(C&&C.cardinal(0)==='N'&&C.cardinal(90)==='E'&&C.cardinal(225)==='SW','compass cardinal conversion is correct');
+const wh=C.headingFromEvent({webkitCompassHeading:271.2,webkitCompassAccuracy:4});assert(wh&&Math.abs(wh.heading-271.2)<1e-9&&wh.source==='magnetic','WebKit compass heading is preserved');
+const ah=C.headingFromEvent({absolute:true,alpha:90});assert(ah&&Math.abs(ah.heading-270)<1e-9,'absolute device alpha converts to clockwise heading');
 assert(earth.includes('BlueMarble_ShadedRelief_Bathymetry')&&earth.includes('gibs.earthdata.nasa.gov'),'Earth physical imagery uses NASA GIBS Blue Marble rather than invented texture');
 assert(earth.includes("type:'raster'")&&earth.includes("'dom-earth-imagery-layer'"),'NASA Earth imagery is installed as a real map raster layer');
 assert(html.includes('not a claim of live satellite photography'),'UI distinguishes physical Earth baseline imagery from live satellite evidence');
