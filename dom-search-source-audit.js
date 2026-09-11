@@ -29,7 +29,7 @@
     ['DataCite','research','INLINE API','api.datacite.org','METADATA ONLY','Browser DOI metadata API connector; runtime state is measured per request.'],
     ['Europe PMC','research','INLINE API','www.ebi.ac.uk','INDEX METADATA','Europe PMC search metadata connector; runtime state is measured per request.']
   ].map(([name,cat,mode,host,contentClass,note])=>({name,cat,mode,host,contentClass,note,state:mode==='INLINE API'?'NOT TESTED THIS SESSION':mode,httpStatus:null,lastAttempt:null,responseMs:null,error:null}));
-  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const byHost=new Map(DEFINITIONS.filter(x=>x.host).map(x=>[x.host,x]));
   const originalFetch=window.fetch.bind(window);
   function stateClass(s){return /RESPONDED/.test(s)?'ok':/RATE LIMITED|ACCESS RESTRICTED|SOURCE ERROR|UNAVAILABLE|FAILED/.test(s)?'fail':/REQUESTING/.test(s)?'loading':''}
