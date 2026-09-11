@@ -39,6 +39,8 @@ jobs:
         run: node ci/dom-control-ar-prediction-test.js
       - name: Federated search connector truth qualification
         run: node ci/dom-search-source-truth-test.js
+      - name: Source time and freshness truth qualification
+        run: node ci/dom-source-time-truth-test.js
       - name: Extreme events and Earth vitals qualification
         run: node ci/dom-extreme-events-vitals-test.js
       - name: Canonical JavaScript organism execution
