@@ -13,9 +13,12 @@ assert(earth.includes('id="earthMap"')&&earth.includes('Google Maps overlay'),'E
 assert(js.includes("style:'https://demotiles.maplibre.org/globe.json'")&&js.includes("map.setProjection({type:'globe'})"),'renderer uses geographic globe projection');
 assert(js.includes('validLatLon')&&js.includes("coordinates:[r.lon,r.lat]"),'observations are surface-anchored from validated longitude/latitude');
 assert(js.includes('earthquake.usgs.gov')&&js.includes('eonet.gsfc.nasa.gov')&&js.includes('ndbc.noaa.gov')&&js.includes('tidesandcurrents.noaa.gov')&&js.includes('api.weather.gov'),'multi-source live fabric is wired');
-assert(js.includes("'dom-event-areas'")&&js.includes("'dom-event-area-fill'")&&js.includes("'dom-event-area-line'"),'Earth renderer has dedicated authoritative polygon geometry layers');
-assert(js.includes("['Polygon','MultiPolygon']")&&js.includes("placement:'source-geometry'"),'polygon/multipolygon source geometry is preserved rather than collapsed to a fake exact point');
-assert(js.includes('authoritative polygons')&&js.includes('without geometry'),'NWS Earth status distinguishes rendered source polygons from unlocated alerts');
+assert(js.includes("SOURCE_GEOMETRY_TYPES=new Set(['Polygon','MultiPolygon','LineString','MultiLineString'])"),'Earth renderer accepts authoritative area and track geometry without inventing shape types');
+assert(js.includes("'dom-event-areas'")&&js.includes("'dom-event-area-fill'")&&js.includes("'dom-event-area-line'")&&js.includes("'dom-event-track-line'"),'Earth renderer has dedicated authoritative polygon and track layers');
+assert(js.includes("geometryRole:role")&&js.includes("placement:'source-geometry'"),'source geometry preserves explicit geometry role and source placement semantics');
+assert(js.includes("r.geometryRole||'source-geometry'")&&js.includes('geometry:r.geometry'),'broker-supplied authoritative geometry is consumed by the Earth renderer');
+assert(js.includes("'forecast-track'")&&js.includes("'best-track'"),'track rendering has explicit forecast/best-track semantics');
+assert(js.includes('authoritative source geometries')&&js.includes('without geometry'),'NWS Earth status distinguishes rendered source geometry from unlocated alerts');
 assert(js.includes("getJSON(`${root}/v1/sources`")&&js.includes("x.status==='stale'")&&js.includes("x.status==='error'"),'Earth broker panel consumes active/stale/error source health');
 assert(!/Math\.random\s*\(/.test(js),'Earth renderer does not randomly scatter sensor positions');
 assert(audit.includes("DIRECT_BROWSER=new Set(['usgs-eq','nasa-eonet','nws-alerts'])"),'source audit limits direct-browser measurement claims to feeds actually fetched');
