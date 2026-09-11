@@ -24,6 +24,28 @@ class AppleARSourceTreeTests(unittest.TestCase):
         self.assertIn("object.activation.id", renderer)
         self.assertNotIn("max(object.anomaly", renderer)
 
+    def test_risk_light_cadence_comes_from_canonical_activation(self):
+        renderer = (AR / "ARGlobeView.swift").read_text(encoding="utf-8")
+        self.assertIn('case "critical", "heavy": return .high', renderer)
+        self.assertIn('case "elevated": return .medium', renderer)
+        self.assertIn('case "active", "watching": return .low', renderer)
+        self.assertIn('default: return .steady', renderer)
+        self.assertIn("if object.officialAlert { return .high }", renderer)
+
+    def test_risk_lights_stop_for_expired_or_cancelled_records(self):
+        renderer = (AR / "ARGlobeView.swift").read_text(encoding="utf-8")
+        self.assertIn('"cancelled"', renderer)
+        self.assertIn('"expired"', renderer)
+        self.assertIn("expiresAt <= now", renderer)
+        self.assertIn("node.root.isEnabled = live", renderer)
+
+    def test_risk_light_animation_is_continuous_between_network_versions(self):
+        renderer = (AR / "ARGlobeView.swift").read_text(encoding="utf-8")
+        self.assertIn("Timer.scheduledTimer", renderer)
+        self.assertIn("animateRiskField()", renderer)
+        self.assertIn("1.0 / 20.0", renderer)
+        self.assertIn("stopAnimating()", renderer)
+
     def test_camera_and_arkit_requirements_declared(self):
         plist = (AR / "Info.plist").read_text(encoding="utf-8")
         project = (ROOT / "apple-ar" / "project.yml").read_text(encoding="utf-8")
