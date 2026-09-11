@@ -8,7 +8,7 @@
 <title>D.O.M. Geographic Earth</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="./styles.css?v=6">
-<link rel="stylesheet" href="./earth.css?v=2">
+<link rel="stylesheet" href="./earth.css?v=3">
 </head>
 <body class="earth-page">
 <header class="earth-header">
@@ -38,6 +38,11 @@
       <strong id="earthCount">0 live geographic records</strong>
       <span id="earthView">global</span>
     </div>
+    <aside class="earth-layer-controls" aria-label="Earth overlay visibility controls">
+      <button id="toggleStorms" type="button" aria-pressed="true">Storms: ON</button>
+      <button id="toggleAirCurrents" type="button" aria-pressed="true">Air currents: ON</button>
+      <small id="layerControlState">Hide obstructing atmospheric overlays without changing the underlying observations.</small>
+    </aside>
     <div class="earth-legend" aria-label="Observation legend">
       <span><i class="earth-dot quake"></i>earthquake</span>
       <span><i class="earth-dot hazard"></i>hazard/event</span>
@@ -60,6 +65,13 @@
       <p>Health domains remain UNKNOWN unless qualified observations actually meet D.O.M.'s coverage rules. Network uptime is never substituted for Earth health.</p>
       <div id="coverageSummary" class="coverage-summary"></div>
     </article>
+  </section>
+
+  <section class="earth-panel earth-wide">
+    <p class="eyebrow">LOCATION MATHEMATICS</p>
+    <h2>Pinpoint when the source is pinpoint; representative when it is not</h2>
+    <p>Every visible point must carry source-backed latitude/longitude and an explicit location-precision class. WGS84 conversion is mathematical; source uncertainty is not silently converted into false precision. Exact source coordinates remain exact source coordinates, while polygons, cones and broad event regions remain source geometry. A centroid or representative point is labeled as representative and never presented as the exact event location.</p>
+    <p class="earth-truth">D.O.M. can display coordinates to six decimal places for deterministic rendering, but decimal display precision is not a claim of six-decimal physical accuracy. Accuracy remains bounded by the upstream instrument, geocoding method, forecast product or source geometry.</p>
   </section>
 
   <section class="earth-panel earth-wide">
@@ -113,6 +125,6 @@
 <script src="./earth-source-audit.js?v=1"></script>
 <script src="./earth-scientific-fabric-ui.js?v=1"></script>
 <script src="./earth-ar-prediction-ui.js?v=2"></script>
-<script type="module" src="./earth.js?v=2"></script>
+<script type="module" src="./earth.js?v=3"></script>
 </body>
 </html>
