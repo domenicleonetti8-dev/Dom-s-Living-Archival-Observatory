@@ -24,4 +24,5 @@
   window.addEventListener('dom:hazard-refresh',ev=>{const d=ev.detail||{},ok=Number(d.ok)||0,total=Number(d.total)||0,ratio=total?ok/total:0;set('phNetworkLive',`${ok}/${total||0} active hazard feeds responded · ${Number(d.eventCount)||0} normalized records · ${Number(d.elapsedMs)||0} ms · feed availability ${Math.round(ratio*100)}%. This is network health, not Earth health.`)});
   window.addEventListener('dom:hardening-audit',ev=>{const d=ev.detail||{};if(d.phase==='running'){set('phAudit',`RUNNING · ${Number(d.checks)||0} invariant checks completed · ${Number(d.failures)||0} failures so far`);return}set('phAudit',d.ok?`PASS · ${d.checks} invariant checks · ${d.failures||0} failures`:`ATTENTION · ${d.checks||0} checks · ${d.failures||0} failures${d.firstFailure?` · ${d.firstFailure}`:''}`)});
   window.DOMPlanetHealthSidebar={update};
+  if(!window.DOMEarthVitals&&!document.querySelector('script[data-dom-earth-vitals]')){const s=document.createElement('script');s.src='./dom-earth-vitals.js?v=1';s.defer=true;s.dataset.domEarthVitals='1';document.body.appendChild(s)}
 })();
