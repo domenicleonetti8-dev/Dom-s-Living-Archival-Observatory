@@ -39,6 +39,15 @@ class AppleARSourceTreeTests(unittest.TestCase):
         self.assertIn("period: 1.05", renderer)
         self.assertIn("period: 1.8", renderer)
 
+    def test_native_renderer_handles_stale_and_reduced_motion(self):
+        renderer = (AR / "ARGlobeView.swift").read_text(encoding="utf-8")
+        self.assertIn('status.range(of: "stale"', renderer)
+        self.assertIn('status.range(of: "unknown"', renderer)
+        self.assertIn('status.range(of: "unavailable"', renderer)
+        self.assertIn('id: "unknown"', renderer)
+        self.assertIn("UIAccessibility.isReduceMotionEnabled", renderer)
+        self.assertIn("animateAllowed", renderer)
+
     def test_camera_and_arkit_requirements_declared(self):
         plist = (AR / "Info.plist").read_text(encoding="utf-8")
         project = (ROOT / "apple-ar" / "project.yml").read_text(encoding="utf-8")
