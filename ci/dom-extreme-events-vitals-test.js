@@ -12,7 +12,7 @@ for(const source of ['api.weather.gov/alerts/active','CurrentStorms.json','eonet
 assert(js.includes('latitudeNumeric')&&js.includes('longitudeNumeric'),'NHC adapter uses the current official numeric coordinate fields');
 assert(js.includes('movementSpeedMph')&&!js.includes('movementSpeedKt'),'NHC movement speed metadata preserves the official mph unit');
 assert(js.includes('forecastTrackUrl')&&js.includes('trackConeUrl'),'NHC adapter preserves official track/cone product references');
-assert(js.includes("schema:'dom.ar.extreme-events.v1'")&&js.includes('latitude:Number(r.lat)')&&js.includes('longitude:Number(r.lon)'),'AR handoff preserves source-backed coordinates');
+assert(js.includes("schema:'dom.ar.extreme-events.v2'")&&js.includes('latitude:Number(r.lat)')&&js.includes('longitude:Number(r.lon)')&&js.includes('observedAt:r.observedAt||null')&&js.includes('publishedAt:r.publishedAt||null')&&js.includes('validAt:r.validAt||null')&&js.includes('fetchedAt:r.fetchedAt||null'),'AR handoff preserves source-backed coordinates and separated source-time fields');
 assert(js.includes('if(!r||!valid(r.lat,r.lon))return'),'unlocated event records are rejected from AR placement');
 assert(js.includes("placement:'representative-centroid'")&&js.includes("placement:'official-center'"),'AR packet distinguishes representative centroids from official storm centers');
 assert(html.includes('must refuse a month/year result'),'forecast boundary refuses unsupported month/year claims');
