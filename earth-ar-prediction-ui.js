@@ -1,10 +1,12 @@
 (()=>{
   'use strict';
   const $=s=>document.querySelector(s);
-  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
   const brokerBase=()=>String(window.DOMSRuntimeConfig&&window.DOMSRuntimeConfig.brokerUrl||'').replace(/\/$/,'');
   async function fetchJSON(url,ms=15000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{cache:'no-store',signal:c.signal,headers:{Accept:'application/json'}});if(!r.ok)throw new Error(`${r.status} ${r.statusText}`);return await r.json()}finally{clearTimeout(t)}}
   function numeric(v){return Number.isFinite(Number(v))?Number(v):null}
+  function nonNegative(v){const n=numeric(v);return n!=null&&n>=0?n:null}
+  function probability(v){const n=numeric(v);if(n==null)return null;if(n>=0&&n<=1)return n;if(n>1&&n<=100)return n/100;return null}
   function measurementsOf(r){
     const out=[];
     if(Array.isArray(r.measurements))for(const m of r.measurements){if(!m||typeof m!=='object')continue;const v=numeric(m.value??m.measurementValue);if(v==null)continue;out.push({name:String(m.name||m.metric||m.variable||'measurement'),value:v,unit:m.unit||m.units||m.measurementUnit||null,observedAt:m.observedAt||r.observedAt||null,quality:m.quality??null})}
@@ -29,7 +31,8 @@
         modality:String(r.modality||''),kind:String(r.kind||'Observation'),title:String(r.title||r.kind||'Observation'),latitude:lat,longitude:lon,
         elevation_m:elevation,depth_km:depthKm,observedAt:r.observedAt||r.time||null,receivedAt:r.receivedAt||null,sourceUrl:r.sourceUrl||r.url||null,
         platformClass:r.platformClass||'surface',observationStatus:r.observationStatus||'reported',officialAlert:!!r.officialAlert,authoritative:!!r.authoritative,
-        geometryType:'Point',measurements:measurementsOf(r),ecef_m:frame.ecefM,ar_position_m:room,locationPrecision:r.locationPrecision||null
+        geometryType:'Point',measurements:measurementsOf(r),ecef_m:frame.ecefM,ar_position_m:room,
+        locationPrecision:r.locationPrecision||null,horizontalAccuracyMeters:nonNegative(r.horizontalAccuracyMeters),uncertaintyRadiusMeters:nonNegative(r.uncertaintyRadiusMeters),confidenceLevel:probability(r.confidenceLevel),uncertaintyBasis:r.uncertaintyBasis||null
       });
     }
     return {schema:'dom.ar.scene.v2',generatedAt:new Date().toISOString(),earth:G?G.earthShell:null,objects:out};
@@ -40,12 +43,12 @@
     const box=$('#arSystemState');if(!box)return;
     const base=brokerBase();
     if(!window.DOMEarthGeodesy){box.textContent='AR geodesy module failed to load. Native placement is blocked rather than guessed.';return}
-    if(!base){box.textContent='AR Earth geometry is WGS84-ready, but the persistent broker is not configured. Live scientific objects cannot be streamed until a broker URL is deployed.';return}
+    if(!base){box.textContent='AR Earth geometry is WGS84-ready, but the persistent broker is not configured. Scientific objects cannot be streamed until a broker URL is deployed.';return}
     box.textContent='Checking AR Earth + scientific data path…';
-    try{const batch=await loadBrokerSnapshot();const packet=arPacket(batch.records||[]);const readingCount=packet.objects.reduce((s,x)=>s+x.measurements.length,0);box.textContent=`AR path ready · WGS84 Earth · ${packet.objects.length.toLocaleString()} georeferenced objects · ${readingCount.toLocaleString()} numeric readings carried with provenance.`}catch(e){box.textContent=`AR data path unavailable: ${e.message}`}
+    try{const batch=await loadBrokerSnapshot();const packet=arPacket(batch.records||[]);const readingCount=packet.objects.reduce((s,x)=>s+x.measurements.length,0),accuracyCount=packet.objects.filter(x=>x.horizontalAccuracyMeters!=null||x.uncertaintyRadiusMeters!=null).length;box.textContent=`AR data path ready · WGS84 Earth · ${packet.objects.length.toLocaleString()} georeferenced objects · ${readingCount.toLocaleString()} numeric readings · ${accuracyCount.toLocaleString()} objects with source-supplied numeric positional uncertainty.`}catch(e){box.textContent=`AR data path unavailable: ${e.message}`}
   }
   async function exportAR(){
-    const box=$('#arSystemState');try{const batch=await loadBrokerSnapshot();const packet=arPacket(batch.records||[]);downloadJSON('dom-ar-earth-scene-snapshot.json',packet);if(box)box.textContent=`AR Earth scene exported · WGS84 shell + ${packet.objects.length.toLocaleString()} source-backed objects.`}catch(e){if(box)box.textContent=`AR scene export unavailable: ${e.message}`}
+    const box=$('#arSystemState');try{const batch=await loadBrokerSnapshot();const packet=arPacket(batch.records||[]);downloadJSON('dom-ar-earth-scene-snapshot.json',packet);if(box)box.textContent=`AR Earth scene exported · WGS84 shell + ${packet.objects.length.toLocaleString()} source-backed objects. Missing accuracy fields remain null rather than inferred.`}catch(e){if(box)box.textContent=`AR scene export unavailable: ${e.message}`}
   }
   function numericSeries(records){
     const groups=new Map();
