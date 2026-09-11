@@ -38,6 +38,7 @@ struct DOMARObject: Codable, Identifiable {
     let persistence: Double?
     let corroboration: Double?
     let hazardCoupling: Double?
+    let activation: DOMActivation
     let severityText: String
     let certaintyText: String
     let urgencyText: String
@@ -48,6 +49,25 @@ struct DOMARObject: Codable, Identifiable {
         guard let lat, let lon else { return false }
         return (-90...90).contains(lat) && (-180...180).contains(lon)
     }
+}
+
+struct DOMActivation: Codable {
+    let score: Double
+    let percent: Int
+    let id: String
+    let label: String
+    let color: String
+    let min: Double
+    let components: DOMActivationComponents
+}
+
+struct DOMActivationComponents: Codable {
+    let freshness: Double
+    let quality: Double
+    let anomaly: Double
+    let persistence: Double
+    let corroboration: Double
+    let hazardCoupling: Double
 }
 
 struct DOMSatelliteLayer: Codable, Identifiable {
