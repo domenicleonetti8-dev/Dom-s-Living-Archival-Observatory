@@ -17,6 +17,12 @@
     const sin=Math.sin(p),cos=Math.cos(p),N=a/Math.sqrt(1-e2*sin*sin);
     return {x:(N+h)*cos*Math.cos(l),y:(N+h)*cos*Math.sin(l),z:(N*(1-e2)+h)*sin};
   }
+  function ecefToAR(ecef){
+    if(!ecef||![ecef.x,ecef.y,ecef.z].every(Number.isFinite))return null;
+    // RealityKit/ARKit convention is Y-up. This proper rotation preserves handedness:
+    // ECEF +X -> AR +X, ECEF +Z (north) -> AR +Y, ECEF +Y -> AR -Z.
+    return {x:ecef.x,y:ecef.z,z:-ecef.y};
+  }
   function surfaceFrame(latitude,longitude,elevationM=0,depthM=0){
     const h=(Number.isFinite(Number(elevationM))?Number(elevationM):0)-(Number.isFinite(Number(depthM))?Number(depthM):0);
     const ecef=geodeticToECEF(latitude,longitude,h);if(!ecef)return null;
@@ -24,17 +30,17 @@
     return {ecefM:ecef,unit:{x:ecef.x/radius,y:ecef.y/radius,z:ecef.z/radius},heightM:h};
   }
   function scenePosition(latitude,longitude,elevationM=0,depthM=0,globeRadiusM=0.35){
-    const frame=surfaceFrame(latitude,longitude,elevationM,depthM);if(!frame)return null;
+    const frame=surfaceFrame(latitude,longitude,elevationM,depthM),surface=surfaceFrame(latitude,longitude,0,0);if(!frame||!surface)return null;
     const scale=Number.isFinite(Number(globeRadiusM))&&Number(globeRadiusM)>0?Number(globeRadiusM):0.35;
-    // Preserve altitude/depth relative to true Earth radius, then scale to room globe radius.
-    const earthRadius=Math.hypot(frame.ecefM.x,frame.ecefM.y,frame.ecefM.z);
-    const base=earthRadius-frame.heightM;
-    const radial=scale*(earthRadius/base);
-    return {x:frame.unit.x*radial,y:frame.unit.y*radial,z:frame.unit.z*radial,globeRadiusM:scale};
+    const actualRadius=Math.hypot(frame.ecefM.x,frame.ecefM.y,frame.ecefM.z),surfaceRadius=Math.hypot(surface.ecefM.x,surface.ecefM.y,surface.ecefM.z);
+    const radial=scale*(actualRadius/surfaceRadius),arUnit=ecefToAR(frame.unit);if(!arUnit)return null;
+    return {x:arUnit.x*radial,y:arUnit.y*radial,z:arUnit.z*radial,globeRadiusM:scale};
   }
   const earthShell=Object.freeze({
     datum:'WGS84',
-    coordinateFrame:'ECEF-right-handed',
+    geodeticFrame:'ECEF-right-handed',
+    arFrame:'RealityKit-right-handed-Y-up',
+    arAxisMapping:'ECEF(X,Y,Z) -> AR(X,Z,-Y)',
     semiMajorAxisM:WGS84.semiMajorAxisM,
     semiMinorAxisM:WGS84.semiMinorAxisM,
     inverseFlattening:WGS84.inverseFlattening,
@@ -46,5 +52,5 @@
       sourceUrl:'https://gibs.earthdata.nasa.gov/'
     })
   });
-  window.DOMEarthGeodesy=Object.freeze({WGS84,validLatLon:valid,geodeticToECEF,surfaceFrame,scenePosition,earthShell});
+  window.DOMEarthGeodesy=Object.freeze({WGS84,validLatLon:valid,geodeticToECEF,ecefToAR,surfaceFrame,scenePosition,earthShell});
 })();
