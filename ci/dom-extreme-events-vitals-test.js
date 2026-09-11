@@ -10,6 +10,7 @@ assert(home.includes('./extreme-events.html'),'home links new extreme-events obs
 for(const term of ['NWS ACTIVE ALERTS','NHC ACTIVE TROPICAL SYSTEMS','NASA EONET EXTREME EVENTS','APPLE AR HANDOFF'])assert(html.includes(term),`observatory exposes ${term}`);
 for(const source of ['api.weather.gov/alerts/active','CurrentStorms.json','eonet.gsfc.nasa.gov','NEXRAD','FIRMS','DART'])assert(js.includes(source),`extreme-event fabric includes ${source}`);
 assert(js.includes('latitudeNumeric')&&js.includes('longitudeNumeric'),'NHC adapter uses the current official numeric coordinate fields');
+assert(js.includes('movementSpeedMph')&&!js.includes('movementSpeedKt'),'NHC movement speed metadata preserves the official mph unit');
 assert(js.includes('forecastTrackUrl')&&js.includes('trackConeUrl'),'NHC adapter preserves official track/cone product references');
 assert(js.includes("schema:'dom.ar.extreme-events.v1'")&&js.includes('latitude:Number(r.lat)')&&js.includes('longitude:Number(r.lon)'),'AR handoff preserves source-backed coordinates');
 assert(js.includes('if(!r||!valid(r.lat,r.lon))return'),'unlocated event records are rejected from AR placement');
@@ -24,6 +25,8 @@ assert(vitals.includes('globalCoralLossPct:14')&&vitals.includes("period:'2009â€
 assert(vitals.includes('declinePct:48')&&vitals.includes("period:'1980â€“2024'"),'coral vital retains GCRMN Caribbean observed decline basis');
 assert(vitals.includes('reefAreaExposedPct:84.4'),'coral vital retains NOAA bleaching heat-exposure fact');
 for(const id of ['phPopulation','phTemperature','phSeaLevel','phVitalsFreshness','phDeforestation','phForestWhere','phCoralLoss','phCoralWhere','phCoralHeat','phCoralBasis'])assert(sidebar.includes(id),`health gauge exposes ${id}`);
+assert(sidebar.includes('Last refresh'),'health gauge labels polling time as refresh time, not data freshness');
+assert(sidebar.includes("polling time, not the publication or observation date"),'health gauge distinguishes refresh time from source observation time');
 assert(sidebar.includes('Population is demographic context, not a health score'),'health gauge does not turn population into a fake health score');
 assert(sidebar.includes('Bleaching heat exposure is not death'),'health gauge separates bleaching exposure from mortality');
 const pct=10.9/4140*100;assert(Math.abs(pct-0.2632850241545894)<1e-12,'FAO global deforestation percentage derivation is exact');
