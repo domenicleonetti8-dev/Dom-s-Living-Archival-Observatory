@@ -35,6 +35,9 @@ assert(js.includes('api.open-meteo.com/v1/ecmwf')&&js.includes('wind_speed_10m,w
 assert(js.includes("'dom-air-current-streamlines'")&&js.includes("'dom-air-current-arrows'")&&js.includes("'dom-air-currents'"),'timestamped wind vectors have dedicated source, line and arrow layers');
 assert(js.includes("modelNature:'forecast-model-field'")&&js.includes('Vector length is a visual magnitude encoding')&&earth.includes('forecast-model output, not a direct global anemometer network'),'wind layer is labeled as model output and does not masquerade as direct observation or trajectory');
 assert(js.includes('meteorological wind from')&&js.includes('flow toward'),'wind popup distinguishes meteorological from-direction from displayed flow direction');
+assert(js.includes('sourceCellLatitude')&&js.includes('sourceCellLongitude')&&js.includes('requestedSampleLatitude')&&earth.includes('renders that returned grid coordinate'),'wind renderer preserves returned model-cell coordinates separately from requested display samples');
+assert(js.includes('windCellKeys')&&js.includes('unique model-grid samples'),'wind renderer deduplicates repeated model-grid cells');
+assert(js.includes('windTimeOffsetMinutes')&&js.includes("'STALE MODEL'")&&earth.includes('STALE MODEL'),'wind field timing is compared to browser time and stale model output is labeled explicitly');
 assert(js.includes('authoritative source geometries')&&js.includes('without geometry'),'NWS Earth status distinguishes rendered source geometry from unlocated alerts');
 assert(js.includes("getJSON(`${root}/v1/sources`")&&js.includes("x.status==='stale'")&&js.includes("x.status==='error'"),'Earth broker panel consumes active/stale/error source health');
 assert(broker.includes('"nhc-tropical"'),'NHC tropical source is part of canonical broker source health registry');
