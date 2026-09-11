@@ -1,5 +1,7 @@
 (()=>{
   const exports={};
+  try{if(window.DOMSRuntimeConfig)exports.DOMSRuntimeConfig=window.DOMSRuntimeConfig}catch(_){}
+  try{if(typeof DOMVisitorClient!=='undefined')exports.DOMVisitorClient=DOMVisitorClient}catch(_){}
   try{if(typeof DOMObservationModel!=='undefined')exports.DOMObservationModel=DOMObservationModel}catch(_){}
   try{if(typeof DOMHazardTaxonomy!=='undefined')exports.DOMHazardTaxonomy=DOMHazardTaxonomy}catch(_){}
   try{if(typeof DOMEnvironmentalFusion!=='undefined')exports.DOMEnvironmentalFusion=DOMEnvironmentalFusion}catch(_){}
@@ -18,7 +20,7 @@
   try{if(typeof DOMBrokerStatus!=='undefined')exports.DOMBrokerStatus=DOMBrokerStatus}catch(_){}
   try{if(typeof DOMSHazardResearch!=='undefined')exports.DOMSHazardResearch=DOMSHazardResearch}catch(_){}
   try{if(typeof DOMSHazardVoice!=='undefined')exports.DOMSHazardVoice=DOMSHazardVoice}catch(_){}
-  for(const [k,v] of Object.entries(exports)){if(!window[k])window[k]=v}
-  const required=['DOMObservationModel','DOMHazardTaxonomy','DOMEnvironmentalFusion','DOMEnvironmentalDefense','DOMPlanetHealth','DOMPlanetaryEcosystemDefense','DOMPublicSensorRegistry','DOMSensorActivation','DOMObservationIngress','DOMObservationBroker','DOMGlobalSensorGlobe','DOMOrganismRuntime','DOMLiveGlobeRenderer','DOMHazardObservationBridge','DOMObservationHazardBridge','DOMBrokerStatus','DOMSHazardResearch','DOMSHazardVoice'];
+  for(const[k,v]of Object.entries(exports)){if(!window[k])window[k]=v}
+  const required=['DOMSRuntimeConfig','DOMVisitorClient','DOMObservationModel','DOMHazardTaxonomy','DOMEnvironmentalFusion','DOMEnvironmentalDefense','DOMPlanetHealth','DOMPlanetaryEcosystemDefense','DOMPublicSensorRegistry','DOMSensorActivation','DOMObservationIngress','DOMObservationBroker','DOMGlobalSensorGlobe','DOMOrganismRuntime','DOMLiveGlobeRenderer','DOMHazardObservationBridge','DOMObservationHazardBridge','DOMBrokerStatus','DOMSHazardResearch','DOMSHazardVoice'];
   window.DOMGlobalCompat={count:Object.keys(exports).length,exports:Object.keys(exports),missing:required.filter(k=>!exports[k]),ok:required.every(k=>!!exports[k])};
 })();
