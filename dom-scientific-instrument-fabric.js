@@ -1,0 +1,61 @@
+(()=>{
+  const FIELDS=[
+    'meteorology','climate','upper-atmosphere','air-quality','greenhouse-gases','lightning','hydrology','groundwater','snow','soil-moisture','oceanography','sea-level','tsunami','marine-chemistry','marine-biology','seismology','geodesy','volcanology','geomagnetism','infrasound','hydroacoustics','cryosphere','permafrost','ecology','forest-carbon','biodiversity','coral-reefs','space-weather','ionosphere','solar-physics','astronomy','cosmic-rays','radiation-monitoring','satellite-earth-observation','research-vessels','gliders-autonomous-platforms'
+  ];
+  const NETWORKS=[
+    {id:'wigos',agency:'WMO',name:'WIGOS / OSCAR Surface',field:'meteorology',platform:'surface-station',scope:'global',access:'broker/federated',url:'https://oscar.wmo.int/surface/'},
+    {id:'gcos',agency:'GCOS/WMO',name:'Global Climate Observing System',field:'climate',platform:'multi-platform',scope:'global',access:'broker/federated',url:'https://gcos.wmo.int/'},
+    {id:'gaw',agency:'WMO',name:'Global Atmosphere Watch',field:'greenhouse-gases',platform:'atmospheric-observatory',scope:'global',access:'broker/federated',url:'https://community.wmo.int/en/activity-areas/gaw'},
+    {id:'woaudc',agency:'WMO',name:'World Ozone and UV Data Centre',field:'upper-atmosphere',platform:'atmospheric-observatory',scope:'global',access:'broker/dataset',url:'https://woudc.org/'},
+    {id:'nws-asos',agency:'NOAA/NWS/FAA',name:'ASOS/AWOS station networks',field:'meteorology',platform:'surface-station',scope:'national/multi-national',access:'broker/federated',url:'https://www.weather.gov/asos/'},
+    {id:'nexrad',agency:'NOAA/NWS',name:'NEXRAD weather radar network',field:'meteorology',platform:'radar',scope:'United States',access:'broker/dataset',url:'https://www.roc.noaa.gov/wsr88d/'},
+    {id:'wwlln',agency:'University consortium',name:'World Wide Lightning Location Network',field:'lightning',platform:'radio-sensor',scope:'global',access:'licensed/research',url:'https://wwlln.net/'},
+    {id:'openaq',agency:'OpenAQ community',name:'OpenAQ air-quality aggregation',field:'air-quality',platform:'air-quality-station',scope:'global',access:'api/credentialed',url:'https://openaq.org/'},
+    {id:'usgs-water',agency:'USGS',name:'National Water Information System',field:'hydrology',platform:'river-gauge',scope:'United States',access:'api',url:'https://waterdata.usgs.gov/nwis'},
+    {id:'grdc',agency:'WMO/GRDC',name:'Global Runoff Data Centre',field:'hydrology',platform:'river-gauge',scope:'global',access:'broker/dataset',url:'https://www.bafg.de/GRDC/'},
+    {id:'groundwater-usgs',agency:'USGS',name:'Groundwater monitoring wells',field:'groundwater',platform:'well',scope:'United States',access:'api',url:'https://waterdata.usgs.gov/nwis/gw'},
+    {id:'snotel',agency:'USDA NRCS',name:'SNOTEL snow telemetry network',field:'snow',platform:'snow-station',scope:'United States',access:'broker/api',url:'https://www.nrcs.usda.gov/resources/data-and-reports/snow-and-water-interactive-map'},
+    {id:'ismn',agency:'International Soil Moisture Network',name:'ISMN in-situ soil moisture',field:'soil-moisture',platform:'soil-station',scope:'global',access:'broker/dataset',url:'https://ismn.earth/en/'},
+    {id:'ndbc',agency:'NOAA NDBC',name:'National Data Buoy Center',field:'oceanography',platform:'buoy',scope:'global/ocean',access:'browser/api',url:'https://www.ndbc.noaa.gov/'},
+    {id:'argo',agency:'Argo',name:'Global Argo profiling float array',field:'oceanography',platform:'profiling-float',scope:'global-ocean',access:'broker/data-services',url:'https://argo.ucsd.edu/'},
+    {id:'gloss',agency:'IOC/GOOS',name:'Global Sea Level Observing System',field:'sea-level',platform:'tide-gauge',scope:'global-coast',access:'broker/dataset',url:'https://gloss-sealevel.org/'},
+    {id:'coops',agency:'NOAA CO-OPS',name:'Tides and Currents stations',field:'sea-level',platform:'tide-gauge',scope:'United States',access:'browser/api',url:'https://tidesandcurrents.noaa.gov/'},
+    {id:'dart',agency:'NOAA/NDBC',name:'DART tsunami buoy network',field:'tsunami',platform:'deep-ocean-buoy',scope:'global-ocean',access:'broker/opendap',url:'https://www.ndbc.noaa.gov/dart.shtml'},
+    {id:'oceansites',agency:'OceanSITES',name:'Global ocean time-series observatories',field:'oceanography',platform:'moored-observatory',scope:'global-ocean',access:'broker/netcdf',url:'https://www.oceansites.org/'},
+    {id:'go-ship',agency:'GO-SHIP',name:'Global hydrographic repeat sections',field:'marine-chemistry',platform:'research-vessel',scope:'global-ocean',access:'broker/dataset',url:'https://www.go-ship.org/'},
+    {id:'geotraces',agency:'GEOTRACES',name:'Marine biogeochemistry observing program',field:'marine-chemistry',platform:'research-vessel',scope:'global-ocean',access:'broker/dataset',url:'https://www.geotraces.org/'},
+    {id:'obis',agency:'OBIS/IOC',name:'Ocean Biodiversity Information System',field:'marine-biology',platform:'biological-observation',scope:'global-ocean',access:'api',url:'https://obis.org/'},
+    {id:'earthscope-fdsn',agency:'NSF EarthScope',name:'FDSN seismic station federation',field:'seismology',platform:'seismic-station',scope:'global',access:'api/fdsn',url:'https://service.earthscope.org/fdsnws/'},
+    {id:'igs',agency:'International GNSS Service',name:'IGS global GNSS tracking network',field:'geodesy',platform:'gnss-station',scope:'global',access:'dataset/api',url:'https://network.igs.org/'},
+    {id:'unavco',agency:'EarthScope',name:'Geodetic GNSS / strain / tilt networks',field:'geodesy',platform:'geodetic-station',scope:'global/multi-region',access:'broker/data-services',url:'https://www.earthscope.org/'},
+    {id:'gvolc',agency:'Smithsonian GVP',name:'Global Volcanism Program',field:'volcanology',platform:'volcano-observation',scope:'global',access:'dataset',url:'https://volcano.si.edu/'},
+    {id:'intermagnet',agency:'INTERMAGNET',name:'Global geomagnetic observatories',field:'geomagnetism',platform:'magnetometer-observatory',scope:'global',access:'broker/dataset',url:'https://intermagnet.org/'},
+    {id:'ims-infrasound',agency:'CTBTO',name:'International Monitoring System infrasound',field:'infrasound',platform:'infrasound-array',scope:'global',access:'restricted/authorized',url:'https://www.ctbto.org/verification-regime/monitoring-technologies-how-they-work/infrasound-monitoring'},
+    {id:'ims-hydroacoustic',agency:'CTBTO',name:'International Monitoring System hydroacoustic',field:'hydroacoustics',platform:'hydrophone-array',scope:'global-ocean',access:'restricted/authorized',url:'https://www.ctbto.org/verification-regime/monitoring-technologies-how-they-work/hydroacoustic-monitoring'},
+    {id:'gtnp',agency:'GTN-P',name:'Global Terrestrial Network for Permafrost',field:'permafrost',platform:'permafrost-site',scope:'global',access:'api/dataset',url:'https://www.gtn-p.org/'},
+    {id:'wgms',agency:'World Glacier Monitoring Service',name:'Global glacier monitoring network',field:'cryosphere',platform:'glacier-site',scope:'global',access:'broker/dataset',url:'https://wgms.ch/'},
+    {id:'fluxnet',agency:'FLUXNET',name:'Global ecosystem flux towers',field:'forest-carbon',platform:'flux-tower',scope:'global',access:'dataset',url:'https://fluxnet.org/'},
+    {id:'ameriflux',agency:'AmeriFlux',name:'AmeriFlux tower network',field:'forest-carbon',platform:'flux-tower',scope:'Americas',access:'api/dataset',url:'https://ameriflux.lbl.gov/'},
+    {id:'neon',agency:'NSF NEON',name:'National Ecological Observatory Network',field:'ecology',platform:'ecological-observatory',scope:'United States',access:'api',url:'https://www.neonscience.org/'},
+    {id:'icos',agency:'ICOS',name:'Integrated Carbon Observation System',field:'greenhouse-gases',platform:'carbon-observatory',scope:'Europe',access:'api/dataset',url:'https://www.icos-cp.eu/'},
+    {id:'gbif',agency:'GBIF',name:'Global biodiversity occurrence network',field:'biodiversity',platform:'biological-observation',scope:'global',access:'api',url:'https://www.gbif.org/'},
+    {id:'noaa-crw',agency:'NOAA',name:'Coral Reef Watch',field:'coral-reefs',platform:'satellite-derived-grid',scope:'global-tropics',access:'dataset/api',url:'https://coralreefwatch.noaa.gov/'},
+    {id:'swpc',agency:'NOAA SWPC',name:'Space Weather Prediction Center products',field:'space-weather',platform:'space-weather-observatory',scope:'global/geospace',access:'api',url:'https://www.swpc.noaa.gov/'},
+    {id:'giro',agency:'GIRO',name:'Global Ionospheric Radio Observatory',field:'ionosphere',platform:'ionosonde',scope:'global',access:'broker/dataset',url:'https://giro.uml.edu/'},
+    {id:'goes',agency:'NOAA/NASA',name:'GOES environmental satellites',field:'satellite-earth-observation',platform:'satellite',scope:'geostationary',access:'broker/api',url:'https://www.goes.noaa.gov/'},
+    {id:'jpSS',agency:'NOAA/NASA',name:'JPSS polar orbiting satellites',field:'satellite-earth-observation',platform:'satellite',scope:'polar-orbit',access:'broker/data-services',url:'https://www.jpss.noaa.gov/'},
+    {id:'copernicus-sentinel',agency:'ESA/EU',name:'Copernicus Sentinel missions',field:'satellite-earth-observation',platform:'satellite',scope:'global-orbit',access:'api/dataset',url:'https://dataspace.copernicus.eu/'},
+    {id:'nasa-earthdata',agency:'NASA',name:'NASA Earth Observing System / Earthdata',field:'satellite-earth-observation',platform:'satellite',scope:'global-orbit',access:'api/dataset',url:'https://www.earthdata.nasa.gov/'},
+    {id:'solarnet',agency:'International solar observatories',name:'Ground and space solar observing facilities',field:'solar-physics',platform:'solar-observatory',scope:'global/space',access:'federated',url:'https://solarnet-project.eu/'},
+    {id:'mpc-observatories',agency:'Minor Planet Center',name:'Astronomical observatory code registry',field:'astronomy',platform:'astronomical-observatory',scope:'global',access:'dataset',url:'https://minorplanetcenter.net/iau/lists/ObsCodesF.html'},
+    {id:'nmdb',agency:'NMDB consortium',name:'Neutron Monitor Database',field:'cosmic-rays',platform:'neutron-monitor',scope:'global',access:'api/dataset',url:'https://www.nmdb.eu/'},
+    {id:'safecast',agency:'Safecast',name:'Open radiation monitoring network',field:'radiation-monitoring',platform:'radiation-sensor',scope:'global',access:'api/dataset',url:'https://safecast.org/'},
+    {id:'goaon',agency:'GOA-ON',name:'Global Ocean Acidification Observing Network',field:'marine-chemistry',platform:'ocean-chemistry-station',scope:'global-ocean',access:'broker/dataset',url:'https://www.goa-on.org/'},
+    {id:'ioos-gliders',agency:'IOOS',name:'Glider DAC / autonomous ocean platforms',field:'gliders-autonomous-platforms',platform:'glider',scope:'United States/global-partners',access:'api/thredds',url:'https://gliders.ioos.us/'},
+    {id:'goos',agency:'GOOS',name:'Global Ocean Observing System platforms',field:'oceanography',platform:'multi-platform',scope:'global-ocean',access:'federated',url:'https://goosocean.org/'},
+    {id:'research-vessels',agency:'Multiple national programs',name:'Research vessel observing systems',field:'research-vessels',platform:'research-vessel',scope:'global-ocean',access:'federated',url:'https://www.rvdata.us/'}
+  ];
+  const byField=()=>Object.fromEntries(FIELDS.map(f=>[f,NETWORKS.filter(n=>n.field===f)]));
+  const summary=()=>({fields:FIELDS.length,networks:NETWORKS.length,byField:byField()});
+  window.DOMScientificInstrumentFabric=Object.freeze({FIELDS,NETWORKS,byField,summary});
+})();
