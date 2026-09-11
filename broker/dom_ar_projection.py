@@ -31,6 +31,7 @@ SATELLITE_LAYERS = [
     {"id":"nasa-firms","agency":"NASA FIRMS","name":"VIIRS/MODIS/Landsat active-fire observations","domains":["fire","thermal"],"coverage":"global","timeClass":"near-real-time; source/product dependent","sourceUrl":"https://firms.modaps.eosdis.nasa.gov/","requiresCredential":True},
     {"id":"noaa-goes","agency":"NOAA/NESDIS","name":"GOES operational geostationary imagery","domains":["atmosphere","storms","cloud","lightning"],"coverage":"GOES operational sectors","timeClass":"operational; product dependent","sourceUrl":"https://www.star.nesdis.noaa.gov/GOES/","requiresCredential":False},
     {"id":"noaa-jpss","agency":"NOAA/NASA","name":"JPSS / VIIRS polar-orbiting observations","domains":["atmosphere","fire","ocean","land","night-lights"],"coverage":"global swaths","timeClass":"near-real-time-or-latest-available","sourceUrl":"https://www.nesdis.noaa.gov/current-satellite-missions/currently-flying/joint-polar-satellite-system","requiresCredential":False},
+    {"id":"nasa-ozone-watch","agency":"NASA","name":"NASA Ozone Watch total-column ozone observations","domains":["atmosphere","ozone","stratosphere"],"coverage":"global products","timeClass":"latest-available-or-near-real-time; product dependent","sourceUrl":"https://ozonewatch.gsfc.nasa.gov/","requiresCredential":False},
     {"id":"landsat","agency":"USGS/NASA","name":"Landsat Earth observation","domains":["land","water","vegetation","fire-scar"],"coverage":"global land","timeClass":"latest-available-or-archival","sourceUrl":"https://www.usgs.gov/landsat-missions","requiresCredential":False},
     {"id":"copernicus-sentinel","agency":"ESA / European Commission Copernicus","name":"Sentinel Earth observation missions","domains":["radar","optical","ocean","atmosphere","land"],"coverage":"global","timeClass":"latest-available; product dependent","sourceUrl":"https://www.copernicus.eu/en/access-data/copernicus-services-catalogue","requiresCredential":True},
     {"id":"nasa-gpm","agency":"NASA/JAXA","name":"Global Precipitation Measurement","domains":["precipitation","storms","hydrology"],"coverage":"global","timeClass":"near-real-time-or-research-product","sourceUrl":"https://gpm.nasa.gov/","requiresCredential":False},
@@ -82,10 +83,43 @@ def _role(record: dict) -> str:
     return "sensor"
 
 
+def _hazard_identification(record: dict, activation: dict) -> dict:
+    role = _role(record)
+    score = float(activation.get("score") or 0.0)
+    official = bool(record.get("officialAlert"))
+    contributing = official or role == "event" or score >= 0.30
+    return {
+        "contributing": contributing,
+        "officialAlert": official,
+        "inferenceOnly": contributing and not official,
+        "activationScore": score,
+        "activationBand": activation.get("id"),
+        "reason": "official-alert" if official else "hazard-event" if role == "event" else "qualified-sensor-contribution" if score >= 0.30 else "insufficient-qualified-signal",
+        "truth": "sensor contribution is evidence, not an official warning or a calibrated disaster probability",
+    }
+
+
+def _ozone(record: dict):
+    keys = ("totalColumnDU", "ozoneBaselineDU", "ozoneAnomalyPct", "ozoneTrendDUPerYear", "ozoneTrendPctPerDecade", "ozoneUncertaintyDU", "ozoneLayer")
+    if not any(record.get(k) is not None for k in keys):
+        return None
+    return {
+        "totalColumnDU": _num(record.get("totalColumnDU")),
+        "baselineDU": _num(record.get("ozoneBaselineDU")),
+        "anomalyPercent": _num(record.get("ozoneAnomalyPct")),
+        "trendDUPerYear": _num(record.get("ozoneTrendDUPerYear")),
+        "trendPercentPerDecade": _num(record.get("ozoneTrendPctPerDecade")),
+        "uncertaintyDU": _num(record.get("ozoneUncertaintyDU")),
+        "layer": str(record.get("ozoneLayer") or "total-column"),
+        "trendMeaning": "negative is depletion; positive is recovery; unresolved when time coverage is insufficient",
+    }
+
+
 def project_record(record: dict) -> dict:
     lat, lon = _num(record.get("lat")), _num(record.get("lon"))
     if lat is not None and not -90 <= lat <= 90: lat = None
     if lon is not None and not -180 <= lon <= 180: lon = None
+    activation = _activation(record)
     return {
         "id": str(record.get("sourceId") or record.get("id") or ""),
         "schema": str(record.get("schema") or "dom.observation.v1"),
@@ -100,7 +134,9 @@ def project_record(record: dict) -> dict:
         "officialAlert": bool(record.get("officialAlert")), "quality": _num(record.get("quality")), "freshness": _num(record.get("freshness")),
         "anomaly": _num(record.get("anomaly")), "anomalyZ": _num(record.get("anomalyZ")), "persistence": _num(record.get("persistence")),
         "corroboration": _num(record.get("corroboration")), "hazardCoupling": _num(record.get("hazardCoupling")),
-        "activation": _activation(record),
+        "activation": activation,
+        "hazardIdentification": _hazard_identification(record, activation),
+        "ozone": _ozone(record),
         "severityText": str(record.get("severityText") or ""), "certaintyText": str(record.get("certaintyText") or ""),
         "urgencyText": str(record.get("urgencyText") or ""), "title": str(record.get("title") or record.get("kind") or "Observation"),
         "geometry": record.get("geometry"), "measurements": record.get("measurements") or [], "sourceUrl": record.get("sourceUrl"),
@@ -125,6 +161,7 @@ def build_ar_state(records: Iterable[dict], sources: Iterable[dict], version: in
             "allSensorsMeaning": "all lawfully and technically connected public networks; not literally every instrument on Earth",
             "missingFeedMeaning": "unknown, never safe",
             "imageryMeaning": "timestamped evidence layer; not a continuous live camera unless source explicitly provides one",
+            "ozoneMeaning": "current ozone, anomaly and statistically supported depletion/recovery trends remain distinct",
         },
     }
 
