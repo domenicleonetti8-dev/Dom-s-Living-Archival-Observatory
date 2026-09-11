@@ -22,12 +22,14 @@
     <p>This is the geographic Earth experience, separate from the hazard dashboard. Continents, coastlines, roads and place labels come from the map layer; D.O.M. observations are overlaid at their real latitude/longitude. Surface stations stay on the surface. D.O.M. does not invent coordinates for unlocated products.</p>
     <div class="earth-actions">
       <button id="resetEarth" type="button">Global view</button>
+      <button id="earthImagery" type="button">Earth imagery: ON</button>
       <button id="surfaceMode" type="button">Walk / surface mode</button>
       <button id="locateMe" type="button">My area</button>
       <button id="googleOverlay" type="button">Google Maps overlay</button>
       <a id="openGoogle" target="_blank" rel="noopener noreferrer">Open current view in Google Maps ↗</a>
     </div>
     <div id="providerState" class="earth-note" aria-live="polite">Loading geographic Earth…</div>
+    <p class="earth-truth">The default physical-looking Earth layer uses NASA Blue Marble shaded-relief/bathymetry imagery through NASA GIBS. It is a geographic baseline, not a claim of live satellite photography. Live and near-real-time imagery layers remain separately timestamped evidence products.</p>
   </section>
 
   <section class="earth-map-card" aria-label="Interactive geographic Earth">
@@ -110,6 +112,6 @@
 <script src="./earth-source-audit.js?v=1"></script>
 <script src="./earth-scientific-fabric-ui.js?v=1"></script>
 <script src="./earth-ar-prediction-ui.js?v=1"></script>
-<script type="module" src="./earth.js?v=1"></script>
+<script type="module" src="./earth.js?v=2"></script>
 </body>
 </html>
