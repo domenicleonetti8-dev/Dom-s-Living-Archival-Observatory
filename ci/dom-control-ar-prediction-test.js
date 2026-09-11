@@ -2,9 +2,12 @@ const fs=require('fs');const vm=require('vm');
 function read(p){return fs.readFileSync(p,'utf8')}
 function assert(ok,msg){if(!ok){console.error('FAIL',msg);process.exitCode=1}else console.log('PASS',msg)}
 const html=read('earth.html'),earth=read('earth.js'),ui=read('earth-ar-prediction-ui.js'),pred=read('dom-statistical-prediction.js');
-for(const id of ['resetEarth','surfaceMode','locateMe','googleOverlay','checkAR','exportAR','runPrediction'])assert(html.includes(`id="${id}"`),`Earth exposes ${id} control`);
-for(const id of ['resetEarth','surfaceMode','locateMe','googleOverlay'])assert(earth.includes(`'#${id}'`)||earth.includes(`"#${id}"`),`${id} is connected in Earth runtime`);
+for(const id of ['resetEarth','earthImagery','surfaceMode','locateMe','googleOverlay','checkAR','exportAR','runPrediction'])assert(html.includes(`id="${id}"`),`Earth exposes ${id} control`);
+for(const id of ['resetEarth','earthImagery','surfaceMode','locateMe','googleOverlay'])assert(earth.includes(`'#${id}'`)||earth.includes(`"#${id}"`),`${id} is connected in Earth runtime`);
 for(const id of ['checkAR','exportAR','runPrediction'])assert(ui.includes(`bind('${id}'`),`${id} is connected in AR/prediction runtime`);
+assert(earth.includes('BlueMarble_ShadedRelief_Bathymetry')&&earth.includes('gibs.earthdata.nasa.gov'),'Earth physical imagery uses NASA GIBS Blue Marble rather than invented texture');
+assert(earth.includes("type:'raster'")&&earth.includes("'dom-earth-imagery-layer'"),'NASA Earth imagery is installed as a real map raster layer');
+assert(html.includes('not a claim of live satellite photography'),'UI distinguishes physical Earth baseline imagery from live satellite evidence');
 assert(ui.includes("schema:'dom.ar.scene.v1'")&&ui.includes('latitude:lat')&&ui.includes('longitude:lon'),'AR packet uses canonical source-backed geographic coordinates');
 assert(ui.includes('elevation_m')&&ui.includes('depth_km')&&ui.includes('modality')&&ui.includes('observedAt'),'AR packet preserves scientific platform metadata');
 assert(ui.includes('/v1/observations'),'AR and prediction paths consume canonical broker observations');
