@@ -54,8 +54,8 @@
   <section class="earth-panel earth-wide">
     <p class="eyebrow">ATMOSPHERIC VECTOR LAYER</p>
     <h2>Timestamped ECMWF IFS near-surface wind, not invented airflow</h2>
-    <p>D.O.M. requests ECMWF IFS 10 m wind speed and meteorological wind direction through the Open-Meteo ECMWF API at a fixed global sampling grid. Each vector retains its model-valid time and requested WGS84 sample coordinate. The display converts meteorological “from” direction into flow-toward bearing.</p>
-    <p class="earth-truth">This layer is forecast-model output, not a direct global anemometer network and not a continuous fluid simulation. Vector length is only a visual magnitude encoding; it is not a predicted air-parcel trajectory. Sampling gaps or API failures remain visible as degraded or failed source state.</p>
+    <p>D.O.M. requests ECMWF IFS 10 m wind speed and meteorological wind direction through the Open-Meteo ECMWF API at a fixed global request grid. When the API returns the actual model-grid latitude/longitude for a request, D.O.M. renders that returned grid coordinate rather than pretending the requested sample coordinate is the model cell center. Each vector retains its model-valid time, request time, returned model-grid coordinate and requested display sample. The display converts meteorological “from” direction into flow-toward bearing.</p>
+    <p class="earth-truth">This layer is forecast-model output, not a direct global anemometer network and not a continuous fluid simulation. Vector length is only a visual magnitude encoding; it is not a predicted air-parcel trajectory. Model-valid time is compared with browser time and old fields are labeled stale instead of silently presented as current. Sampling gaps or API failures remain visible as degraded or failed source state.</p>
   </section>
 
   <section class="earth-grid">
@@ -63,7 +63,7 @@
       <p class="eyebrow">SOURCE INGESTION STATUS</p>
       <h2>Current adapter state</h2>
       <div id="sourceFabric" class="source-fabric"><p>Starting adapters…</p></div>
-      <p class="earth-truth">LIVE means the adapter successfully returned its intended current product. For station-list products, that can mean a current station inventory rather than live measurement values. MODEL identifies a timestamped model field rather than an observation stream. STALE and FAILED remain visible. A registered source is not counted as active until its adapter succeeds.</p>
+      <p class="earth-truth">LIVE means the adapter successfully returned its intended current product. For station-list products, that can mean a current station inventory rather than live measurement values. MODEL identifies a timestamped model field rather than an observation stream; STALE MODEL means the returned valid time is too far from the browser clock to call current. STALE and FAILED remain visible. A registered source is not counted as active until its adapter succeeds.</p>
     </article>
     <article class="earth-panel">
       <p class="eyebrow">PLANETARY COVERAGE</p>
@@ -133,6 +133,6 @@
 <script src="./earth-source-audit.js?v=1"></script>
 <script src="./earth-scientific-fabric-ui.js?v=1"></script>
 <script src="./earth-ar-prediction-ui.js?v=3"></script>
-<script type="module" src="./earth.js?v=5"></script>
+<script type="module" src="./earth.js?v=6"></script>
 </body>
 </html>
