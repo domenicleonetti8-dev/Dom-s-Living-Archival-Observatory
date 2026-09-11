@@ -49,6 +49,19 @@ def _centroid(geometry, valid_lat_lon):
     return (lat, lon) if valid_lat_lon(lat, lon) else None
 
 
+def _source_geometry(geometry):
+    """Return only supported authoritative GeoJSON geometry; never synthesize it."""
+    if not isinstance(geometry, dict):
+        return None
+    kind = geometry.get("type")
+    coords = geometry.get("coordinates")
+    if kind not in {"Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon"}:
+        return None
+    if not isinstance(coords, list):
+        return None
+    return {"type": kind, "coordinates": coords}
+
+
 def _get_text(url: str, timeout: int = 15) -> str:
     req = urllib.request.Request(url, headers={"Accept": "application/atom+xml,text/xml,application/xml", "User-Agent": ADAPTER_USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -133,7 +146,12 @@ def poll_tsunami_atom(get_text, make_record, center: str) -> List[dict]:
 
 
 def poll_nws(get_json, make_record, valid_lat_lon) -> List[dict]:
-    """Official currently-active NWS alerts for U.S. jurisdictions."""
+    """Official currently-active NWS alerts for U.S. jurisdictions.
+
+    The source GeoJSON geometry is preserved verbatim (within supported geometry
+    types). A centroid is carried only as a representative point for consumers
+    that require one; it is never a replacement for the authoritative polygon.
+    """
     data = get_json("https://api.weather.gov/alerts/active")
     out = []
     for feature in data.get("features", []):
@@ -143,7 +161,8 @@ def poll_nws(get_json, make_record, valid_lat_lon) -> List[dict]:
         sent = _iso(p.get("sent") or p.get("effective") or p.get("onset"))
         if not raw_id or not url or not sent:
             continue
-        c = _centroid(feature.get("geometry"), valid_lat_lon)
+        geometry = _source_geometry(feature.get("geometry"))
+        c = _centroid(geometry, valid_lat_lon)
         certainty = str(p.get("certainty") or "")
         r = make_record(
             source_id=f"nws:{raw_id}", lineage="nws-cap", agency="NWS", network="NWS CAP",
@@ -154,6 +173,8 @@ def poll_nws(get_json, make_record, valid_lat_lon) -> List[dict]:
             officialAlert=True, observationStatus="observed" if certainty.lower() == "observed" else "reported",
             expiresAt=_iso(p.get("expires") or p.get("ends")), severityText=str(p.get("severity") or ""),
             certaintyText=certainty, urgencyText=str(p.get("urgency") or ""), quality=1.0,
+            geometry=geometry, geometryRole="warning-area" if geometry and geometry.get("type") in {"Polygon", "MultiPolygon"} else "source-geometry" if geometry else None,
+            representativePoint={"lat": c[0], "lon": c[1]} if c else None,
         )
         if r:
             out.append(r)
