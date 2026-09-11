@@ -7,17 +7,17 @@
   function numeric(v){return Number.isFinite(Number(v))?Number(v):null}
   function measurementsOf(r){
     const out=[];
-    if(Array.isArray(r.measurements))for(const m of r.measurements){if(!m||typeof m!=='object')continue;const v=numeric(m.value);if(v==null)continue;out.push({name:String(m.name||m.metric||'measurement'),value:v,unit:m.unit||m.units||null,observedAt:m.observedAt||r.observedAt||null,quality:m.quality??null})}
-    const fields=[['measurement','measurement'],['value','value'],['mag','magnitude'],['waterLevel','water-level'],['temperature','temperature'],['pressure','pressure'],['humidity','humidity'],['windSpeed','wind-speed'],['salinity','salinity'],['pH','pH'],['discharge','discharge'],['stage','stage'],['radiation','radiation'],['co2','co2']];
+    if(Array.isArray(r.measurements))for(const m of r.measurements){if(!m||typeof m!=='object')continue;const v=numeric(m.value??m.measurementValue);if(v==null)continue;out.push({name:String(m.name||m.metric||m.variable||'measurement'),value:v,unit:m.unit||m.units||m.measurementUnit||null,observedAt:m.observedAt||r.observedAt||null,quality:m.quality??null})}
+    const fields=[['measurementValue',r.variable||'measurement'],['measurement','measurement'],['value','value'],['mag','magnitude'],['waterLevel','water-level'],['temperature','temperature'],['pressure','pressure'],['humidity','humidity'],['windSpeed','wind-speed'],['salinity','salinity'],['pH','pH'],['discharge','discharge'],['stage','stage'],['radiation','radiation'],['co2','co2']];
     const existing=new Set(out.map(x=>x.name));
-    for(const [key,name] of fields){const v=numeric(r[key]);if(v==null||existing.has(name))continue;out.push({name,value:v,unit:r[`${key}Unit`]||r.units||null,observedAt:r.observedAt||null,quality:r.quality??null});existing.add(name)}
+    for(const [key,name] of fields){const v=numeric(r[key]);if(v==null||existing.has(name))continue;out.push({name,value:v,unit:key==='measurementValue'?(r.measurementUnit||r.unit||r.units||null):(r[`${key}Unit`]||r.units||null),observedAt:r.observedAt||null,quality:r.quality??null});existing.add(name)}
     return out;
   }
   function arPacket(records){
     const G=window.DOMEarthGeodesy;
     const out=[];
     for(const r of records||[]){
-      const lat=Number(r.lat),lon=Number(r.lon);
+      const lat=Number(r.lat??r.latitude),lon=Number(r.lon??r.longitude);
       if(!G||!G.validLatLon(lat,lon))continue;
       const elevation=numeric(r.elevation_m??r.elevation??r.altitude),depthKm=numeric(r.depth_km??r.depthKm);
       const depthM=depthKm==null?0:depthKm*1000;
@@ -50,9 +50,8 @@
   function numericSeries(records){
     const groups=new Map();
     for(const r of records||[]){
-      const t=Date.parse(r.observedAt||'');if(!Number.isFinite(t))continue;
       const ms=measurementsOf(r);
-      for(const m of ms){const key=`${r.lineageId||r.network||'source'}|${r.sourceId||r.id||'record'}|${m.name}|${m.unit||''}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push({time:t,value:m.value,record:r,metric:m.name,unit:m.unit||''})}
+      for(const m of ms){const t=Date.parse(m.observedAt||r.observedAt||'');if(!Number.isFinite(t))continue;const key=`${r.lineageId||r.network||'source'}|${r.sourceId||r.id||'record'}|${m.name}|${m.unit||''}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push({time:t,value:m.value,record:r,metric:m.name,unit:m.unit||''})}
     }
     return groups;
   }
