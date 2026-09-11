@@ -24,6 +24,21 @@ class AppleARSourceTreeTests(unittest.TestCase):
         self.assertIn("object.activation.id", renderer)
         self.assertNotIn("max(object.anomaly", renderer)
 
+    def test_native_renderer_has_live_risk_lifecycle(self):
+        renderer = (AR / "ARGlobeView.swift").read_text(encoding="utf-8")
+        self.assertIn("SceneEvents.Update", renderer)
+        self.assertIn('activation == "critical"', renderer)
+        self.assertIn('activation == "heavy"', renderer)
+        self.assertIn('activation == "elevated"', renderer)
+        self.assertIn('activation == "active"', renderer)
+        self.assertIn('activation == "watching"', renderer)
+        self.assertIn('status.range(of: "resolved"', renderer)
+        self.assertIn('status.range(of: "cancel"', renderer)
+        self.assertIn("expiresAt <= now", renderer)
+        self.assertIn("marker.entity.isEnabled = false", renderer)
+        self.assertIn("period: 1.05", renderer)
+        self.assertIn("period: 1.8", renderer)
+
     def test_camera_and_arkit_requirements_declared(self):
         plist = (AR / "Info.plist").read_text(encoding="utf-8")
         project = (ROOT / "apple-ar" / "project.yml").read_text(encoding="utf-8")
