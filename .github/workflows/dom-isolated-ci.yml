@@ -28,6 +28,8 @@ jobs:
         run: node ci/dom-canonical-runtime-test.js
       - name: Hazard semantics execution
         run: node ci/dom-hazard-semantics-test.js
+      - name: Apple AR risk-lighting lifecycle stress qualification
+        run: python ci/apple-ar-risk-lighting-test.py
       - name: Shared visitor client execution
         run: node ci/dom-visitor-client-test.js
       - name: Broker compile qualification
