@@ -8,7 +8,7 @@
 <title>D.O.M. Geographic Earth</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="./styles.css?v=6">
-<link rel="stylesheet" href="./earth.css?v=1">
+<link rel="stylesheet" href="./earth.css?v=2">
 </head>
 <body class="earth-page">
 <header class="earth-header">
@@ -23,6 +23,7 @@
     <div class="earth-actions">
       <button id="resetEarth" type="button">Global view</button>
       <button id="earthImagery" type="button">Earth imagery: ON</button>
+      <button id="startCompass" type="button">Enable live compass</button>
       <button id="surfaceMode" type="button">Walk / surface mode</button>
       <button id="locateMe" type="button">My area</button>
       <button id="googleOverlay" type="button">Google Maps overlay</button>
@@ -37,6 +38,14 @@
     <div class="earth-map-hud">
       <strong id="earthCount">0 live geographic records</strong>
       <span id="earthView">global</span>
+    </div>
+    <div class="earth-compass" aria-label="Live device compass">
+      <div class="earth-compass-dial" aria-hidden="true">
+        <span class="earth-compass-n">N</span><span class="earth-compass-e">E</span><span class="earth-compass-s">S</span><span class="earth-compass-w">W</span>
+        <div id="compassNeedle" class="earth-compass-needle"><span></span></div>
+      </div>
+      <strong id="compassHeading">—</strong>
+      <small id="compassSource">Compass off · tap Enable live compass.</small>
     </div>
     <div class="earth-legend" aria-label="Observation legend">
       <span><i class="earth-dot quake"></i>earthquake</span>
@@ -113,6 +122,7 @@
 <script src="./earth-source-audit.js?v=1"></script>
 <script src="./earth-scientific-fabric-ui.js?v=1"></script>
 <script src="./earth-ar-prediction-ui.js?v=2"></script>
+<script src="./earth-compass.js?v=1"></script>
 <script type="module" src="./earth.js?v=2"></script>
 </body>
 </html>
