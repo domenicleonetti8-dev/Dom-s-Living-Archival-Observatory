@@ -1,0 +1,26 @@
+name: DOMSAppleAR
+options:
+  bundleIdPrefix: com.kineticinterfacesystems
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: com.kineticinterfacesystems.DOMSAppleAR
+    SWIFT_VERSION: 5.0
+targets:
+  DOMSAppleAR:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: DOMSAppleAR
+    info:
+      path: DOMSAppleAR/Info.plist
+      properties:
+        CFBundleDisplayName: DOMS Apple AR
+        UILaunchScreen: {}
+        NSCameraUsageDescription: D.O.M. uses the camera to place the live global sensor and hazard globe in your physical space.
+        UIRequiredDeviceCapabilities:
+          - arkit
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
