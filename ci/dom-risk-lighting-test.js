@@ -1,5 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
-global.window={devicePixelRatio:1,addEventListener(){}};
+let reduce=false;
+global.window={devicePixelRatio:1,addEventListener(){},matchMedia(){return{matches:reduce}}};
 global.document={};
 let src=fs.readFileSync('dom-live-globe-renderer.js','utf8').replace('const DOMLiveGlobeRenderer=','globalThis.DOMLiveGlobeRenderer=');
 vm.runInThisContext(src,{filename:'dom-live-globe-renderer.js'});
@@ -14,7 +15,13 @@ assert.equal(R.profile({activation:{id:'active'},expiresAt:future},'sensor').id,
 assert.equal(R.profile({activation:{id:'watching'},expiresAt:future},'sensor').id,'steady');
 assert.equal(R.profile({activation:{id:'critical'},expiresAt:past},'sensor').id,'off');
 assert.equal(R.profile({activation:{id:'critical'},observationStatus:'resolved'},'sensor').id,'off');
+assert.equal(R.profile({activation:{id:'critical'},observationStatus:'stale'},'sensor').id,'unknown');
+assert.equal(R.profile({activation:{id:'critical'},sourceStatus:'unavailable'},'sensor').id,'unknown');
 assert.equal(R.profile({level:'extreme',expiresAt:future},'event').id,'high');
 assert.equal(R.profile({level:'watch',expiresAt:future},'event').id,'medium');
 assert.equal(R.profile({level:'info',expiresAt:future},'event').id,'low');
+assert.equal(R.profile({activation:{id:'critical'},expiresAt:future},'sensor').animate,true);
+reduce=true;
+assert.equal(R.profile({activation:{id:'critical'},expiresAt:future},'sensor').animate,false);
+assert.equal(R.profile({activation:{id:'elevated'},expiresAt:future},'sensor').animate,false);
 console.log('DOM_RISK_LIGHTING=PASS');
