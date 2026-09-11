@@ -48,10 +48,12 @@ struct ContentView: View {
                 }
 
                 if let state = client.state {
+                    let contributing = state.objects.filter { $0.hazardIdentification.contributing }.count
+                    let ozone = state.objects.filter { $0.ozone != nil }.count
                     HStack(spacing: 12) {
                         metric("OBJECTS", state.coverage.records)
-                        metric("UNLOCATED", state.coverage.unlocatedRecords)
-                        metric("STALE", state.coverage.staleSourceFamilies)
+                        metric("HAZARD SIGNALS", contributing)
+                        metric("OZONE", ozone)
                         metric("SAT LAYERS", state.coverage.satelliteLayerFamilies)
                     }
                     Button(showSources ? "Hide network truth" : "Show network truth") {
@@ -63,6 +65,12 @@ struct ContentView: View {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(state.truth.allSensorsMeaning).font(.caption2)
+                                Text("Hazard-contributing sensors are evidence signals; they are not official warnings by themselves.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                if let ozoneMeaning = state.truth.ozoneMeaning {
+                                    Text(ozoneMeaning).font(.caption2).foregroundStyle(.secondary)
+                                }
                                 Divider()
                                 ForEach(state.sourceHealth) { source in
                                     HStack {
