@@ -18,7 +18,7 @@ assert(js.includes("placement:'representative-centroid'")&&js.includes("placemen
 assert(html.includes('must refuse a month/year result'),'forecast boundary refuses unsupported month/year claims');
 assert(vitals.includes('census.gov/popclock/data/population.php/world'),'Earth vitals polls Census world population endpoint');
 assert(vitals.includes('GLB.Ts+dSST.csv'),'Earth vitals polls NASA GISTEMP monthly anomaly data');
-assert(vitals.includes('LSA_SLR_timeseries_global.php'),'Earth vitals polls NOAA sea-level altimetry product');
+assert(vitals.includes('slr_sla_gbl_free_all_66.csv'),'Earth vitals consumes NOAA multi-altimeter sea-level source CSV');
 assert(vitals.includes('same-origin-authoritative-snapshot'),'Earth vitals has same-origin authoritative fallback for browser CORS failure');
 assert(!vitals.includes('referenceOnly:true'),'Earth vitals does not substitute a hard-coded live sea-level value');
 assert(vitals.includes("dataClass:'published-reference'"),'historical ecosystem summaries are explicitly reference data');
