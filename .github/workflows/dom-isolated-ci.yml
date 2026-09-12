@@ -15,7 +15,7 @@ permissions:
 jobs:
   canonical-runtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,6 +38,18 @@ jobs:
         run: node ci/dom-authoritative-vitals-truth-50000-test.js
       - name: Snapshot generator compile qualification
         run: python -m py_compile tools/update_authoritative_vitals.py
+      - name: Authoritative source live-fetch qualification
+        run: |
+          python tools/update_authoritative_vitals.py
+          python - <<'PY'
+          import json
+          p=json.load(open('data/live-vitals.json'))
+          failed={k:p[k] for k in ('population','temperature','seaLevel') if p[k].get('status')!='live'}
+          if failed:
+              raise SystemExit('AUTHORITATIVE_SOURCE_FETCH_FAILED=' + json.dumps(failed, sort_keys=True))
+          print('AUTHORITATIVE_SOURCE_FETCH=PASS')
+          print(json.dumps({k:{x:p[k].get(x) for x in ('source','fetchedAt','value','anomalyC','trendMmPerYear','uncertaintyMmPerYear')} for k in ('population','temperature','seaLevel')}, sort_keys=True))
+          PY
       - name: Scientific broker integration qualification
         run: node ci/dom-scientific-broker-integration-test.js
       - name: Earth controls, AR bridge and prediction qualification
