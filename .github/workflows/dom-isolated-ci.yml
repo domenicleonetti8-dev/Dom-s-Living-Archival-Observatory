@@ -5,6 +5,7 @@ on:
     branches:
       - global-hazard-observatory-isolated
       - prominent-hazards-ar-entry-isolated
+      - isolated-earth-geospatial-sensor-fabric-v1
   workflow_dispatch:
 
 permissions:
@@ -24,6 +25,24 @@ jobs:
           node-version: '22'
       - name: JavaScript syntax qualification
         run: find . -maxdepth 1 -type f -name '*.js' -print0 | xargs -0 -n1 node --check
+      - name: Geographic Earth routing and anchoring
+        run: node ci/dom-earth-geospatial-test.js
+      - name: Geographic Earth 20,000-case invariant qualification
+        run: node ci/dom-earth-20000-invariant-test.js
+      - name: WGS84 Earth and AR geodesy 100,000-case qualification
+        run: node ci/dom-earth-geodesy-100000-test.js
+      - name: Scientific instrument fabric 50,000-case qualification
+        run: node ci/dom-scientific-instrument-fabric-test.js
+      - name: Scientific broker integration qualification
+        run: node ci/dom-scientific-broker-integration-test.js
+      - name: Earth controls, AR bridge and prediction qualification
+        run: node ci/dom-control-ar-prediction-test.js
+      - name: Federated search connector truth qualification
+        run: node ci/dom-search-source-truth-test.js
+      - name: Source time and freshness truth qualification
+        run: node ci/dom-source-time-truth-test.js
+      - name: Extreme events and Earth vitals qualification
+        run: node ci/dom-extreme-events-vitals-test.js
       - name: Canonical JavaScript organism execution
         run: node ci/dom-canonical-runtime-test.js
       - name: Hazard semantics execution

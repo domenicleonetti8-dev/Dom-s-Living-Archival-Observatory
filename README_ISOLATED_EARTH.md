@@ -1,0 +1,1 @@
+Review target: geographic Earth routing, surface-anchored observation overlays, expanded browser sensor fabric, and preservation of existing hazard risk lighting. Do not merge until the live branch is visually inspected on iPhone.

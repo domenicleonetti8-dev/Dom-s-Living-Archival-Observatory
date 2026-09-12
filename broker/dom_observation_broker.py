@@ -22,21 +22,25 @@ from typing import Callable, Dict, List, Optional
 from urllib.parse import urlparse
 
 from dom_adapters import builtin_adapters
+from scientific_station_adapters import poll_earthscope_fdsn, poll_usgs_monitoring_locations
 
 HOST = os.getenv("DOM_BROKER_HOST", "0.0.0.0")
 PORT = int(os.getenv("DOM_BROKER_PORT", "8787"))
 POLL_SECONDS = max(30, int(os.getenv("DOM_BROKER_POLL_SECONDS", "60")))
 SOURCE_STALE_SECONDS = max(POLL_SECONDS * 2, int(os.getenv("DOM_SOURCE_STALE_SECONDS", str(POLL_SECONDS * 3))))
-MAX_RECORDS = max(1000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "20000")))
+INVENTORY_POLL_SECONDS = max(1800, int(os.getenv("DOM_INVENTORY_POLL_SECONDS", "21600")))
+MAX_RECORDS = max(10000, int(os.getenv("DOM_BROKER_MAX_RECORDS", "150000")))
+USGS_SITE_PAGE_LIMIT = max(100, min(10000, int(os.getenv("DOM_USGS_SITE_PAGE_LIMIT", "10000"))))
+USGS_SITE_MAX_PAGES = max(1, min(25, int(os.getenv("DOM_USGS_SITE_MAX_PAGES", "5"))))
 DB_PATH = os.getenv("DOM_BROKER_DB", os.path.join(os.path.dirname(__file__), "dom_observations.sqlite3"))
 ALLOWED_ORIGINS = {x.strip() for x in os.getenv("DOM_ALLOWED_ORIGINS", "https://domenicleonetti8-dev.github.io,http://localhost,http://127.0.0.1").split(",") if x.strip()}
-USER_AGENT = "DOMS-Living-Archival-Observatory/0.9 public-research-broker"
+USER_AGENT = "DOMS-Living-Archival-Observatory/1.0 public-research-broker"
 OBSERVATION_STATUSES = {"observed", "aggregated", "reported", "forecast", "projection", "modeled"}
 REGISTERED_SOURCE_IDS = (
     "wmo-gos", "gcos", "copernicus-era5", "argo", "usgs-eq", "usgs-water",
     "ndbc-stdmet", "ndbc-ocean", "ndbc-waterlevel", "ndbc-dart", "nws-alerts",
-    "ntwc", "ptwc", "nasa-firms", "nasa-eonet", "gdacs", "swpc", "gfw",
-    "noaa-crw", "nasa-sea-level",
+    "ntwc", "ptwc", "nhc-tropical", "nasa-firms", "nasa-eonet", "gdacs", "swpc", "gfw",
+    "noaa-crw", "nasa-sea-level", "earthscope-fdsn", "usgs-water-sites",
 )
 
 
@@ -80,6 +84,41 @@ def clamp01(value) -> Optional[float]:
     return max(0.0, min(1.0, n))
 
 
+def nonnegative_float(value) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(n) or n < 0:
+        return None
+    return n
+
+
+def probability01(value) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(n):
+        return None
+    if 0 <= n <= 1:
+        return n
+    if 1 < n <= 100:
+        return n / 100.0
+    return None
+
+
+def clean_optional_text(value) -> Optional[str]:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
 def valid_lat_lon(lat, lon) -> bool:
     try:
         if lat is None or lon is None or lat == "" or lon == "":
@@ -110,10 +149,33 @@ def source_url(url) -> Optional[str]:
 
 
 def record(*, source_id: str, lineage: str, agency: str, network: str, kind: str,
-           modality: str, observed_at: Optional[str], lat=None, lon=None,
+           modality: str, observed_at: Optional[str] = None, lat=None, lon=None,
            source: Optional[str], title: str, authoritative: bool = True, **extra):
     loc_ok = valid_lat_lon(lat, lon)
     observed = normalize_iso(observed_at)
+    published_raw = extra.pop("publishedAt", None)
+    if published_raw is None:
+        published_raw = extra.pop("published_at", None)
+    valid_raw = extra.pop("validAt", None)
+    if valid_raw is None:
+        valid_raw = extra.pop("valid_at", None)
+    expires_raw = extra.pop("expiresAt", None)
+    if expires_raw is None:
+        expires_raw = extra.pop("expires_at", None)
+    fetched_raw = extra.pop("fetchedAt", None)
+    if fetched_raw is None:
+        fetched_raw = extra.pop("fetched_at", None)
+    published = normalize_iso(published_raw)
+    valid = normalize_iso(valid_raw)
+    expires = normalize_iso(expires_raw)
+    received = iso_now()
+    fetched = normalize_iso(fetched_raw) or received
+    location_precision = clean_optional_text(extra.pop("locationPrecision", None)) or "unresolved"
+    temporal_kind = clean_optional_text(extra.pop("temporalKind", None))
+    horizontal_accuracy = nonnegative_float(extra.pop("horizontalAccuracyMeters", None))
+    uncertainty_radius = nonnegative_float(extra.pop("uncertaintyRadiusMeters", None))
+    confidence_level = probability01(extra.pop("confidenceLevel", None))
+    uncertainty_basis = clean_optional_text(extra.pop("uncertaintyBasis", None))
     r = {
         "schema": "dom.observation.v1",
         "sourceId": str(source_id or "").strip(),
@@ -124,25 +186,35 @@ def record(*, source_id: str, lineage: str, agency: str, network: str, kind: str
         "modality": str(modality or "").strip(),
         "lat": float(lat) if loc_ok else None,
         "lon": float(lon) if loc_ok else None,
-        "locationPrecision": extra.pop("locationPrecision", "source-coordinate" if loc_ok else "unresolved"),
+        "locationPrecision": location_precision,
+        "horizontalAccuracyMeters": horizontal_accuracy,
+        "uncertaintyRadiusMeters": uncertainty_radius,
+        "confidenceLevel": confidence_level,
+        "uncertaintyBasis": uncertainty_basis,
         "observedAt": observed,
-        "receivedAt": iso_now(),
+        "publishedAt": published,
+        "validAt": valid,
+        "expiresAt": expires,
+        "fetchedAt": fetched,
+        "receivedAt": received,
         "sourceUrl": source_url(source),
         "authoritative": bool(authoritative),
         "officialAlert": False,
         "title": str(title or kind or "observation").strip(),
     }
+    if temporal_kind:
+        r["temporalKind"] = temporal_kind
     r.update(extra)
     status = str(r.get("observationStatus") or "reported").strip().lower()
     r["observationStatus"] = status if status in OBSERVATION_STATUSES else "reported"
-    if "expiresAt" in r:
-        r["expiresAt"] = normalize_iso(r.get("expiresAt"))
     for name in ("quality", "freshness", "corroboration", "persistence", "hazardCoupling", "anomaly"):
         if name in r:
             r[name] = clamp01(r.get(name))
     if r.get("officialAlert") and not (r.get("authoritative") and r.get("sourceAgency") and r.get("sourceUrl")):
         r["officialAlert"] = False
-    if not all((r["sourceId"], r["lineageId"], r["sourceAgency"], r["observedAt"], r["sourceUrl"])):
+    provenance_ok = all((r["sourceId"], r["lineageId"], r["sourceAgency"], r["sourceUrl"]))
+    source_time_ok = any((r.get("observedAt"), r.get("publishedAt"), r.get("validAt")))
+    if not provenance_ok or (not source_time_ok and not r.get("inventorySnapshot")):
         return None
     return r
 
@@ -199,6 +271,7 @@ class SourceState:
     id: str
     status: str = "registered-not-ingesting"
     last_success: Optional[str] = None
+    last_attempt: Optional[str] = None
     last_error: Optional[str] = None
     last_duration_ms: Optional[int] = None
     record_count: int = 0
@@ -218,6 +291,14 @@ class Broker:
         self.sources: Dict[str, SourceState] = {sid: SourceState(sid) for sid in REGISTERED_SOURCE_IDS}
         self.adapters: Dict[str, Callable[[], List[dict]]] = {"usgs-eq": poll_usgs, "nasa-eonet": poll_eonet}
         self.adapters.update(builtin_adapters(get_json, record, valid_lat_lon))
+        self.adapters["earthscope-fdsn"] = lambda: poll_earthscope_fdsn(record, valid_lat_lon)
+        self.adapters["usgs-water-sites"] = lambda: poll_usgs_monitoring_locations(
+            record, valid_lat_lon, limit=USGS_SITE_PAGE_LIMIT, max_pages=USGS_SITE_MAX_PAGES)
+        self.adapter_intervals: Dict[str, int] = {
+            "earthscope-fdsn": INVENTORY_POLL_SECONDS,
+            "usgs-water-sites": INVENTORY_POLL_SECONDS,
+        }
+        self.adapter_last_attempt_monotonic: Dict[str, float] = {}
         self.last_batch: List[dict] = []
         self.version = 0
         self.stop_event = threading.Event()
@@ -225,7 +306,10 @@ class Broker:
 
     @staticmethod
     def key(r: dict) -> str:
-        return f"{r.get('lineageId','')}|{r.get('sourceId','')}|{r.get('observedAt','')}"
+        if r.get("inventorySnapshot"):
+            return f"{r.get('lineageId','')}|{r.get('sourceId','')}|inventory"
+        source_time = r.get("observedAt") or r.get("publishedAt") or r.get("validAt") or ""
+        return f"{r.get('lineageId','')}|{r.get('sourceId','')}|{source_time}"
 
     def _load_persisted(self):
         with self.lock:
@@ -263,12 +347,24 @@ class Broker:
                 merged[k] = r
         return list(merged.values())
 
+    def _adapter_due(self, sid: str, now_mono: float) -> bool:
+        interval = max(0, int(self.adapter_intervals.get(sid, 0)))
+        last = self.adapter_last_attempt_monotonic.get(sid)
+        return last is None or interval <= 0 or now_mono - last >= interval
+
     def poll_once(self):
         cycle_rows: List[dict] = []
         attempted = 0
+        now_mono = time.monotonic()
         for sid, fn in self.adapters.items():
+            if sid not in self.sources:
+                self.sources[sid] = SourceState(sid)
+            if not self._adapter_due(sid, now_mono):
+                continue
             attempted += 1
+            self.adapter_last_attempt_monotonic[sid] = now_mono
             st = self.sources[sid]
+            st.last_attempt = iso_now()
             started = time.monotonic()
             try:
                 rows = fn()
@@ -314,10 +410,12 @@ class Broker:
         out = []
         for sid in REGISTERED_SOURCE_IDS:
             row = asdict(self.sources[sid])
-            row["stale_after_seconds"] = SOURCE_STALE_SECONDS
+            interval = int(self.adapter_intervals.get(sid, POLL_SECONDS))
+            row["poll_interval_seconds"] = interval
+            row["stale_after_seconds"] = max(SOURCE_STALE_SECONDS, interval * 2)
             if row["status"] == "active":
                 last = parse_iso(row.get("last_success"))
-                if last is None or (now - last).total_seconds() > SOURCE_STALE_SECONDS:
+                if last is None or (now - last).total_seconds() > row["stale_after_seconds"]:
                     row["status"] = "stale"
             out.append(row)
         return out
@@ -332,7 +430,7 @@ BROKER = Broker(DB_PATH)
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "DOMObservationBroker/0.9"
+    server_version = "DOMObservationBroker/1.0"
 
     def log_message(self, fmt, *args):
         print(f"[{iso_now()}] {self.client_address[0]} {fmt % args}")

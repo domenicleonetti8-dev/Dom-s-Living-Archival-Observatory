@@ -5,9 +5,49 @@ const DOMObservationModel=(()=>{
   function robustZ(value,baseline){const m=median(baseline),d=mad(baseline);if(!Number.isFinite(value)||!Number.isFinite(m)||!Number.isFinite(d)||d===0)return null;return(value-m)/(1.4826*d)}
   function uniqueLineages(rows){const s=new Set();for(const r of rows||[]){const id=r&&r.lineageId;if(id)s.add(String(id));}return s.size}
   function corroboration(rows){const n=uniqueLineages(rows);return clamp((n-1)/3)}
-  function evidenceStrength(x={}){const Q=clamp(x.quality),F=clamp(x.freshness),G=clamp(x.geospatial),C=clamp(x.corroboration),U=clamp(x.uncertaintyQuality),T=clamp(x.trend);return clamp(.24*Q+.18*F+.16*G+.18*C+.14*U+.10*T)}
+  function evidenceComponents(x={}){
+    const quality=clamp(x.quality),freshness=clamp(x.freshness),geospatial=clamp(x.geospatial);
+    const hasUncertainty=Number.isFinite(Number(x.uncertaintyQuality)),uncertaintyQuality=hasUncertainty?clamp(x.uncertaintyQuality):null;
+    const locationEvidence=hasUncertainty?clamp(.70*geospatial+.30*uncertaintyQuality):geospatial;
+    return{quality,freshness,geospatial,uncertaintyQuality,locationEvidence,weights:{quality:.44,freshness:.30,locationEvidence:.26},excludedFromEvidenceStrength:['corroboration','trend']};
+  }
+  function evidenceStrength(x={}){const c=evidenceComponents(x);return clamp(c.weights.quality*c.quality+c.weights.freshness*c.freshness+c.weights.locationEvidence*c.locationEvidence)}
+  function weightedAudit(rows=[]){
+    const prepared=(rows||[]).map(r=>{const applicable=!!r&&r.applicable!==false&&Number.isFinite(Number(r.value))&&Number.isFinite(Number(r.weight))&&Number(r.weight)>0;return{...r,applicable,value:applicable?clamp(r.value):null,baseWeight:Number.isFinite(Number(r&&r.weight))?Number(r.weight):0}}),denominator=prepared.reduce((s,r)=>s+(r.applicable?r.baseWeight:0),0);
+    let sum=0;
+    const components=prepared.map(r=>{if(!r.applicable)return{...r,appliedWeight:0,contribution:0,contributionPoints:0,omitted:true,omittedReason:r.omittedReason||'dimension not applicable or source value unavailable'};const appliedWeight=denominator?r.baseWeight/denominator:0,contribution=r.value*appliedWeight;sum+=contribution;return{...r,appliedWeight,contribution,contributionPoints:contribution*100,omitted:false,omittedReason:null}});
+    const value=denominator?clamp(sum):0;
+    return{value,score:value*100,denominator,components,weightSum:components.reduce((s,r)=>s+r.appliedWeight,0)};
+  }
+  function weightedApplicable(rows){return weightedAudit(rows).value}
+  function hazardEvidenceConfidence(x={}){
+    const geo=clamp(x.geospatial),hasUncertainty=Number.isFinite(Number(x.uncertaintyQuality)),locationEvidence=hasUncertainty?clamp(.70*geo+.30*clamp(x.uncertaintyQuality)):geo;
+    const hasCertainty=Number.isFinite(Number(x.certainty));
+    const rows=[
+      {name:'sourceQuality',label:'Source quality',value:clamp(x.quality),weight:.38,applicable:true},
+      {name:'locationEvidence',label:'Location evidence',value:locationEvidence,weight:.22,applicable:true},
+      {name:'independentCorroboration',label:'Independent corroboration',value:clamp(x.corroboration),weight:.24,applicable:true},
+      {name:'sourceCertainty',label:'Source certainty',value:hasCertainty?clamp(x.certainty):null,weight:.16,applicable:hasCertainty,omittedReason:'source did not supply a recognized certainty value'}
+    ];
+    const audit=weightedAudit(rows);
+    return{...audit,excluded:['recency','severity','urgency','localRelevance','trend'],note:'Evidence confidence uses source quality, one combined location-evidence dimension, independent-lineage corroboration, and source certainty when supplied. It excludes event recency, physical severity, official urgency, local relevance, and temporal trend so those cannot be counted twice.'};
+  }
+  function hazardPriority(x={}){
+    const hasOfficialUrgency=x.officialUrgencyApplicable===true&&Number.isFinite(Number(x.officialUrgency));
+    const hasLocal=x.localRelevanceApplicable===true&&Number.isFinite(Number(x.localRelevance));
+    const rows=[
+      {name:'physicalSeverity',label:'Physical severity',value:clamp(x.physicalSeverity),weight:.34,applicable:true},
+      {name:'eventRecency',label:'Event recency',value:clamp(x.eventRecency),weight:.18,applicable:true},
+      {name:'officialUrgency',label:'Official urgency',value:hasOfficialUrgency?clamp(x.officialUrgency):null,weight:.16,applicable:hasOfficialUrgency,omittedReason:'no applicable official urgency value'},
+      {name:'localRelevance',label:'Local relevance',value:hasLocal?clamp(x.localRelevance):null,weight:.14,applicable:hasLocal,omittedReason:'user location/local applicability not available'},
+      {name:'evidenceConfidence',label:'Evidence confidence',value:clamp(x.evidenceConfidence),weight:.18,applicable:true}
+    ];
+    const audit=weightedAudit(rows);
+    return{...audit,scoreRounded:Math.round(audit.score),note:'Priority is a normalized weighted mean over five conceptually separate dimensions. Inapplicable official-urgency and local-relevance dimensions are omitted from the denominator and the remaining applied weights are renormalized to sum to 100%. Each contribution is value × applied weight.'};
+  }
   function evidenceGrade(v){const p=Math.round(clamp(v)*100);return p>=90?'very strong':p>=75?'strong':p>=55?'moderate':p>=35?'limited':'weak / insufficient'}
+  function scoreAudit(x={}){const c=evidenceComponents(x);return{evidenceStrength:evidenceStrength(x),components:c,note:'Corroboration and temporal trend are excluded from evidence-strength confidence so callers can use them in hazard/priority logic without counting the same signal twice. Geospatial quality and uncertainty quality are combined into one location-evidence dimension rather than added as independent votes.'}}
   function spike(value,baseline,{minEvidence=.55,evidence=.0}={}){const z=robustZ(value,baseline);if(z===null)return{z:null,unusual:false,qualified:false};const unusual=Math.abs(z)>=3;return{z,unusual,qualified:unusual&&evidence>=minEvidence}}
   function impactLanguage({officialForecast=false,officialWarning=false,evidence=.0,trend=.0}={}){if(officialWarning)return'official warning active';if(officialForecast)return'official forecast indicates possible impact';if(evidence>=.75&&trend>=.55)return'evidence suggests conditions could affect the surrounding region';return'observed signal; stronger outcome is not established'}
-  return{clamp,median,mad,robustZ,uniqueLineages,corroboration,evidenceStrength,evidenceGrade,spike,impactLanguage};
+  return{clamp,median,mad,robustZ,uniqueLineages,corroboration,evidenceComponents,evidenceStrength,weightedAudit,weightedApplicable,hazardEvidenceConfidence,hazardPriority,evidenceGrade,scoreAudit,spike,impactLanguage};
 })();

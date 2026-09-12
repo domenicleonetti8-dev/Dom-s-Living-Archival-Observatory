@@ -1,0 +1,168 @@
+import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
+
+const $=s=>document.querySelector(s);
+const records=[];
+const areaFeatures=[];
+const recordKeys=new Set();
+const areaKeys=new Set();
+const sourceStates=new Map();
+const windFeatures=[];
+const windCellKeys=new Set();
+let map=null;
+let googleMap=null;
+let googleMarkers=[];
+let earthImageryVisible=true;
+let stormsVisible=true;
+let airCurrentsVisible=true;
+let windValidTime=null;
+let windFetchedAt=null;
+
+const colorFor={earthquake:'#5ae5ff',hazard:'#ffd43b',station:'#36e58b',alert:'#ff536f'};
+const NASA_BLUE_MARBLE_WMS='https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=BlueMarble_ShadedRelief_Bathymetry&STYLES=&FORMAT=image/jpeg&TRANSPARENT=FALSE&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}';
+const ECMWF_WIND_ENDPOINT='https://api.open-meteo.com/v1/ecmwf';
+const SOURCE_GEOMETRY_TYPES=new Set(['Polygon','MultiPolygon','LineString','MultiLineString']);
+const AIR_CURRENT_LAYER_IDS=['dom-air-current-streamlines','dom-air-current-arrows'];
+const STORM_TEXT=/(hurricane|tropical|cyclone|storm|tornado|typhoon|severe thunderstorm|storm surge)/i;
+
+function validLatLon(lat,lon){return Number.isFinite(Number(lat))&&Number.isFinite(Number(lon))&&Number(lat)>=-90&&Number(lat)<=90&&Number(lon)>=-180&&Number(lon)<=180}
+function finiteOrNull(v){const n=Number(v);return Number.isFinite(n)?n:null}
+function nonNegativeOrNull(v){const n=finiteOrNull(v);return n!=null&&n>=0?n:null}
+function probabilityOrNull(v){const n=finiteOrNull(v);if(n==null)return null;if(n>=0&&n<=1)return n;if(n>1&&n<=100)return n/100;return null}
+function safeText(v){return String(v==null?'':v)}
+function escapeHtml(v){return safeText(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function withTimeout(ms=12000){const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),ms);return{signal:controller.signal,done:()=>clearTimeout(timer)}}
+async function getJSON(url,ms=12000){const t=withTimeout(ms);try{const r=await fetch(url,{signal:t.signal,cache:'no-store',headers:{Accept:'application/json'}});if(!r.ok)throw new Error(`${r.status} ${r.statusText}`);return await r.json()}finally{t.done()}}
+async function getText(url,ms=12000){const t=withTimeout(ms);try{const r=await fetch(url,{signal:t.signal,cache:'no-store'});if(!r.ok)throw new Error(`${r.status} ${r.statusText}`);return await r.text()}finally{t.done()}}
+function isStormLike(r){return r?.overlayClass==='storm'||STORM_TEXT.test(`${r?.title||''} ${r?.detail||''} ${r?.kind||''} ${r?.geometryRole||''}`)||['forecast-track','best-track','forecast-cone'].includes(r?.geometryRole)}
+function precisionLabel(p){const s=safeText(p||'unresolved');if(s==='source-coordinate'||s==='station-coordinate'||s==='epicenter'||s==='official-center')return 'source-backed coordinate';if(s.includes('centroid')||s.includes('representative'))return 'representative location';if(s==='source-geometry'||s==='event-geometry-point')return 'source geometry';return s.replaceAll('-',' ')}
+function uncertaintyText(p,geometry=false){const h=nonNegativeOrNull(p?.horizontalAccuracyMeters),u=nonNegativeOrNull(p?.uncertaintyRadiusMeters),c=probabilityOrNull(p?.confidenceLevel),basis=safeText(p?.uncertaintyBasis||'');const bits=[];if(h!=null)bits.push(`source-reported horizontal accuracy ${h.toLocaleString(undefined,{maximumFractionDigits:2})} m`);if(u!=null)bits.push(`source-reported uncertainty radius ${u.toLocaleString(undefined,{maximumFractionDigits:2})} m`);if(c!=null)bits.push(`confidence ${(c*100).toFixed(c===1?0:1)}%`);if(basis)bits.push(basis);if(bits.length)return bits.join(' · ');return geometry?'numeric uncertainty not supplied; authoritative source geometry is retained':'source did not publish a numeric horizontal uncertainty for this record'}
+
+function addRecord(r){
+  if(!r||!validLatLon(r.lat,r.lon))return false;
+  const id=safeText(r.id||`${r.source}:${r.lat}:${r.lon}`);
+  const key=`${id}|${Number(r.lat).toFixed(6)}|${Number(r.lon).toFixed(6)}`;
+  if(recordKeys.has(key))return false;
+  recordKeys.add(key);
+  records.push({id,source:safeText(r.source||'Unknown'),type:r.type||'station',title:safeText(r.title||r.source||'Observation'),lat:Number(r.lat),lon:Number(r.lon),time:r.time||null,url:r.url||null,detail:safeText(r.detail||''),locationPrecision:safeText(r.locationPrecision||'unresolved'),horizontalAccuracyMeters:nonNegativeOrNull(r.horizontalAccuracyMeters),uncertaintyRadiusMeters:nonNegativeOrNull(r.uncertaintyRadiusMeters),confidenceLevel:probabilityOrNull(r.confidenceLevel),uncertaintyBasis:safeText(r.uncertaintyBasis||''),overlayClass:isStormLike(r)?'storm':safeText(r.overlayClass||'general')});
+  return true;
+}
+function addAreaFeature(r){
+  const g=r?.geometry;
+  if(!g||!SOURCE_GEOMETRY_TYPES.has(g.type)||!Array.isArray(g.coordinates))return false;
+  const id=safeText(r.id||`${r.source}:geometry:${areaFeatures.length}`);
+  const role=safeText(r.geometryRole||r.role||'source-geometry');
+  const key=`${id}|${g.type}|${role}`;
+  if(areaKeys.has(key))return false;
+  areaKeys.add(key);
+  areaFeatures.push({type:'Feature',id:key,geometry:g,properties:{id,source:safeText(r.source||'Unknown'),type:r.type||'hazard',title:safeText(r.title||r.source||'Source geometry'),time:r.time||'',url:r.url||'',detail:safeText(r.detail||''),placement:'source-geometry',locationPrecision:safeText(r.locationPrecision||'source-geometry'),horizontalAccuracyMeters:nonNegativeOrNull(r.horizontalAccuracyMeters),uncertaintyRadiusMeters:nonNegativeOrNull(r.uncertaintyRadiusMeters),confidenceLevel:probabilityOrNull(r.confidenceLevel),uncertaintyBasis:safeText(r.uncertaintyBasis||''),geometryRole:role,geometryType:g.type,overlayClass:isStormLike({...r,geometryRole:role})?'storm':safeText(r.overlayClass||'general')}});
+  return true;
+}
+function clearRecords(){records.length=0;areaFeatures.length=0;recordKeys.clear();areaKeys.clear()}
+function setSource(id,label,state,count=0,detail=''){sourceStates.set(id,{label,state,count,detail});renderSourceFabric()}
+function renderSourceFabric(){const box=$('#sourceFabric');if(!box)return;box.innerHTML=[...sourceStates.values()].map(s=>`<article class="source-card"><div><strong>${escapeHtml(s.label)}</strong><span>${escapeHtml(s.detail)}</span></div><b class="source-${escapeHtml(String(s.state).toLowerCase())}">${escapeHtml(s.state)}${Number.isFinite(Number(s.count))?` · ${Number(s.count).toLocaleString()}`:''}</b></article>`).join('')}
+function visibleRecords(){return stormsVisible?records:records.filter(r=>r.overlayClass!=='storm')}
+function visibleAreaFeatures(){return stormsVisible?areaFeatures:areaFeatures.filter(f=>f.properties?.overlayClass!=='storm')}
+function toGeoJSON(){return{type:'FeatureCollection',features:visibleRecords().map(r=>({type:'Feature',id:r.id,geometry:{type:'Point',coordinates:[r.lon,r.lat]},properties:{id:r.id,source:r.source,type:r.type,title:r.title,time:r.time||'',url:r.url||'',detail:r.detail,locationPrecision:r.locationPrecision,horizontalAccuracyMeters:r.horizontalAccuracyMeters,uncertaintyRadiusMeters:r.uncertaintyRadiusMeters,confidenceLevel:r.confidenceLevel,uncertaintyBasis:r.uncertaintyBasis,overlayClass:r.overlayClass}}))}}
+function toAreaGeoJSON(){return{type:'FeatureCollection',features:visibleAreaFeatures().slice()}}
+function toWindGeoJSON(){return{type:'FeatureCollection',features:windFeatures.slice()}}
+function updateMap(){if(!map)return;map.getSource('dom-observations')?.setData(toGeoJSON());map.getSource('dom-event-areas')?.setData(toAreaGeoJSON());map.getSource('dom-air-currents')?.setData(toWindGeoJSON());applyOverlayFilters();updateGoogleMarkers();const n=$('#earthCount');if(n)n.textContent=`${visibleRecords().length.toLocaleString()} geographic points loaded`}
+function stormAware(baseFilter){return stormsVisible?baseFilter:['all',baseFilter,['!=',['get','overlayClass'],'storm']]}
+function applyOverlayFilters(){if(!map)return;const polygon=['in',['geometry-type'],['literal',['Polygon','MultiPolygon']]],line=['in',['geometry-type'],['literal',['LineString','MultiLineString']]];if(map.getLayer('dom-event-area-fill'))map.setFilter('dom-event-area-fill',stormAware(polygon));if(map.getLayer('dom-event-area-line'))map.setFilter('dom-event-area-line',stormAware(polygon));if(map.getLayer('dom-event-track-line'))map.setFilter('dom-event-track-line',stormAware(line));if(map.getLayer('dom-observations'))map.setFilter('dom-observations',['!',['has','point_count']]);for(const id of AIR_CURRENT_LAYER_IDS)if(map.getLayer(id))map.setLayoutProperty(id,'visibility',airCurrentsVisible?'visible':'none')}
+
+function installObservationLayers(){
+  if(!map.getSource('dom-observations'))map.addSource('dom-observations',{type:'geojson',data:toGeoJSON(),cluster:true,clusterMaxZoom:5,clusterRadius:36});
+  if(!map.getLayer('dom-observation-clusters'))map.addLayer({id:'dom-observation-clusters',type:'circle',source:'dom-observations',filter:['has','point_count'],paint:{'circle-color':'#28485a','circle-radius':['step',['get','point_count'],13,100,17,1000,22],'circle-stroke-color':'#baf4ff','circle-stroke-width':1}});
+  if(!map.getLayer('dom-observations'))map.addLayer({id:'dom-observations',type:'circle',source:'dom-observations',filter:['!',['has','point_count']],paint:{'circle-color':['match',['get','type'],'earthquake',colorFor.earthquake,'hazard',colorFor.hazard,'alert',colorFor.alert,colorFor.station],'circle-radius':['match',['get','type'],'earthquake',5,'hazard',6,'alert',6,4],'circle-stroke-color':'#071318','circle-stroke-width':1.2}});
+  if(!map.getSource('dom-event-areas'))map.addSource('dom-event-areas',{type:'geojson',data:toAreaGeoJSON()});
+  const polygonFilter=['in',['geometry-type'],['literal',['Polygon','MultiPolygon']]];const lineFilter=['in',['geometry-type'],['literal',['LineString','MultiLineString']]];
+  if(!map.getLayer('dom-event-area-fill'))map.addLayer({id:'dom-event-area-fill',type:'fill',source:'dom-event-areas',filter:polygonFilter,paint:{'fill-color':['match',['get','geometryRole'],'forecast-cone','#ff9f43',['match',['get','type'],'alert',colorFor.alert,colorFor.hazard]],'fill-opacity':['match',['get','geometryRole'],'forecast-cone',0.10,0.14]}});
+  if(!map.getLayer('dom-event-area-line'))map.addLayer({id:'dom-event-area-line',type:'line',source:'dom-event-areas',filter:polygonFilter,paint:{'line-color':['match',['get','geometryRole'],'forecast-cone','#ff9f43',['match',['get','type'],'alert',colorFor.alert,colorFor.hazard]],'line-width':2,'line-opacity':0.85}});
+  if(!map.getLayer('dom-event-track-line'))map.addLayer({id:'dom-event-track-line',type:'line',source:'dom-event-areas',filter:lineFilter,paint:{'line-color':['match',['get','geometryRole'],'forecast-track','#ff9f43','best-track','#5ae5ff',colorFor.hazard],'line-width':['match',['get','geometryRole'],'forecast-track',3,'best-track',2.5,2],'line-opacity':0.95,'line-dasharray':[2,1.5]}});
+  installWindLayers();
+  applyOverlayFilters();
+}
+
+function installWindLayers(){
+  if(!map.getSource('dom-air-currents'))map.addSource('dom-air-currents',{type:'geojson',data:toWindGeoJSON()});
+  if(!map.getLayer('dom-air-current-streamlines'))map.addLayer({id:'dom-air-current-streamlines',type:'line',source:'dom-air-currents',filter:['==',['get','featureKind'],'vector-line'],paint:{'line-color':['interpolate',['linear'],['get','speedMs'],0,'#78d8ff',10,'#67ffd3',20,'#ffd75e',35,'#ff8b55'],'line-width':['interpolate',['linear'],['get','speedMs'],0,1,10,1.6,20,2.3,35,3.2],'line-opacity':0.72}});
+  if(!map.getLayer('dom-air-current-arrows'))map.addLayer({id:'dom-air-current-arrows',type:'symbol',source:'dom-air-currents',filter:['==',['get','featureKind'],'vector-point'],layout:{'text-field':'↑','text-size':['interpolate',['linear'],['get','speedMs'],0,10,10,13,20,16,35,19],'text-rotate':['get','flowBearingDeg'],'text-rotation-alignment':'map','text-allow-overlap':false},paint:{'text-color':'#d9fbff','text-halo-color':'#06202b','text-halo-width':1}});
+}
+
+function installEarthImagery(){if(!map||map.getSource('dom-earth-imagery'))return;map.addSource('dom-earth-imagery',{type:'raster',tiles:[NASA_BLUE_MARBLE_WMS],tileSize:256,attribution:'NASA EOSDIS GIBS · Blue Marble'});const firstSymbol=map.getStyle().layers.find(l=>l.type==='symbol');map.addLayer({id:'dom-earth-imagery-layer',type:'raster',source:'dom-earth-imagery',paint:{'raster-opacity':.92}},firstSymbol?.id);earthImageryVisible=true;const b=$('#earthImagery');if(b)b.textContent='Earth imagery: ON'}
+function toggleEarthImagery(){earthImageryVisible=!earthImageryVisible;if(map?.getLayer('dom-earth-imagery-layer'))map.setLayoutProperty('dom-earth-imagery-layer','visibility',earthImageryVisible?'visible':'none');const b=$('#earthImagery');if(b)b.textContent=`Earth imagery: ${earthImageryVisible?'ON':'OFF'}`}
+function toggleStorms(){stormsVisible=!stormsVisible;map?.getSource('dom-observations')?.setData(toGeoJSON());map?.getSource('dom-event-areas')?.setData(toAreaGeoJSON());applyOverlayFilters();updateGoogleMarkers();const n=$('#earthCount');if(n)n.textContent=`${visibleRecords().length.toLocaleString()} geographic points loaded`;const b=$('#toggleStorms');if(b){b.textContent=`Storms: ${stormsVisible?'ON':'OFF'}`;b.setAttribute('aria-pressed',String(stormsVisible))}const s=$('#layerControlState');if(s)s.textContent=stormsVisible?'Storm overlays visible.':'Storm points are removed from the clustered source and Google markers; storm tracks, cones and storm geometries are hidden. Underlying records remain in memory.'}
+function toggleAirCurrents(){airCurrentsVisible=!airCurrentsVisible;applyOverlayFilters();const b=$('#toggleAirCurrents');if(b){b.textContent=`Air currents (10 m wind): ${airCurrentsVisible?'ON':'OFF'}`;b.setAttribute('aria-pressed',String(airCurrentsVisible))}const loaded=AIR_CURRENT_LAYER_IDS.filter(id=>map?.getLayer(id)).length;const s=$('#layerControlState');if(s)s.textContent=loaded?`ECMWF IFS 10 m model-wind vectors ${airCurrentsVisible?'visible':'hidden'}${windValidTime?` · valid ${windValidTime} UTC`:''}. Lines encode direction and relative speed for display; they are not parcel trajectories.`:'Wind-vector layers are not available in the current map state.'}
+
+function destinationPoint(lat,lon,bearingDeg,distanceKm){
+  const R=6371.0088,rad=Math.PI/180,phi1=Number(lat)*rad,lambda1=Number(lon)*rad,theta=Number(bearingDeg)*rad,delta=Number(distanceKm)/R;
+  const sinPhi2=Math.sin(phi1)*Math.cos(delta)+Math.cos(phi1)*Math.sin(delta)*Math.cos(theta);
+  const phi2=Math.asin(Math.max(-1,Math.min(1,sinPhi2)));
+  const lambda2=lambda1+Math.atan2(Math.sin(theta)*Math.sin(delta)*Math.cos(phi1),Math.cos(delta)-Math.sin(phi1)*Math.sin(phi2));
+  const outLon=((lambda2/rad+540)%360)-180;
+  return [outLon,phi2/rad];
+}
+function windSampleGrid(){const out=[];for(let lat=-75;lat<=75;lat+=15)for(let lon=-170;lon<=170;lon+=20)out.push({lat,lon});return out}
+function parseUtcHour(v){const s=safeText(v);if(!s)return NaN;return Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(s)?s:`${s}Z`)}
+function nearestHourlyWind(row){const h=row?.hourly;if(!h||!Array.isArray(h.time))return null;const now=Date.now();let best=-1,bestDelta=Infinity;for(let i=0;i<h.time.length;i++){const t=parseUtcHour(h.time[i]);if(!Number.isFinite(t))continue;const d=Math.abs(t-now);if(d<bestDelta){bestDelta=d;best=i}}if(best<0)return null;const speed=finiteOrNull(h.wind_speed_10m?.[best]),from=finiteOrNull(h.wind_direction_10m?.[best]);if(speed==null||from==null||speed<0)return null;return{time:h.time[best],timeMs:parseUtcHour(h.time[best]),speedMs:speed,fromDeg:((from%360)+360)%360}}
+function windTimeOffsetMinutes(validTimeMs,now=Date.now()){return Number.isFinite(validTimeMs)?Math.round((validTimeMs-now)/60000):null}
+function addWindVector(sample,row){
+  const w=nearestHourlyWind(row);if(!w)return false;
+  const cellLat=validLatLon(row?.latitude,row?.longitude)?Number(row.latitude):Number(sample.lat),cellLon=validLatLon(row?.latitude,row?.longitude)?Number(row.longitude):Number(sample.lon);
+  const key=`${cellLat.toFixed(6)}|${cellLon.toFixed(6)}|${safeText(w.time)}`;if(windCellKeys.has(key))return false;windCellKeys.add(key);
+  const flow=(w.fromDeg+180)%360,visualKm=Math.max(55,Math.min(280,55+w.speedMs*7)),end=destinationPoint(cellLat,cellLon,flow,visualKm),offsetMin=windTimeOffsetMinutes(w.timeMs);
+  const base={source:'ECMWF IFS via Open-Meteo',speedMs:w.speedMs,windFromDeg:w.fromDeg,flowBearingDeg:flow,validTime:w.time,validOffsetMinutes:offsetMin,levelMeters:10,visualLengthKm:visualKm,modelNature:'forecast-model-field',sourceCellLatitude:cellLat,sourceCellLongitude:cellLon,requestedSampleLatitude:Number(sample.lat),requestedSampleLongitude:Number(sample.lon),fetchedAt:windFetchedAt,displayNote:'Vector length is a visual magnitude encoding, not atmospheric parcel displacement.'};
+  windFeatures.push({type:'Feature',geometry:{type:'LineString',coordinates:[[cellLon,cellLat],end]},properties:{...base,featureKind:'vector-line'}});
+  windFeatures.push({type:'Feature',geometry:{type:'Point',coordinates:[cellLon,cellLat]},properties:{...base,featureKind:'vector-point'}});
+  windValidTime=windValidTime||w.time;return true
+}
+async function pollWindField(){
+  const id='ecmwf-wind';setSource(id,'ECMWF IFS 10 m wind via Open-Meteo','LOADING',0,'global sampled model field · not direct anemometer observations');
+  windFeatures.length=0;windCellKeys.clear();windValidTime=null;windFetchedAt=new Date().toISOString();
+  const samples=windSampleGrid(),batchSize=45;let vectors=0,failedBatches=0;
+  for(let i=0;i<samples.length;i+=batchSize){const batch=samples.slice(i,i+batchSize),lats=batch.map(x=>x.lat).join(','),lons=batch.map(x=>x.lon).join(',');const url=`${ECMWF_WIND_ENDPOINT}?latitude=${encodeURIComponent(lats)}&longitude=${encodeURIComponent(lons)}&hourly=wind_speed_10m,wind_direction_10m&wind_speed_unit=ms&forecast_hours=3&timezone=GMT&cell_selection=nearest`;try{const data=await getJSON(url,18000),rows=Array.isArray(data)?data:[data];rows.forEach((row,j)=>{if(batch[j]&&addWindVector(batch[j],row))vectors++})}catch(_){failedBatches++}}
+  map?.getSource('dom-air-currents')?.setData(toWindGeoJSON());
+  const validMs=parseUtcHour(windValidTime),offset=windTimeOffsetMinutes(validMs),stale=offset!=null&&Math.abs(offset)>180,state=vectors?(stale?'STALE MODEL':failedBatches?'DEGRADED':'MODEL'):'FAILED';
+  const timing=offset==null?'valid-time offset unknown':`${Math.abs(offset)} min ${offset>0?'ahead of':'behind'} browser time`;
+  setSource(id,'ECMWF IFS 10 m wind via Open-Meteo',state,vectors,vectors?`${vectors} unique model-grid samples · valid ${windValidTime||'time unavailable'} UTC · ${timing} · display request grid 15° latitude × 20° longitude${failedBatches?` · ${failedBatches} batch failures`:''}`:'no usable model-wind samples returned');
+  const s=$('#layerControlState');if(s&&vectors)s.textContent=`Air-current layer loaded from ECMWF IFS model wind via Open-Meteo · ${vectors} unique returned model-grid cells · valid ${windValidTime||'unknown'} UTC · ${timing}. This is model output, not direct wind-station observation.`;
+}
+
+async function pollUSGS(){const id='usgs';setSource(id,'USGS earthquakes','LOADING',0,'M2.5+ · past day');try{const j=await getJSON('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson');let n=0;for(const f of j.features||[]){const c=f?.geometry?.coordinates;if(!Array.isArray(c)||!validLatLon(c[1],c[0]))continue;if(addRecord({id:`usgs:${f.id}`,source:'USGS',type:'earthquake',title:f.properties?.title||'Earthquake',lat:c[1],lon:c[0],time:f.properties?.time||null,url:f.properties?.url||null,detail:`M${f.properties?.mag??'?'}`,locationPrecision:'epicenter'}))n++}setSource(id,'USGS earthquakes','LIVE',n,'M2.5+ · past day')}catch(e){setSource(id,'USGS earthquakes','FAILED',0,String(e.message||e))}}
+async function pollEONET(){const id='eonet';setSource(id,'NASA EONET events','LOADING',0,'open natural events');try{const j=await getJSON('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=500');let points=0,geometries=0;for(const e of j.events||[]){const g=(e.geometry||[]).at(-1);if(!g)continue;const detail=(e.categories||[]).map(c=>c.title).join(', '),common={id:`eonet:${e.id}`,source:'NASA EONET',type:'hazard',title:e.title,time:g.date||null,url:(e.sources||[])[0]?.url||null,detail,overlayClass:STORM_TEXT.test(`${e.title} ${detail}`)?'storm':'general'};if(g.type==='Point'&&Array.isArray(g.coordinates)){if(addRecord({...common,lat:g.coordinates[1],lon:g.coordinates[0],locationPrecision:'source-coordinate'}))points++}else if(addAreaFeature({...common,geometry:g,geometryRole:'event-geometry',locationPrecision:'source-geometry'}))geometries++}setSource(id,'NASA EONET events','LIVE',points+geometries,`${points} point events · ${geometries} authoritative source geometries`)}catch(e){setSource(id,'NASA EONET events','FAILED',0,String(e.message||e))}}
+async function pollNDBC(){const id='ndbc';setSource(id,'NOAA NDBC stations','LOADING',0,'active buoy/station inventory');try{const text=await getText('https://www.ndbc.noaa.gov/activestations.xml');const doc=new DOMParser().parseFromString(text,'application/xml');let n=0;for(const st of [...doc.querySelectorAll('station')]){const lat=Number(st.getAttribute('lat')),lon=Number(st.getAttribute('lon'));if(addRecord({id:`ndbc:${st.getAttribute('id')}`,source:'NOAA NDBC',type:'station',title:st.getAttribute('name')||st.getAttribute('id'),lat,lon,url:'https://www.ndbc.noaa.gov/',detail:'marine / meteorological station inventory',locationPrecision:'station-coordinate'}))n++}setSource(id,'NOAA NDBC stations','LIVE',n,'active station inventory · not live measurement values')}catch(e){setSource(id,'NOAA NDBC stations','FAILED',0,String(e.message||e))}}
+async function pollCOOPS(){const id='coops';setSource(id,'NOAA CO-OPS stations','LOADING',0,'water-level station inventory');try{const j=await getJSON('https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=waterlevels');let n=0;for(const st of j.stations||[]){if(addRecord({id:`coops:${st.id}`,source:'NOAA CO-OPS',type:'station',title:st.name||st.id,lat:st.lat,lon:st.lng,url:st.self||'https://tidesandcurrents.noaa.gov/',detail:'water-level station inventory',locationPrecision:'station-coordinate'}))n++}setSource(id,'NOAA CO-OPS stations','LIVE',n,'station inventory · measurement feeds are separate')}catch(e){setSource(id,'NOAA CO-OPS stations','FAILED',0,String(e.message||e))}}
+async function pollNWS(){const id='nws';setSource(id,'NOAA/NWS active alerts','LOADING',0,'official alert source geometry');try{const j=await getJSON('https://api.weather.gov/alerts/active');let points=0,geometries=0,unlocated=0;for(const f of j.features||[]){const g=f?.geometry,p=f?.properties||{},event=p.event||'alert',common={id:`nws:${f.id||p.id||crypto.randomUUID()}`,source:'NOAA/NWS',type:'alert',title:p.headline||event,time:p.sent||p.effective||null,url:p['@id']||f.id||null,detail:event,overlayClass:STORM_TEXT.test(event)?'storm':'general'};if(g?.type==='Point'&&Array.isArray(g.coordinates)){if(addRecord({...common,lat:g.coordinates[1],lon:g.coordinates[0],locationPrecision:'source-coordinate'}))points++}else if(addAreaFeature({...common,geometry:g,geometryRole:'warning-area',locationPrecision:'source-geometry'}))geometries++;else unlocated++}setSource(id,'NOAA/NWS active alerts','LIVE',points+geometries,`${points} point alerts · ${geometries} authoritative source geometries · ${unlocated} without geometry`)}catch(e){setSource(id,'NOAA/NWS active alerts','FAILED',0,String(e.message||e))}}
+async function loadBroker(){const base=window.DOMSRuntimeConfig?.brokerUrl;if(!base){setSource('broker','D.O.M. observation broker','REGISTERED',0,'not configured in this deployment');return}setSource('broker','D.O.M. observation broker','LOADING',0,base);try{const root=base.replace(/\/$/,'');const [obs,sources]=await Promise.all([getJSON(`${root}/v1/observations`,15000),getJSON(`${root}/v1/sources`,15000)]);const rows=Array.isArray(obs)?obs:Array.isArray(obs.records)?obs.records:[];let points=0,geometries=0;for(const r of rows){const id=`broker:${r.id||r.observationId||r.sourceId||points+geometries}`,source=r.sourceAgency||r.agency||r.network||r.sourceId||'D.O.M. broker',type=r.officialAlert?'alert':'station',title=r.title||r.name||r.stationName||r.sourceId||'Broker observation',time=r.observedAt||r.observed_at||null,url=r.sourceUrl||r.url||null,detail=r.variable?`${r.variable}${r.measurementValue!=null?`: ${r.measurementValue}${r.measurementUnit?` ${r.measurementUnit}`:''}`:''}`:(r.modality||r.platformClass||'broker record'),locationPrecision=r.locationPrecision||'unresolved',horizontalAccuracyMeters:r.horizontalAccuracyMeters,uncertaintyRadiusMeters:r.uncertaintyRadiusMeters,confidenceLevel:r.confidenceLevel,uncertaintyBasis:r.uncertaintyBasis,overlayClass:isStormLike(r)?'storm':'general';const lat=r.latitude??r.lat,lon=r.longitude??r.lon;if(addRecord({id,source,type,title,lat,lon,time,url,detail,locationPrecision,horizontalAccuracyMeters,uncertaintyRadiusMeters,confidenceLevel,uncertaintyBasis,overlayClass}))points++;if(addAreaFeature({id,source,type,title,time,url,detail,geometry:r.geometry,geometryRole:r.geometryRole||'source-geometry',locationPrecision:r.geometry?'source-geometry':locationPrecision,horizontalAccuracyMeters,uncertaintyRadiusMeters,confidenceLevel,uncertaintyBasis,overlayClass}))geometries++}const ss=Array.isArray(sources.sources)?sources.sources:[];const active=ss.filter(x=>x.status==='active').length,stale=ss.filter(x=>x.status==='stale').length,failed=ss.filter(x=>x.status==='error').length;setSource('broker','D.O.M. observation broker',failed?'DEGRADED':stale?'STALE':'LIVE',points+geometries,`${active} active adapters · ${stale} stale · ${failed} failed · ${points} geolocated points · ${geometries} authoritative geometries`)}catch(e){setSource('broker','D.O.M. observation broker','FAILED',0,String(e.message||e))}}
+async function refreshFabric(){clearRecords();await Promise.allSettled([pollUSGS(),pollEONET(),pollNDBC(),pollCOOPS(),pollNWS(),loadBroker(),pollWindField()]);updateMap()}
+
+function resetEarth(){map?.flyTo({center:[0,10],zoom:1.2,pitch:0,bearing:0,duration:800})}
+function surfaceMode(){map?.flyTo({zoom:8,pitch:58,duration:900});const s=$('#providerState');if(s)s.textContent='Surface navigation mode · geographic web map only. This is not native room-scale AR.'}
+function locateMe(){if(!navigator.geolocation){const s=$('#providerState');if(s)s.textContent='Browser geolocation unavailable.';return}navigator.geolocation.getCurrentPosition(pos=>{const c=[pos.coords.longitude,pos.coords.latitude];map?.flyTo({center:c,zoom:9,pitch:48,duration:900});const s=$('#providerState');if(s)s.textContent=`Centered on your permitted browser location · browser-reported horizontal accuracy radius ≈ ${Math.round(pos.coords.accuracy)} m.`},err=>{const s=$('#providerState');if(s)s.textContent=`Location unavailable · ${err.message}`},{enableHighAccuracy:true,timeout:12000,maximumAge:30000})}
+function googleUrl(){const c=map?.getCenter();const z=Math.round(map?.getZoom()||2);return c?`https://www.google.com/maps/@${c.lat.toFixed(6)},${c.lng.toFixed(6)},${z}z`:'https://www.google.com/maps'}
+function openGoogle(){window.open(googleUrl(),'_blank','noopener,noreferrer')}
+function loadGoogleAPI(key){return new Promise((resolve,reject)=>{if(window.google?.maps)return resolve();const prev=document.querySelector('script[data-dom-google]');if(prev){prev.addEventListener('load',resolve,{once:true});prev.addEventListener('error',reject,{once:true});return}const s=document.createElement('script');s.dataset.domGoogle='1';s.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}`;s.async=true;s.onload=resolve;s.onerror=reject;document.head.appendChild(s)})}
+function updateGoogleMarkers(){if(!googleMap||!window.google?.maps)return;googleMarkers.forEach(m=>m.setMap(null));googleMarkers=[];for(const r of visibleRecords().slice(0,2500)){googleMarkers.push(new google.maps.Marker({position:{lat:r.lat,lng:r.lon},map:googleMap,title:r.title}))}}
+async function toggleGoogle(){const key=window.DOMS_GOOGLE_MAPS_API_KEY;if(!key){const s=$('#providerState');if(s)s.textContent='Google in-page overlay requires a configured Maps JavaScript API key. The Open current view button remains available.';return}try{await loadGoogleAPI(key);let box=$('#googleMap');if(!box){box=document.createElement('div');box.id='googleMap';box.style.cssText='height:56vh;min-height:420px;border-radius:18px;overflow:hidden;margin-top:12px';$('#earthMap')?.insertAdjacentElement('afterend',box)}if(googleMap){box.remove();googleMap=null;googleMarkers=[];return}const c=map?.getCenter()||{lat:10,lng:0};googleMap=new google.maps.Map(box,{center:{lat:c.lat,lng:c.lng},zoom:Math.max(2,Math.round(map?.getZoom()||2)),mapTypeId:'satellite'});updateGoogleMarkers()}catch(e){const s=$('#providerState');if(s)s.textContent=`Google overlay failed: ${e.message||e}`}}
+
+map=new maplibregl.Map({container:'earthMap',style:'https://demotiles.maplibre.org/globe.json',center:[0,10],zoom:1.2,attributionControl:true});
+map.setProjection({type:'globe'});
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-right');
+map.on('load',()=>{installEarthImagery();installObservationLayers();refreshFabric();const s=$('#providerState');if(s)s.textContent='NASA Blue Marble geographic baseline active · source-backed D.O.M. records use published coordinates or authoritative source geometry. Baseline imagery is not live.'});
+map.on('click','dom-observations',e=>{const f=e.features?.[0];if(!f)return;const p=f.properties||{},c=f.geometry?.coordinates||[];new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<strong>${escapeHtml(p.title)}</strong><br><small>${escapeHtml(p.source)} · ${escapeHtml(p.detail)}</small><br><small>${Number(c[1]).toFixed(6)}, ${Number(c[0]).toFixed(6)} · ${escapeHtml(precisionLabel(p.locationPrecision))}</small><br><small>${escapeHtml(uncertaintyText(p,false))}</small><br><small>coordinate display precision is not a claim of physical accuracy</small>${p.time?`<br><small>${escapeHtml(p.time)}</small>`:''}${p.url?`<br><a target="_blank" rel="noopener noreferrer" href="${escapeHtml(p.url)}">official source ↗</a>`:''}`).addTo(map)});
+function geometryPopup(e){const f=e.features?.[0];if(!f)return;const p=f.properties||{};new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<strong>${escapeHtml(p.title)}</strong><br><small>${escapeHtml(p.source)} · authoritative ${escapeHtml(p.geometryRole||'source geometry')}</small><br><small>${escapeHtml(precisionLabel(p.locationPrecision))}; geometry retained instead of inventing an exact point</small><br><small>${escapeHtml(uncertaintyText(p,true))}</small>${p.detail?`<br><small>${escapeHtml(p.detail)}</small>`:''}${p.time?`<br><small>${escapeHtml(p.time)}</small>`:''}${p.url?`<br><a target="_blank" rel="noopener noreferrer" href="${escapeHtml(p.url)}">official source ↗</a>`:''}`).addTo(map)}
+function windPopup(e){const f=e.features?.[0];if(!f)return;const p=f.properties||{},offset=finiteOrNull(p.validOffsetMinutes),timing=offset==null?'valid-time offset unavailable':`${Math.abs(offset)} min ${offset>0?'ahead of':'behind'} browser time`;new maplibregl.Popup().setLngLat(e.lngLat).setHTML(`<strong>ECMWF IFS 10 m wind</strong><br><small>${Number(p.speedMs).toFixed(1)} m/s · meteorological wind from ${Number(p.windFromDeg).toFixed(0)}° · flow toward ${Number(p.flowBearingDeg).toFixed(0)}°</small><br><small>model grid cell ${Number(p.sourceCellLatitude).toFixed(4)}, ${Number(p.sourceCellLongitude).toFixed(4)} · valid ${escapeHtml(p.validTime||'unknown')} UTC · ${escapeHtml(timing)}</small><br><small>requested display sample ${Number(p.requestedSampleLatitude).toFixed(2)}, ${Number(p.requestedSampleLongitude).toFixed(2)} · fetched ${escapeHtml(p.fetchedAt||'unknown')}</small><br><small>returned model-grid coordinate is rendered; line length is a magnitude encoding, not a parcel trajectory</small>`).addTo(map)}
+map.on('click','dom-event-area-fill',geometryPopup);
+map.on('click','dom-event-track-line',geometryPopup);
+map.on('click','dom-air-current-streamlines',windPopup);
+map.on('click','dom-air-current-arrows',windPopup);
+map.on('click','dom-observation-clusters',async e=>{const feature=e.features?.[0],id=feature?.properties?.cluster_id,src=map.getSource('dom-observations');if(id==null||!src)return;const zoom=await src.getClusterExpansionZoom(id);map.easeTo({center:feature.geometry.coordinates,zoom})});
+$('#resetEarth')?.addEventListener('click',resetEarth);
+$('#earthImagery')?.addEventListener('click',toggleEarthImagery);
+$('#surfaceMode')?.addEventListener('click',surfaceMode);
+$('#locateMe')?.addEventListener('click',locateMe);
+$('#googleOverlay')?.addEventListener('click',toggleGoogle);
+$('#openGoogle')?.addEventListener('click',openGoogle);
+$('#toggleStorms')?.addEventListener('click',toggleStorms);
+$('#toggleAirCurrents')?.addEventListener('click',toggleAirCurrents);
+setInterval(refreshFabric,300000);
+window.DOMEarthRuntime=Object.freeze({refreshFabric,records:()=>records.slice(),areaFeatures:()=>areaFeatures.slice(),windFeatures:()=>windFeatures.slice(),sourceStates:()=>[...sourceStates.values()],validLatLon,googleUrl,sourceGeometryTypes:()=>[...SOURCE_GEOMETRY_TYPES],toggleStorms,toggleAirCurrents,precisionLabel,uncertaintyText,visibleRecords:()=>visibleRecords().slice(),destinationPoint,parseUtcHour,windTimeOffsetMinutes});

@@ -1,0 +1,1 @@
+This branch remains isolated pending iPhone visual inspection. The working hazard dashboard is intentionally preserved; the new geographic Earth is a separate route.

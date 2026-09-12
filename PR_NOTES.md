@@ -1,0 +1,1 @@
+Proposed review: separate Apple Earth from hazards, add geographic globe/surface navigation, add real lat/lon overlays and independent adapter health, preserve hazard risk-lighting semantics.

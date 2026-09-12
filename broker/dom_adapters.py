@@ -8,6 +8,8 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Callable
 
+from nhc_gis_adapter import poll_nhc_current_storms
+
 ADAPTER_USER_AGENT = "DOMS-Living-Archival-Observatory/0.1 public-research-adapters"
 
 
@@ -47,6 +49,19 @@ def _centroid(geometry, valid_lat_lon):
     cos_lon = sum(math.cos(math.radians(p[1])) for p in points)
     lon = math.degrees(math.atan2(sin_lon, cos_lon))
     return (lat, lon) if valid_lat_lon(lat, lon) else None
+
+
+def _source_geometry(geometry):
+    """Return only supported authoritative GeoJSON geometry; never synthesize it."""
+    if not isinstance(geometry, dict):
+        return None
+    kind = geometry.get("type")
+    coords = geometry.get("coordinates")
+    if kind not in {"Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon"}:
+        return None
+    if not isinstance(coords, list):
+        return None
+    return {"type": kind, "coordinates": coords}
 
 
 def _get_text(url: str, timeout: int = 15) -> str:
@@ -121,9 +136,10 @@ def poll_tsunami_atom(get_text, make_record, center: str) -> List[dict]:
             severity = "Tsunami cancellation"
         r = make_record(
             source_id=f"{center}:{entry_id}", lineage=lineage, agency=agency, network=network,
-            kind="Tsunami", modality="official-tsunami-product", observed_at=updated,
+            kind="Tsunami", modality="official-tsunami-product", observed_at=None,
             lat=None, lon=None, source=link, title=title[:300], authoritative=True,
             officialAlert=official_alert, observationStatus=status, locationPrecision="unresolved",
+            publishedAt=updated, temporalKind="publication",
             severityText=severity, quality=1.0,
             upstream={"atomEntryId": entry_id, "center": center.upper(), "feed": url},
         )
@@ -133,27 +149,36 @@ def poll_tsunami_atom(get_text, make_record, center: str) -> List[dict]:
 
 
 def poll_nws(get_json, make_record, valid_lat_lon) -> List[dict]:
-    """Official currently-active NWS alerts for U.S. jurisdictions."""
+    """Official currently-active NWS alerts for U.S. jurisdictions.
+
+    The source GeoJSON geometry is preserved verbatim (within supported geometry
+    types). A centroid is carried only as a representative point for consumers
+    that require one; it is never a replacement for the authoritative polygon.
+    """
     data = get_json("https://api.weather.gov/alerts/active")
     out = []
     for feature in data.get("features", []):
         p = feature.get("properties") or {}
         raw_id = feature.get("id") or p.get("id") or p.get("@id")
         url = p.get("@id") or feature.get("id")
-        sent = _iso(p.get("sent") or p.get("effective") or p.get("onset"))
-        if not raw_id or not url or not sent:
+        sent = _iso(p.get("sent"))
+        valid = _iso(p.get("effective") or p.get("onset"))
+        if not raw_id or not url or not (sent or valid):
             continue
-        c = _centroid(feature.get("geometry"), valid_lat_lon)
+        geometry = _source_geometry(feature.get("geometry"))
+        c = _centroid(geometry, valid_lat_lon)
         certainty = str(p.get("certainty") or "")
         r = make_record(
             source_id=f"nws:{raw_id}", lineage="nws-cap", agency="NWS", network="NWS CAP",
-            kind="Official Weather Alert", modality="official-warning", observed_at=sent,
+            kind="Official Weather Alert", modality="official-warning", observed_at=None,
             lat=c[0] if c else None, lon=c[1] if c else None, source=url,
             title=p.get("event") or p.get("headline") or "NWS Alert", authoritative=True,
             locationPrecision="alert-geometry-centroid" if c else "unresolved",
             officialAlert=True, observationStatus="observed" if certainty.lower() == "observed" else "reported",
-            expiresAt=_iso(p.get("expires") or p.get("ends")), severityText=str(p.get("severity") or ""),
+            publishedAt=sent, validAt=valid, temporalKind="publication", expiresAt=_iso(p.get("expires") or p.get("ends")), severityText=str(p.get("severity") or ""),
             certaintyText=certainty, urgencyText=str(p.get("urgency") or ""), quality=1.0,
+            geometry=geometry, geometryRole="warning-area" if geometry and geometry.get("type") in {"Polygon", "MultiPolygon"} else "source-geometry" if geometry else None,
+            representativePoint={"lat": c[0], "lon": c[1]} if c else None,
         )
         if r:
             out.append(r)
@@ -184,8 +209,8 @@ def poll_swpc(get_json, make_record, _valid_lat_lon) -> List[dict]:
         scale = re.search(r"(?:NOAA\s+Scale|Noaa\s+Scale)\s*:\s*([A-Z]\d(?:\s*-\s*[^\r\n]+)?)", message)
         r = make_record(
             source_id=f"swpc:{product}:{issued}", lineage="noaa-swpc-alerts", agency="NOAA SWPC", network="NOAA SWPC",
-            kind="Space Weather", modality="space-weather-alert", observed_at=issued, lat=None, lon=None, source=url,
-            title=first[:240], authoritative=True, observationStatus=status, severityText=scale.group(1).strip() if scale else "",
+            kind="Space Weather", modality="space-weather-alert", observed_at=None, lat=None, lon=None, source=url,
+            title=first[:240], authoritative=True, observationStatus=status, publishedAt=issued, temporalKind="publication", severityText=scale.group(1).strip() if scale else "",
             quality=1.0, upstream={"productId": product},
         )
         if r:
@@ -199,6 +224,7 @@ def builtin_adapters(get_json, make_record, valid_lat_lon) -> Dict[str, Callable
         "swpc": lambda: poll_swpc(get_json, make_record, valid_lat_lon),
         "ntwc": lambda: poll_tsunami_atom(_get_text, make_record, "ntwc"),
         "ptwc": lambda: poll_tsunami_atom(_get_text, make_record, "ptwc"),
+        "nhc-tropical": lambda: poll_nhc_current_storms(get_json, make_record, valid_lat_lon),
     }
 
 
