@@ -3,145 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#031416">
-<meta name="description" content="D.O.M. geographic Earth: source-backed coordinates, authoritative source geometry, and qualified observation overlays.">
+<meta name="theme-color" content="#07110f">
+<meta name="description" content="D.O.M. Geographic Earth: source-backed public observations at their published coordinates.">
 <title>D.O.M. Geographic Earth</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="./styles.css?v=6">
 <link rel="stylesheet" href="./earth.css?v=3">
 </head>
 <body class="earth-page">
-<header class="earth-header">
-  <a class="brand" href="./index.html"><strong>DOMS</strong><span>Living Archival Observatory</span></a>
-  <div class="earth-header-links"><a href="./hazards.html">⚠ Hazard Observatory</a><a href="./index.html">Home</a></div>
-</header>
+<header class="earth-header"><a class="brand" href="./index.html"><strong>DOMS</strong><span>Living Archival Observatory</span></a><div class="earth-header-links"><a href="./hazards.html">⚠ Hazard Observatory</a><a href="./index.html">Home</a></div></header>
 <main class="earth-shell">
-  <section class="earth-intro">
-    <p class="eyebrow">GEOGRAPHIC EARTH · SOURCE-BACKED OBSERVATION FABRIC</p>
-    <h1>Apple Earth / Global Sensor Earth</h1>
-    <p>This is the geographic Earth experience, separate from the hazard dashboard. Continents, coastlines, roads and place labels come from the map layer. D.O.M. overlays records only where a source supplies usable coordinates or authoritative geometry. Surface inventories remain inventories; live measurements are labeled separately. Unlocated products are not given invented coordinates.</p>
-    <div class="earth-actions">
-      <button id="resetEarth" type="button">Global view</button>
-      <button id="earthImagery" type="button">Earth imagery: ON</button>
-      <button id="surfaceMode" type="button">Surface view</button>
-      <button id="locateMe" type="button">My area</button>
-      <button id="googleOverlay" type="button">Google Maps overlay</button>
-      <a id="openGoogle" target="_blank" rel="noopener noreferrer">Open current view in Google Maps ↗</a>
-    </div>
-    <div id="providerState" class="earth-note" aria-live="polite">Loading geographic Earth…</div>
-    <p class="earth-truth">The default physical-looking Earth layer uses NASA Blue Marble shaded-relief/bathymetry imagery through NASA GIBS. It is a geographic baseline, not live satellite photography. Any future near-real-time imagery layer must carry its own source and acquisition timestamp.</p>
-  </section>
-
-  <section class="earth-map-card" aria-label="Interactive geographic Earth">
-    <div id="earthMap"></div>
-    <div class="earth-map-hud">
-      <strong id="earthCount">0 geographic points loaded</strong>
-      <span id="earthView">global</span>
-    </div>
-    <aside class="earth-layer-controls" aria-label="Earth overlay visibility controls">
-      <button id="toggleStorms" type="button" aria-pressed="true">Storms: ON</button>
-      <button id="toggleAirCurrents" type="button" aria-pressed="true">Air currents (10 m wind): ON</button>
-      <small id="layerControlState">Loading timestamped ECMWF IFS 10 m model-wind vectors. Hide either atmospheric overlay without deleting its underlying records.</small>
-    </aside>
-    <div class="earth-legend" aria-label="Observation legend">
-      <span><i class="earth-dot quake"></i>earthquake</span>
-      <span><i class="earth-dot hazard"></i>hazard/event</span>
-      <span><i class="earth-dot station"></i>sensor/station/inventory</span>
-      <span><i class="earth-dot alert"></i>official alert</span>
-    </div>
-  </section>
-
-  <section class="earth-panel earth-wide">
-    <p class="eyebrow">ATMOSPHERIC VECTOR LAYER</p>
-    <h2>Timestamped ECMWF IFS near-surface wind, not invented airflow</h2>
-    <p>D.O.M. requests ECMWF IFS 10 m wind speed and meteorological wind direction through the Open-Meteo ECMWF API at a fixed global request grid. When the API returns the actual model-grid latitude/longitude for a request, D.O.M. renders that returned grid coordinate rather than pretending the requested sample coordinate is the model cell center. Each vector retains its model-valid time, request time, returned model-grid coordinate and requested display sample. The display converts meteorological “from” direction into flow-toward bearing.</p>
-    <p class="earth-truth">This layer is forecast-model output, not a direct global anemometer network and not a continuous fluid simulation. Vector length is only a visual magnitude encoding; it is not a predicted air-parcel trajectory. Model-valid time is compared with browser time and old fields are labeled stale instead of silently presented as current. Sampling gaps or API failures remain visible as degraded or failed source state.</p>
-  </section>
-
-  <section class="earth-panel earth-wide">
-    <p class="eyebrow">SOURCE TIME + FRESHNESS</p>
-    <h2>Observation age, publication time, forecast validity and browser fetch time stay separate</h2>
-    <div id="earthFreshnessSummary"><p>Waiting for source-time audit…</p></div>
-    <p class="earth-truth">observedAt is the source observation/event time. publishedAt is when a source issued or published a record. validAt is the time a forecast, model or alert applies to. fetchedAt is only when D.O.M. retrieved it. No one of these is silently substituted for another.</p>
-  </section>
-
-  <section class="earth-grid">
-    <article class="earth-panel">
-      <p class="eyebrow">SOURCE INGESTION STATUS</p>
-      <h2>Current adapter state</h2>
-      <div id="sourceFabric" class="source-fabric"><p>Starting adapters…</p></div>
-      <p class="earth-truth">LIVE means the adapter successfully returned its intended current product. For station-list products, that can mean a current station inventory rather than live measurement values. MODEL identifies a timestamped model field rather than an observation stream; STALE MODEL means the returned valid time is too far from the browser clock to call current. STALE and FAILED remain visible. A registered source is not counted as active until its adapter succeeds.</p>
-    </article>
-    <article class="earth-panel">
-      <p class="eyebrow">PLANETARY COVERAGE</p>
-      <h2>What is actually represented</h2>
-      <p>The map provides a geographic basemap, globe-to-surface navigation, source-backed latitude/longitude anchoring, and authoritative polygon/track rendering where the source publishes geometry.</p>
-      <p>Health domains remain UNKNOWN unless qualified observations meet D.O.M.'s coverage rules. Network uptime, station inventory and source registration are never substituted for Earth health.</p>
-      <div id="coverageSummary" class="coverage-summary"></div>
-    </article>
-  </section>
-
-  <section class="earth-panel earth-wide">
-    <p class="eyebrow">LOCATION MATHEMATICS</p>
-    <h2>Pinpoint when the source supports it; bounded or representative when it does not</h2>
-    <p>Every visible point must carry source-backed latitude/longitude and an explicit location-precision class. WGS84 conversion is deterministic geometry, but source uncertainty is separate. When an upstream product supplies numeric horizontal accuracy, uncertainty radius or confidence, D.O.M. carries those values. When it does not, those fields stay unknown rather than being estimated from decimal places.</p>
-    <p>Exact source coordinates remain source coordinates. Polygons, forecast cones and track lines remain source geometry. A centroid or representative point is labeled as representative and is never promoted into an exact event location.</p>
-    <p class="earth-truth">D.O.M. may display coordinates to six decimal places for deterministic rendering. Decimal display precision is not a claim of six-decimal physical accuracy. Accuracy is bounded by the upstream instrument, location method, forecast product or source geometry.</p>
-  </section>
-
-  <section class="earth-panel earth-wide">
-    <p class="eyebrow">REGISTERED GLOBAL SENSOR FABRIC</p>
-    <h2>All source families stay visible, including the ones not live yet</h2>
-    <p id="registeredFabricCount">Loading registered source families…</p>
-    <div id="allSourceFamilies" class="source-fabric"></div>
-    <p class="earth-truth">A registry entry is not evidence of a connected measurement stream. Browser-capable adapters, broker-required adapters, credentialed services, inventory-only products and specialized scientific products are distinguished instead of collapsed into one misleading coverage count.</p>
-  </section>
-
-  <section class="earth-panel earth-wide">
-    <p class="eyebrow">GLOBAL SCIENTIFIC INSTRUMENT FABRIC</p>
-    <h2>Target public scientific fields and observing platforms we can lawfully normalize</h2>
-    <p id="scientificInstrumentSummary">Loading scientific instrument fabric…</p>
-    <div id="scientificInstrumentFabric" class="source-fabric"></div>
-    <p class="earth-truth">A represented instrument must correspond to a source-backed object with provenance and whatever location/time/state the source actually supplies. Surface stations stay on Earth, marine instruments stay at sea, depth instruments retain depth, and satellites/orbital platforms remain separate from surface geometry. Private, classified, inaccessible or non-geolocated instruments are not invented.</p>
-  </section>
-
-  <section class="earth-grid">
-    <article class="earth-panel">
-      <p class="eyebrow">APPLE AR DATA BRIDGE</p>
-      <h2>Same geodetic model, same source coordinates</h2>
-      <p id="arSystemState" class="earth-note" aria-live="polite">Checking AR data path…</p>
-      <div class="earth-actions">
-        <button id="checkAR" type="button">Check AR data path</button>
-        <button id="exportAR" type="button">Export AR scene snapshot</button>
-      </div>
-      <p class="earth-truth">The AR scene uses the WGS84 reference ellipsoid and converts valid source coordinates into Earth-centered coordinates before scene placement. It carries provenance, observation time, elevation/depth, numeric readings and source-supplied positional uncertainty when available. Missing coordinates, measurements and accuracy values remain null rather than being inferred.</p>
-    </article>
-    <article class="earth-panel">
-      <p class="eyebrow">MATH + STATISTICAL OUTLOOK</p>
-      <h2>Predict only when evidence supports prediction</h2>
-      <p id="predictionState" class="earth-note" aria-live="polite">Prediction engine ready for qualified time series.</p>
-      <div class="earth-actions"><button id="runPrediction" type="button">Evaluate prediction readiness</button></div>
-      <p class="earth-truth">D.O.M. uses explicit statistical models with sample counts, fit quality, trend significance and prediction intervals. It withholds prediction when there is not enough numeric history and never presents extrapolation as certainty, causal proof or official guidance.</p>
-    </article>
-  </section>
-
-  <section class="earth-panel earth-wide">
-    <p class="eyebrow">APPLE AR BOUNDARY</p>
-    <h2>Native walk-around AR is a separate client</h2>
-    <p>The web Earth and AR export share a geodetic model and normalized observation contract. The web page is not native room-scale AR. A signed RealityKit client would be required for continuous physical walk-around rendering and must preserve the same source coordinates, uncertainty metadata and provenance.</p>
-  </section>
+<section class="earth-intro"><p class="eyebrow">GEOGRAPHIC EARTH · SOURCE-BACKED OBSERVATIONS</p><h1>Geographic Earth</h1><p>This is a web-based geographic globe, not Apple AR. D.O.M. places public records only where the source supplies usable latitude and longitude. Missing locations are not invented.</p><div class="earth-actions"><button id="resetEarth" type="button">Global view</button><button id="refreshEarth" type="button">Refresh sources</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Loading geographic Earth…</div></section>
+<section class="earth-map-card" aria-label="Interactive geographic Earth"><div id="earthMap"></div><div class="earth-map-hud"><strong id="earthCount">0 source-coordinate points loaded</strong><span>global</span></div><div class="earth-legend"><span><i class="earth-dot quake"></i>earthquake</span><span><i class="earth-dot hazard"></i>hazard/event</span><span><i class="earth-dot station"></i>sensor/station/inventory</span><span><i class="earth-dot alert"></i>official point alert</span></div></section>
+<section class="earth-grid"><article class="earth-panel"><p class="eyebrow">SOURCE INGESTION STATUS</p><h2>Current public adapters</h2><div id="sourceFabric" class="source-fabric"><p>Starting adapters…</p></div></article><article class="earth-panel"><p class="eyebrow">TRUTH BOUNDARY</p><h2>What this page actually is</h2><p>A lightweight MapLibre geographic globe using OpenStreetMap raster tiles and source-backed points from public agencies.</p><p class="earth-truth">There is no native Apple AR experience deployed here. There is no signed RealityKit client behind this button, so D.O.M. no longer labels this page as AR.</p></article></section>
+<section class="earth-panel earth-wide"><p class="eyebrow">COORDINATE RULE</p><h2>Source coordinates only</h2><p>Visible points are rendered at the latitude and longitude supplied by USGS, NASA EONET, NOAA NDBC, NOAA CO-OPS, or NOAA/NWS when a point coordinate exists. Polygon-only products are not converted into fake point locations on this lightweight page.</p></section>
 </main>
-<script src="./dom-runtime-config.js?v=1"></script>
-<script src="./dom-public-sensor-registry.js?v=2"></script>
-<script src="./dom-scientific-instrument-fabric.js?v=1"></script>
-<script src="./dom-scientific-measurements.js?v=1"></script>
-<script src="./dom-statistical-prediction.js?v=2"></script>
-<script src="./dom-earth-geodesy.js?v=1"></script>
-<script src="./dom-source-time.js?v=1"></script>
-<script src="./earth-source-audit.js?v=1"></script>
-<script src="./earth-scientific-fabric-ui.js?v=1"></script>
-<script src="./earth-ar-prediction-ui.js?v=3"></script>
-<script type="module" src="./earth.js?v=6"></script>
-<script src="./earth-freshness-ui.js?v=1"></script>
+<script type="module" src="./earth-mobile.js?v=20260912-1"></script>
 </body>
 </html>
