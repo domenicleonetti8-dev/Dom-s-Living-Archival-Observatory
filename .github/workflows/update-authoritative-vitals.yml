@@ -24,14 +24,17 @@ jobs:
         with:
           python-version: '3.12'
       - name: Fetch authoritative vitals
-        run: python tools/update_authoritative_vitals.py
+        run: |
+          python tools/update_authoritative_vitals.py
+          python tools/update_2026_current_sources.py
       - name: Validate authoritative snapshot and statistics
         run: |
           python - <<'PY'
           import json, math
           p=json.load(open('data/live-vitals.json'))
-          assert p['schema']=='doms-authoritative-vitals-v1'
-          for key in ('population','temperature','seaLevel','cryosphere'):
+          assert p['schema']=='dom-authoritative-vitals-2026-v2'
+          assert p.get('verifiedAsOf')=='2026-09-12'
+          for key in ('population','temperature','seaLevel','cryosphere','coralBleaching'):
               assert p[key]['status'] in ('live','failed')
           for key in ('population','temperature','seaLevel'):
               assert p[key].get('sourceUrl','').startswith('https://')
@@ -61,7 +64,18 @@ jobs:
                       assert mean > 0
                       assert math.isclose(pct, anom/mean*100, rel_tol=1e-10, abs_tol=1e-10)
                       assert x.get('climatologyPeriod')=='1981-2010'
-          print('AUTHORITATIVE_VITALS_STATISTICS=PASS')
+          cb=p['coralBleaching']
+          assert cb.get('sourceUrl','').startswith('https://')
+          if cb['status']=='live':
+              assert cb.get('productVersion')=='3.1'
+              assert cb.get('productReleased')=='2026-04-30'
+              assert 0 <= float(cb['globalReefPixelsExposedPct']) <= 100
+              assert int(cb['windowDays']) == 365
+              assert cb.get('observationDate')
+          latest=p.get('latestAssessments') or {}
+          assert latest.get('forests',{}).get('latestAvailableAsOf2026') is True
+          assert latest.get('coralCover',{}).get('latestAvailableAsOf2026') is True
+          print('AUTHORITATIVE_VITALS_2026_STATISTICS=PASS')
           PY
       - name: Commit changed snapshot only
         shell: bash
@@ -70,7 +84,7 @@ jobs:
             echo 'No vitals snapshot change.'
             exit 0
           fi
-          git config user.name 'doms-vitals-bot'
+          git config user.name 'dom-vitals-bot'
           git config user.email 'actions@users.noreply.github.com'
           git add data/live-vitals.json
           git commit -m 'Refresh authoritative Earth vitals snapshot'
