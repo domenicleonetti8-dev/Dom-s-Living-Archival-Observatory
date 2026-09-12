@@ -19,6 +19,8 @@ sandbox.window=sandbox;
 sandbox.addEventListener=()=>{};
 sandbox.dispatchEvent=()=>true;
 const ctx=vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync('dom-observation-model.js','utf8'),ctx,{filename:'dom-observation-model.js'});
+vm.runInContext('window.DOMObservationModel=DOMObservationModel',ctx);
 vm.runInContext(fs.readFileSync('hazards.js','utf8'),ctx,{filename:'hazards.js'});
 const value=code=>vm.runInContext(code,ctx);
 
@@ -34,16 +36,30 @@ assert(staleDespiteFetch<0.06,'recent browser fetch or legacy time cannot make a
 assert.equal(value(`temporalStatus({fetchedAt:new Date().toISOString()}).state`),'UNKNOWN','fetch time alone must never establish hazard freshness');
 assert.equal(value(`temporalStatus({publishedAt:new Date(Date.now()-3600000).toISOString(),expiresAt:new Date(Date.now()-1000).toISOString()}).state`),'EXPIRED','expired source product must override publication recency');
 assert(value(`freshness01({temporalKind:'model',validAt:new Date(Date.now()+3*3600000).toISOString(),fetchedAt:new Date().toISOString()})`)>.9,'future-valid model time remains temporally relevant without using fetch time');
+assert.equal(value(`officialUrgency01({officialAlert:false,urgencyText:'Immediate'})`),null,'non-official events must not receive synthetic official urgency from recency or labels');
+assert.equal(value(`officialUrgency01({officialAlert:true,urgencyText:'Immediate'})`),1,'official urgency remains a distinct official-source dimension');
+
+const confidenceFresh=value(`DOMObservationModel.hazardEvidenceConfidence({quality:.9,geospatial:.8,corroboration:.4,certainty:.8,recency:1}).value`);
+const confidenceStale=value(`DOMObservationModel.hazardEvidenceConfidence({quality:.9,geospatial:.8,corroboration:.4,certainty:.8,recency:0}).value`);
+assert.equal(confidenceFresh,confidenceStale,'event recency must not inflate evidence confidence');
+const pNoOptional=value(`DOMObservationModel.hazardPriority({physicalSeverity:.8,eventRecency:.7,officialUrgency:null,officialUrgencyApplicable:false,localRelevance:null,localRelevanceApplicable:false,evidenceConfidence:.7})`);
+assert.equal(pNoOptional.components.filter(x=>x.applicable!==false).length,3,'inapplicable official urgency and local relevance must be omitted from priority denominator');
+const pFive=value(`DOMObservationModel.hazardPriority({physicalSeverity:.8,eventRecency:.7,officialUrgency:.9,officialUrgencyApplicable:true,localRelevance:.6,localRelevanceApplicable:true,evidenceConfidence:.7})`);
+assert.deepEqual(Array.from(pFive.components,x=>x.name),['physicalSeverity','eventRecency','officialUrgency','localRelevance','evidenceConfidence'],'priority audit must expose exactly five top-level dimensions');
 
 value(`H.user={lat:40,lon:-74}`);
-const local=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:true,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',publishedAt:new Date().toISOString(),validAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return isAlertEligible(e)})()`);
-assert.equal(local,true,'point-qualified unexpired local official warning should be alert eligible');
+const local=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:true,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',publishedAt:new Date().toISOString(),validAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return {eligible:isAlertEligible(e),priority:e.priorityAudit,confidence:e.evidenceConfidence,local:e.localRelevance}})()`);
+assert.equal(local.eligible,true,'point-qualified unexpired local official warning should be alert eligible');
+assert.equal(local.local,1,'official point-qualified local warning receives explicit applicability-based local relevance');
+assert.equal(local.priority.components.length,5,'evaluated local official warning carries five-dimension priority audit');
+assert(local.confidence.excluded.includes('recency')&&local.confidence.excluded.includes('severity')&&local.confidence.excluded.includes('urgency')&&local.confidence.excluded.includes('localRelevance'),'hazard evidence confidence exposes anti-double-counting exclusions');
 const expiredLocal=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:true,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',publishedAt:new Date(Date.now()-3600000).toISOString(),expiresAt:new Date(Date.now()-1000).toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return isAlertEligible(e)})()`);
 assert.equal(expiredLocal,false,'expired official warning must never trigger a local notification gate');
 const fetchOnlyLocal=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:true,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',fetchedAt:new Date().toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return isAlertEligible(e)})()`);
 assert.equal(fetchOnlyLocal,false,'fetch time alone must never authorize a local official-alert notification');
-const remoteOfficial=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:false,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',publishedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return isAlertEligible(e)})()`);
-assert.equal(remoteOfficial,false,'global broker official warning must not become a phone alert without applicability proof');
+const remoteOfficial=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:false,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',publishedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return {eligible:isAlertEligible(e),local:e.localRelevance}})()`);
+assert.equal(remoteOfficial.eligible,false,'global broker official warning must not become a phone alert without applicability proof');
+assert.equal(remoteOfficial.local,0,'official alert explicitly not applicable to user must not gain local relevance merely from coordinate proximity');
 const tsunami=value(`(()=>{const e={kind:'Tsunami',officialAlert:true,appliesToUser:false,severityText:'Tsunami Warning',publishedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),lat:NaN,lon:NaN,sourceType:'official-alert',modality:'official-tsunami-product'};Object.assign(e,evaluate(e));return {eligible:isAlertEligible(e),text:evidenceFor(e).interpretation}})()`);
 assert.equal(tsunami.eligible,false,'unlocated tsunami product must remain informational for local phone alerting');
 assert(!tsunami.text.includes('around location not resolved'),'unlocated narrative must be grammatically truthful');
