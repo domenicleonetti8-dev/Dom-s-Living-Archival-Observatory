@@ -37,12 +37,13 @@ jobs:
         run: |
           python - <<'PY'
           import json, math
+          from datetime import datetime, timezone
           p=json.load(open('data/live-vitals.json'))
           assert p['schema']=='dom-authoritative-vitals-2026-v2'
-          assert p.get('verifiedAsOf')=='2026-09-12'
-          for key in ('population','temperature','seaLevel','cryosphere','coralBleaching'):
+          assert p.get('verifiedAsOf')==datetime.now(timezone.utc).date().isoformat()
+          for key in ('population','temperature','seaLevel','cryosphere','coralBleaching','seaLevelCurrent'):
               assert p[key]['status'] in ('live','failed')
-          for key in ('population','temperature','seaLevel'):
+          for key in ('population','temperature','seaLevel','seaLevelCurrent'):
               assert p[key].get('sourceUrl','').startswith('https://')
           if p['temperature']['status']=='live':
               assert p['temperature']['baseline']=='1951-1980'
@@ -54,6 +55,13 @@ jobs:
               assert float(s['endDecimalYear']) >= float(s['startDecimalYear'])
               assert -1 <= float(s['r2']) <= 1
               assert 'autocorrelated' in s.get('statisticalCaveat','')
+          sc=p['seaLevelCurrent']
+          if sc['status']=='live':
+              assert 0 <= float(sc['measurementMm']) <= 1000
+              if sc.get('uncertaintyMm') is not None:
+                  assert 0 <= float(sc['uncertaintyMm']) <= 100
+              assert str(sc.get('observationPeriod','')).startswith('2026-')
+              assert sc.get('current') is True
           c=p['cryosphere']
           if c['status']=='live':
               assert any(x.get('status')=='live' for x in c['seaIce'].values())
@@ -94,4 +102,5 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add data/live-vitals.json
           git commit -m 'Refresh authoritative Earth vitals snapshot'
+          git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
