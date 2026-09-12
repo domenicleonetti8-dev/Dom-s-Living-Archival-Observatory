@@ -51,20 +51,27 @@ def census_record(fetched_at):
 
 def latest_giss(csv_text):
     rows = list(csv.reader(io.StringIO(csv_text)))
-    if len(rows) < 2:
-        return None
-    header = [x.strip() for x in rows[0]]
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    idx = {m: header.index(m) for m in months if m in header}
-    for row in reversed(rows[1:]):
+    header_index = None
+    header = None
+    for i, row in enumerate(rows):
+        clean = [x.strip() for x in row]
+        if clean and clean[0].lower() == "year" and all(m in clean for m in months):
+            header_index = i
+            header = clean
+            break
+    if header_index is None or header is None:
+        return None
+    idx = {m: header.index(m) for m in months}
+    for row in reversed(rows[header_index + 1:]):
         if not row:
             continue
-        year = finite_number(row[0])
+        year = finite_number(row[0].strip() if row else None)
         if year is None:
             continue
         for month_num in range(12, 0, -1):
-            i = idx.get(months[month_num - 1])
-            if i is None or i >= len(row):
+            i = idx[months[month_num - 1]]
+            if i >= len(row):
                 continue
             value = finite_number(row[i].strip())
             if value is not None:
