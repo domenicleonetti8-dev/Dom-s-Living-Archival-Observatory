@@ -14,24 +14,24 @@ const DOMLiveGlobeRenderer=(()=>{
     return !(Number.isFinite(exp)&&exp<=now);
   }
   function profile(item,type,now=Date.now()){
-    if(!isLive(item,now))return{id:'off',animate:false,color:'#4b545c',alpha:.18,scale:1,halo:0};
-    if(item.stale===true||staleStatus(statusOf(item))||staleStatus(item.sourceStatus))return{id:'unknown',animate:false,color:'#6f8494',alpha:.34,scale:1,halo:.65};
+    if(!isLive(item,now))return{id:'off',severity:'off',animate:false,color:'#4b545c',alpha:.18,scale:1,halo:0};
+    if(item.stale===true||staleStatus(statusOf(item))||staleStatus(item.sourceStatus))return{id:'unknown',severity:'unknown',animate:false,color:'#6f8494',alpha:.34,scale:1,halo:.65};
     const activation=item.activation&&typeof item.activation==='object'?item.activation:null;
     const aid=String((activation&&activation.id)||item.band?.id||'').toLowerCase();
     const level=String(item.level||'').toLowerCase();
     const official=!!item.officialAlert,animateAllowed=!reducedMotion();
-    if(official&&/extreme|severe/i.test(String(item.severityText||'')))return{id:'critical',animate:animateAllowed,color:'#ff2b2b',alpha:.98,scale:1.34,halo:4,period:780};
-    if(level==='extreme'||aid==='critical')return{id:'critical',animate:animateAllowed,color:'#ff2b2b',alpha:.98,scale:1.34,halo:4,period:780};
-    if(level==='high'||aid==='heavy')return{id:'heavy',animate:animateAllowed,color:'#ff7a1a',alpha:.95,scale:1.26,halo:3.3,period:1050};
-    if(level==='watch'||aid==='elevated')return{id:'elevated',animate:animateAllowed,color:'#ffd43b',alpha:.90,scale:1.16,halo:2.5,period:1600};
-    if(level==='info'||aid==='active')return{id:'active',animate:false,color:'#34d17b',alpha:.82,scale:1.08,halo:1.7};
-    if(aid==='watching'||type==='sensor')return{id:'watching',animate:false,color:'#39c6ff',alpha:.70,scale:1,halo:1.2};
-    return{id:'watching',animate:false,color:'#59ecff',alpha:.64,scale:1,halo:1.1};
+    if(official&&/extreme|severe/i.test(String(item.severityText||'')))return{id:'high',severity:'critical',animate:animateAllowed,color:'#ff2b2b',alpha:.98,scale:1.34,halo:4,period:780};
+    if(level==='extreme'||aid==='critical')return{id:'high',severity:'critical',animate:animateAllowed,color:'#ff2b2b',alpha:.98,scale:1.34,halo:4,period:780};
+    if(level==='high'||aid==='heavy')return{id:'high',severity:'heavy',animate:animateAllowed,color:'#ff7a1a',alpha:.95,scale:1.26,halo:3.3,period:1050};
+    if(level==='watch'||aid==='elevated')return{id:'medium',severity:'elevated',animate:animateAllowed,color:'#ffd43b',alpha:.90,scale:1.16,halo:2.5,period:1600};
+    if(level==='info'||aid==='active')return{id:'low',severity:'active',animate:false,color:'#34d17b',alpha:.82,scale:1.08,halo:1.7};
+    if(aid==='watching'||type==='sensor')return{id:'steady',severity:'watching',animate:false,color:'#39c6ff',alpha:.70,scale:1,halo:1.2};
+    return{id:'steady',severity:'watching',animate:false,color:'#59ecff',alpha:.64,scale:1,halo:1.1};
   }
   function clean(rows,max){return(rows||[]).filter(r=>r&&valid(r.lat,r.lon)).slice(0,max)}
   function feature(item,type,index){
     const p=profile(item,type),activation=Number(item.activation&&item.activation.score!=null?item.activation.score:item.activation||0);
-    return{type:'Feature',id:`${type}-${String(item.id||item.sensorId||item.sourceId||index)}`,geometry:{type:'Point',coordinates:[Number(item.lon),Number(item.lat)]},properties:{kind:type,color:p.color,state:p.id,animate:p.animate?1:0,halo:Number(p.halo||0),alpha:Number(p.alpha||.7),scale:Number(p.scale||1),title:String(item.title||item.kind||item.sensorId||item.id||type),source:String(item.agency||item.source||item.network||''),activation:Number.isFinite(activation)?activation:0,lat:Number(item.lat),lon:Number(item.lon),observedAt:item.observedAt||item.time||null,locationPrecision:item.locationPrecision||'unresolved',country:String(item.country||''),state:String(item.stateName||item.stateProvince||item.state||''),region:String(item.region||item.adminRegion||''),town:String(item.town||item.city||item.locality||'')}};
+    return{type:'Feature',id:`${type}-${String(item.id||item.sensorId||item.sourceId||index)}`,geometry:{type:'Point',coordinates:[Number(item.lon),Number(item.lat)]},properties:{kind:type,color:p.color,state:p.id,severity:p.severity,animate:p.animate?1:0,halo:Number(p.halo||0),alpha:Number(p.alpha||.7),scale:Number(p.scale||1),title:String(item.title||item.kind||item.sensorId||item.id||type),source:String(item.agency||item.source||item.network||''),activation:Number.isFinite(activation)?activation:0,lat:Number(item.lat),lon:Number(item.lon),observedAt:item.observedAt||item.time||null,locationPrecision:item.locationPrecision||'unresolved',country:String(item.country||''),state:String(item.stateName||item.stateProvince||item.state||''),region:String(item.region||item.adminRegion||''),town:String(item.town||item.city||item.locality||'')}};
   }
   function geojson(){return{type:'FeatureCollection',features:[...sensors.map((x,i)=>feature(x,'sensor',i)),...events.map((x,i)=>feature(x,'event',i))]}}
   function ensureCss(){if(document.querySelector('link[data-dom-maplibre-css]'))return;const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css';l.dataset.domMaplibreCss='1';document.head.appendChild(l)}
@@ -66,7 +66,7 @@ const DOMLiveGlobeRenderer=(()=>{
     const root=document.createElement('div');
     const strong=document.createElement('strong');strong.textContent=String(p.title||'Observation');root.appendChild(strong);
     const source=document.createElement('div');source.textContent=String(p.source||'Source unavailable');root.appendChild(source);
-    const sev=document.createElement('div');sev.textContent=`State: ${String(p.state||'watching')}`;root.appendChild(sev);
+    const sev=document.createElement('div');sev.textContent=`Severity: ${String(p.severity||p.state||'watching')}`;root.appendChild(sev);
     const loc=locationText(p);if(loc){const place=document.createElement('div');place.textContent=loc;root.appendChild(place)}
     const coord=document.createElement('small');coord.textContent=`${Number(p.lat).toFixed(4)}, ${Number(p.lon).toFixed(4)} · ${String(p.locationPrecision||'unresolved')}`;root.appendChild(coord);
     return root;
