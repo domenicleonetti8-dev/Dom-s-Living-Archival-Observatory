@@ -13,6 +13,8 @@ OUT = Path("data/live-vitals.json")
 CENSUS = "https://www.census.gov/popclock/data/population.php/world"
 GISS = "https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv"
 SEA = "https://www.star.nesdis.noaa.gov/socd/lsa/SeaLevelRise/slr/slr_sla_gbl_free_all_66.csv"
+ARCTIC_ICE = "https://noaadata.apps.nsidc.org/NOAA/G02135/north/daily/data/N_seaice_extent_daily_v4.0.csv"
+ANTARCTIC_ICE = "https://noaadata.apps.nsidc.org/NOAA/G02135/south/daily/data/S_seaice_extent_daily_v4.0.csv"
 
 
 def now_iso():
@@ -106,7 +108,7 @@ def ols_slope(points):
     slope = sum((x - xbar) * (y - ybar) for x, y in points) / den
     fitted = [ybar + slope * (x - xbar) for x in xs]
     sse = sum((y - yhat) ** 2 for y, yhat in zip(ys, fitted))
-    sst = sum((y - ybar) ** 2 for y in ys)
+    sst = sum((y - xbar) ** 2 for y in ys)
     r2 = 1 - sse / sst if sst > 0 else None
     return slope, r2
 
@@ -141,12 +143,58 @@ def sea_record(fetched_at):
         return {**base, "error": f"{type(e).__name__}: {e}"}
 
 
+def latest_sea_ice(text):
+    rows = list(csv.reader(io.StringIO(text)))
+    for row in reversed(rows):
+        if len(row) < 4:
+            continue
+        year = finite_number(row[0])
+        month = finite_number(row[1])
+        day = finite_number(row[2])
+        extent = finite_number(row[3])
+        if year and month and day and extent and extent > 0:
+            return {"year": int(year), "month": int(month), "day": int(day), "extentMillionKm2": extent}
+    raise ValueError("no finite sea-ice extent row found")
+
+
+def sea_ice_record(url, hemisphere, fetched_at):
+    base = {"status": "failed", "source": "NOAA/NSIDC Sea Ice Index v4", "sourceUrl": url, "hemisphere": hemisphere, "fetchedAt": fetched_at, "unit": "million km^2 extent"}
+    try:
+        raw, _ = get(url)
+        row = latest_sea_ice(raw.decode("utf-8", errors="replace"))
+        return {**base, "status": "live", **row}
+    except Exception as e:
+        return {**base, "error": f"{type(e).__name__}: {e}"}
+
+
+def cryosphere_record(fetched_at):
+    arctic = sea_ice_record(ARCTIC_ICE, "north", fetched_at)
+    antarctic = sea_ice_record(ANTARCTIC_ICE, "south", fetched_at)
+    ok = arctic.get("status") == "live" or antarctic.get("status") == "live"
+    return {
+        "status": "live" if ok else "failed",
+        "source": "NOAA/NSIDC Sea Ice Index v4",
+        "fetchedAt": fetched_at,
+        "seaIce": {"arctic": arctic, "antarctic": antarctic},
+        "note": "Sea-ice extent is distinct from land-ice mass loss; no synthetic values are substituted."
+    }
+
+
 def main():
     fetched_at = now_iso()
-    payload = {"schema": "doms-authoritative-vitals-v1", "generatedAt": fetched_at, "transport": "server-side-authoritative-source-refresh", "policy": "No numeric fallback constants. A failed source remains unavailable until an authoritative fetch succeeds.", "population": census_record(fetched_at), "temperature": giss_record(fetched_at), "seaLevel": sea_record(fetched_at)}
+    payload = {
+        "schema": "doms-authoritative-vitals-v1",
+        "generatedAt": fetched_at,
+        "transport": "server-side-authoritative-source-refresh",
+        "policy": "No numeric fallback constants. A failed source remains unavailable until an authoritative fetch succeeds.",
+        "population": census_record(fetched_at),
+        "temperature": giss_record(fetched_at),
+        "seaLevel": sea_record(fetched_at),
+        "cryosphere": cryosphere_record(fetched_at),
+    }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({k: payload[k].get("status") for k in ("population", "temperature", "seaLevel")}, sort_keys=True))
+    print(json.dumps({k: payload[k].get("status") for k in ("population", "temperature", "seaLevel", "cryosphere")}, sort_keys=True))
 
 
 if __name__ == "__main__":
