@@ -1,0 +1,51 @@
+name: Retry one-shot broker truth hardening
+
+on:
+  push:
+    branches:
+      - isolated-earth-geospatial-sensor-fabric-v1
+    paths:
+      - .github/workflows/retry-one-shot-broker-truth-hardening.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: isolated-earth-geospatial-sensor-fabric-v1
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reuse exact guarded hardening script
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          src=Path('.github/workflows/one-shot-broker-truth-hardening.yml').read_text().splitlines()
+          start=next(i for i,x in enumerate(src) if "python - <<'PY'" in x)+1
+          end=next(i for i in range(start,len(src)) if src[i].strip()=='PY')
+          lines=src[start:end]
+          indent=min(len(x)-len(x.lstrip()) for x in lines if x.strip())
+          Path('/tmp/dom_broker_hardening.py').write_text('\n'.join(x[indent:] for x in lines)+'\n')
+          PY
+          python /tmp/dom_broker_hardening.py
+      - name: Broker regression tests
+        run: |
+          cd broker
+          python -m unittest discover -p 'test_*.py'
+      - name: Compile broker
+        run: python -m py_compile broker/*.py
+      - name: Commit hardened broker and remove temporary workflows
+        shell: bash
+        run: |
+          git config user.name 'domenicleonetti8-dev'
+          git config user.email 'domenicleonetti8@gmail.com'
+          git rm .github/workflows/one-shot-broker-truth-hardening.yml .github/workflows/retry-one-shot-broker-truth-hardening.yml
+          git add broker/dom_observation_broker.py broker/dom_adapters.py broker/nhc_gis_adapter.py broker/scientific_station_adapters.py broker/test_dom_observation_broker.py broker/test_scientific_station_adapters.py
+          git commit -m 'Canonicalize broker source time and uncertainty semantics'
+          git push origin HEAD:isolated-earth-geospatial-sensor-fabric-v1
