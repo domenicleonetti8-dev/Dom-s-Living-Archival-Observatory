@@ -1,8 +1,7 @@
 const DOMLiveGlobeRenderer=(()=>{
   'use strict';
   let host=null,map=null,maplibre=null,events=[],sensors=[],expiryTimer=null,loadPromise=null,lastError=null;
-  const MAPLIBRE_BASE_STYLE='https://demotiles.maplibre.org/globe.json';
-  const NASA_BLUE_MARBLE_WMS='https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=BlueMarble_ShadedRelief_Bathymetry&STYLES=&FORMAT=image/jpeg&TRANSPARENT=FALSE&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}';
+  const OSM_STYLE={version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm-basemap',type:'raster',source:'osm',paint:{'raster-opacity':1}}]};
   const stoppedStatus=s=>/cancel|ended|expired|inactive|closed|resolved|cleared/i.test(String(s||''));
   const staleStatus=s=>/stale|unknown|unavailable|source[-_ ]?stale/i.test(String(s||''));
   const finite=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v));
@@ -35,14 +34,8 @@ const DOMLiveGlobeRenderer=(()=>{
   }
   function geojson(){return{type:'FeatureCollection',features:[...sensors.map((x,i)=>feature(x,'sensor',i)),...events.map((x,i)=>feature(x,'event',i))]}}
   function ensureCss(){if(document.querySelector('link[data-dom-maplibre-css]'))return;const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css';l.dataset.domMaplibreCss='1';document.head.appendChild(l)}
-  function setStatus(text){let el=document.getElementById('domGeoTruth');if(!host)return;if(!el){el=document.createElement('div');el.id='domGeoTruth';el.style.cssText='position:absolute;left:12px;top:10px;z-index:8;padding:7px 10px;border-radius:10px;background:rgba(2,14,22,.78);border:1px solid rgba(105,231,255,.28);font:600 12px system-ui;color:#d7f8ff;pointer-events:none;max-width:82%;';host.appendChild(el)}el.textContent=text}
+  function setStatus(text){let el=document.getElementById('domGeoTruth');if(!host)return;if(!el){el=document.createElement('div');el.id='domGeoTruth';el.style.cssText='position:absolute;left:12px;top:10px;z-index:8;padding:7px 10px;border-radius:10px;background:rgba(2,14,22,.84);border:1px solid rgba(105,231,255,.28);font:600 12px system-ui;color:#d7f8ff;pointer-events:none;max-width:82%;';host.appendChild(el)}el.textContent=text}
   async function loadMapLibre(){if(maplibre)return maplibre;if(!loadPromise){ensureCss();loadPromise=import('https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs').then(m=>{maplibre=m;return m})}return loadPromise}
-  function installEarthImagery(){
-    if(!map||map.getSource('dom-earth-imagery'))return;
-    map.addSource('dom-earth-imagery',{type:'raster',tiles:[NASA_BLUE_MARBLE_WMS],tileSize:256,attribution:'NASA EOSDIS GIBS · Blue Marble'});
-    const firstSymbol=(map.getStyle().layers||[]).find(l=>l.type==='symbol');
-    map.addLayer({id:'dom-earth-imagery-layer',type:'raster',source:'dom-earth-imagery',paint:{'raster-opacity':.92,'raster-saturation':-.04,'raster-contrast':.08}},firstSymbol&&firstSymbol.id);
-  }
   function addObservationLayers(){
     if(!map||!map.loaded())return;
     const data=geojson();
@@ -50,7 +43,7 @@ const DOMLiveGlobeRenderer=(()=>{
     if(!map.getLayer('dom-clusters'))map.addLayer({id:'dom-clusters',type:'circle',source:'dom-live-points',filter:['has','point_count'],paint:{'circle-color':'#173f52','circle-radius':['step',['get','point_count'],13,25,17,100,21],'circle-stroke-color':'#b7f6ff','circle-stroke-width':1.2,'circle-opacity':.88}});
     if(!map.getLayer('dom-cluster-count'))map.addLayer({id:'dom-cluster-count',type:'symbol',source:'dom-live-points',filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-size':11},paint:{'text-color':'#effcff','text-halo-color':'#06131b','text-halo-width':1}});
     if(!map.getLayer('dom-live-points-layer'))map.addLayer({id:'dom-live-points-layer',type:'circle',source:'dom-live-points',filter:['!',['has','point_count']],paint:{'circle-color':['get','color'],'circle-radius':['case',['==',['get','kind'],'event'],7,5],'circle-stroke-color':'#06131b','circle-stroke-width':1.4,'circle-opacity':.92}});
-    setStatus(`${events.length} events · ${sensors.length} source-coordinate sensors · NASA Earth · country/region/town labels from geographic basemap`);
+    setStatus(`${events.length} events · ${sensors.length} source-coordinate sensors · geographic Earth · country/state/region/town labels from OpenStreetMap basemap`);
   }
   function locationText(p){return[p.town,p.region,p.state,p.country].map(x=>String(x||'').trim()).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).join(' · ')}
   function popupNode(p){
@@ -67,17 +60,17 @@ const DOMLiveGlobeRenderer=(()=>{
   }
   async function mount(){
     host=document.getElementById('map');if(!host)return false;if(map)return true;
-    host.querySelectorAll('canvas[data-dom-live-globe],.globe-grid').forEach(n=>n.remove());
+    host.querySelectorAll('canvas[data-dom-live-globe],.globe-grid,.plot').forEach(n=>n.remove());
     host.style.background='#010813';host.style.overflow='hidden';
     try{
       await loadMapLibre();
-      map=new maplibre.Map({container:host,style:MAPLIBRE_BASE_STYLE,center:[-25,18],zoom:0.55,pitch:0,bearing:0,attributionControl:true,renderWorldCopies:false,antialias:true});
+      map=new maplibre.Map({container:host,style:OSM_STYLE,center:[-25,18],zoom:0.55,pitch:0,bearing:0,attributionControl:true,renderWorldCopies:false,antialias:true});
       map.setProjection({type:'globe'});
       map.addControl(new maplibre.NavigationControl({showCompass:true,showZoom:true}),'bottom-right');
-      map.on('load',()=>{installEarthImagery();addObservationLayers();bindClicks()});
-      map.on('error',e=>{lastError=String(e&&e.error&&e.error.message||e&&e.message||'map error')});
+      map.on('load',()=>{addObservationLayers();bindClicks()});
+      map.on('error',e=>{lastError=String(e&&e.error&&e.error.message||e&&e.message||'map error');setStatus(`Geographic basemap error: ${lastError}`)});
       return true;
-    }catch(e){lastError=String(e&&e.message||e);setStatus('Geographic Earth renderer unavailable — refusing to show synthetic/fake placement');return false}
+    }catch(e){lastError=String(e&&e.message||e);setStatus('Geographic Earth renderer unavailable — refusing synthetic/fake placement');return false}
   }
   function refresh(){if(map&&map.loaded())addObservationLayers()}
   function scheduleExpiry(){if(expiryTimer)clearTimeout(expiryTimer);const now=Date.now(),times=[...events,...sensors].map(x=>x&&x.expiresAt?new Date(x.expiresAt).getTime():NaN).filter(t=>Number.isFinite(t)&&t>now).sort((a,b)=>a-b);if(times.length)expiryTimer=setTimeout(()=>{expiryTimer=null;events=clean(events.filter(isLive),1200);sensors=clean(sensors.filter(isLive),15000);refresh();scheduleExpiry()},Math.min(2147483647,Math.max(50,times[0]-now+25)))}
@@ -87,5 +80,5 @@ const DOMLiveGlobeRenderer=(()=>{
   window.addEventListener('dom:hazard-refresh',ev=>setEvents((ev.detail&&ev.detail.events)||[]));
   window.addEventListener('dom:organism-state',ev=>setSensors((ev.detail&&ev.detail.sensors)||[]));
   window.addEventListener('pagehide',()=>{if(expiryTimer)clearTimeout(expiryTimer);if(map){map.remove();map=null}},{once:true});
-  return{mount,setEvents,setSensors,resetView,isLive,profile,state:()=>({eventCount:events.length,sensorCount:sensors.length,renderer:'maplibre-globe',imagery:'NASA GIBS Blue Marble',labels:'geographic basemap country/region/town',lastError})};
+  return{mount,setEvents,setSensors,resetView,isLive,profile,state:()=>({eventCount:events.length,sensorCount:sensors.length,renderer:'maplibre-globe',imagery:'OpenStreetMap geographic basemap',labels:'country/state/region/town from basemap',lastError})};
 })();
