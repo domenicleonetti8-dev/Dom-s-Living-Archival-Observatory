@@ -1,51 +1,74 @@
 const DOMLiveGlobeRenderer=(()=>{
-  let canvas=null,ctx=null,map=null,raf=0,lastFrame=0,yaw=-25*Math.PI/180,pitch=18*Math.PI/180,zoom=1,events=[],sensors=[],drag=null,pinch=null,resizeObserver=null,expiryTimer=null;
-  const activePointers=new Map();
-  const dpr=()=>Math.min(2,window.devicePixelRatio||1);
-  const rad=d=>Number(d)*Math.PI/180;
-  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-  const reducedMotion=()=>typeof window!=='undefined'&&typeof window.matchMedia==='function'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  'use strict';
+  let host=null,map=null,maplibre=null,events=[],sensors=[],expiryTimer=null,loadPromise=null,lastError=null;
+  const NASA_BLUE_MARBLE_WMS='https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=BlueMarble_ShadedRelief_Bathymetry&STYLES=&FORMAT=image/jpeg&TRANSPARENT=FALSE&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}';
   const stoppedStatus=s=>/cancel|ended|expired|inactive|closed|resolved|cleared/i.test(String(s||''));
   const staleStatus=s=>/stale|unknown|unavailable|source[-_ ]?stale/i.test(String(s||''));
-  function valid(lat,lon){return lat!==null&&lon!==null&&lat!==''&&lon!==''&&Number.isFinite(Number(lat))&&Number.isFinite(Number(lon))&&Number(lat)>=-90&&Number(lat)<=90&&Number(lon)>=-180&&Number(lon)<=180}
-  function rotate(lat,lon){const la=rad(lat),lo=rad(lon)+yaw;let x=Math.cos(la)*Math.sin(lo),y=Math.sin(la),z=Math.cos(la)*Math.cos(lo);const cp=Math.cos(pitch),sp=Math.sin(pitch),yy=y*cp-z*sp,zz=y*sp+z*cp;return{x,y:yy,z:zz}}
-  function size(){if(!canvas||!map)return null;const r=map.getBoundingClientRect(),ratio=dpr(),w=Math.max(1,Math.round(r.width*ratio)),h=Math.max(1,Math.round(r.height*ratio));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;canvas.style.width=`${r.width}px`;canvas.style.height=`${r.height}px`}return{w,h,ratio,radius:Math.min(w,h)*.405*zoom,cx:w/2,cy:h/2}}
-  function project(lat,lon,s){if(!valid(lat,lon))return null;const p=rotate(lat,lon);if(p.z<=0)return null;return{x:s.cx+p.x*s.radius,y:s.cy-p.y*s.radius,z:p.z}}
-  function lineSphere(s,lat=null,lon=null){ctx.beginPath();let started=false;for(let i=0;i<=180;i++){const la=lat===null?-90+i:lat,lo=lon===null?-180+i*2:lon,p=project(la,lo,s);if(!p){started=false;continue}if(!started){ctx.moveTo(p.x,p.y);started=true}else ctx.lineTo(p.x,p.y)}ctx.stroke()}
+  const finite=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v));
+  function valid(lat,lon){return finite(lat)&&finite(lon)&&Number(lat)>=-90&&Number(lat)<=90&&Number(lon)>=-180&&Number(lon)<=180}
   function statusOf(item){return String(item&&((item.observationStatus||item.status||item.state||item.sourceStatus))||'')}
   function isLive(item,now=Date.now()){
     if(!item||stoppedStatus(statusOf(item)))return false;
     const exp=item.expiresAt?new Date(item.expiresAt).getTime():NaN;
-    if(Number.isFinite(exp)&&exp<=now)return false;
-    return true;
+    return !(Number.isFinite(exp)&&exp<=now);
   }
-  function profile(item,type,now=Date.now()){
-    if(!isLive(item,now))return{id:'off',animate:false,color:'#4b545c',alpha:.18,scale:1,halo:0};
-    if(item.stale===true||staleStatus(statusOf(item))||staleStatus(item.sourceStatus))return{id:'unknown',animate:false,color:'#6f8494',alpha:.34,scale:1,halo:.65};
+  function profile(item,type){
+    if(!isLive(item))return{id:'off',color:'#66727d'};
+    if(item.stale===true||staleStatus(statusOf(item))||staleStatus(item.sourceStatus))return{id:'unknown',color:'#74899a'};
     const activation=item.activation&&typeof item.activation==='object'?item.activation:null;
     const aid=String((activation&&activation.id)||item.band?.id||'').toLowerCase();
     const level=String(item.level||'').toLowerCase();
-    const official=!!item.officialAlert,animateAllowed=!reducedMotion();
-    if(official&&/extreme|severe/i.test(String(item.severityText||'')))return{id:'high',animate:animateAllowed,color:'#ff2b2b',alpha:.96,scale:1.28,halo:3.5,period:900};
-    if(level==='extreme'||level==='high'||aid==='critical'||aid==='heavy')return{id:'high',animate:animateAllowed,color:aid==='heavy'?'#ff7a1a':'#ff355e',alpha:.94,scale:1.22,halo:3.1,period:1050};
-    if(level==='watch'||aid==='elevated')return{id:'medium',animate:animateAllowed,color:'#ffd43b',alpha:.88,scale:1.13,halo:2.35,period:1800};
-    if(level==='info'||aid==='active')return{id:'low',animate:false,color:'#34d17b',alpha:.78,scale:1.05,halo:1.55};
-    if(aid==='watching'||type==='sensor')return{id:'steady',animate:false,color:aid==='watching'?'#39c6ff':'#59ecff',alpha:.62,scale:1,halo:1.15};
-    return{id:'steady',animate:false,color:'#59ecff',alpha:.58,scale:1,halo:1.1};
+    if(item.officialAlert&&/extreme|severe/i.test(String(item.severityText||'')))return{id:'high',color:'#ff2b2b'};
+    if(level==='extreme'||level==='high'||aid==='critical')return{id:'high',color:'#ff355e'};
+    if(aid==='heavy')return{id:'heavy',color:'#ff7a1a'};
+    if(level==='watch'||aid==='elevated')return{id:'medium',color:'#ffd43b'};
+    if(level==='info'||aid==='active')return{id:'low',color:'#34d17b'};
+    return{id:'steady',color:type==='sensor'?'#39c6ff':'#59ecff'};
   }
-  function phaseFor(p,now){if(!p.animate)return 1;const x=(now%p.period)/p.period;return .56+.44*(.5+.5*Math.sin(x*Math.PI*2-Math.PI/2))}
-  function drawMarkers(list,s,type,now){const rows=[];let animated=false;for(const item of list){const p=project(item.lat,item.lon,s);if(!p)continue;const rp=profile(item,type,now);if(rp.animate)animated=true;rows.push({item,p,rp})}rows.sort((a,b)=>a.p.z-b.p.z);for(const{item,p,rp}of rows){const base=type==='sensor'?2.7:4.1,activation=Number(item.activation&&item.activation.score!=null?item.activation.score:item.activation||0),pulse=phaseFor(rp,now),r=(base+Math.max(0,activation)*3)*rp.scale*pulse*s.ratio,depthAlpha=.38+.58*p.z;ctx.globalAlpha=rp.alpha*depthAlpha;ctx.fillStyle=rp.color;ctx.shadowColor=rp.color;ctx.shadowBlur=(7+rp.halo*4)*s.ratio*pulse;if(rp.halo>0){ctx.beginPath();ctx.arc(p.x,p.y,r*(1.7+rp.halo*.22),0,Math.PI*2);ctx.fillStyle=rp.color;ctx.globalAlpha=rp.alpha*depthAlpha*(rp.animate?(.10+.12*pulse):.10);ctx.fill()}ctx.globalAlpha=rp.alpha*depthAlpha;ctx.fillStyle=rp.color;ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();if(rp.id==='high'||rp.id==='medium'){ctx.globalAlpha=rp.alpha*depthAlpha*(.25+.35*pulse);ctx.strokeStyle=rp.color;ctx.lineWidth=Math.max(1,s.ratio*.8);ctx.beginPath();ctx.arc(p.x,p.y,r*(2.15+.55*pulse),0,Math.PI*2);ctx.stroke()}ctx.shadowBlur=0;ctx.globalAlpha=1}return animated}
-  function draw(ts=performance.now()){raf=0;if(!ctx||!map)return;if(lastFrame&&ts-lastFrame<32){raf=requestAnimationFrame(draw);return}const now=Date.now(),s=size();if(!s)return;ctx.clearRect(0,0,s.w,s.h);const g=ctx.createRadialGradient(s.cx-s.radius*.28,s.cy-s.radius*.35,s.radius*.08,s.cx,s.cy,s.radius);g.addColorStop(0,'rgba(42,151,255,.82)');g.addColorStop(.45,'rgba(8,75,142,.78)');g.addColorStop(.82,'rgba(4,28,66,.96)');g.addColorStop(1,'rgba(1,8,22,1)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(s.cx,s.cy,s.radius,0,Math.PI*2);ctx.fill();ctx.save();ctx.beginPath();ctx.arc(s.cx,s.cy,s.radius,0,Math.PI*2);ctx.clip();ctx.lineWidth=.75*s.ratio;ctx.strokeStyle='rgba(102,232,255,.18)';for(let la=-60;la<=60;la+=30)lineSphere(s,la,null);for(let lo=-150;lo<=180;lo+=30)lineSphere(s,null,lo);const sensorAnimated=drawMarkers(sensors,s,'sensor',now),eventAnimated=drawMarkers(events,s,'event',now);ctx.restore();ctx.strokeStyle='rgba(108,239,255,.55)';ctx.lineWidth=1.2*s.ratio;ctx.beginPath();ctx.arc(s.cx,s.cy,s.radius,0,Math.PI*2);ctx.stroke();ctx.font=`${11*s.ratio}px system-ui`;ctx.fillStyle='rgba(194,243,255,.8)';ctx.fillText(`${events.length} events · ${sensors.length} sensors in current organism state`,12*s.ratio,20*s.ratio);lastFrame=ts;if(sensorAnimated||eventAnimated)raf=requestAnimationFrame(draw)}
-  function requestDraw(){if(!raf)raf=requestAnimationFrame(draw)}
-  function scheduleExpiry(){if(expiryTimer){clearTimeout(expiryTimer);expiryTimer=null}const now=Date.now(),times=[...events,...sensors].map(x=>x&&x.expiresAt?new Date(x.expiresAt).getTime():NaN).filter(t=>Number.isFinite(t)&&t>now).sort((a,b)=>a-b);if(times.length){expiryTimer=setTimeout(()=>{expiryTimer=null;requestDraw();scheduleExpiry()},Math.min(2147483647,Math.max(50,times[0]-now+25)))}}
-  function mount(){map=document.getElementById('map');if(!map)return false;let existing=map.querySelector('canvas[data-dom-live-globe]');if(existing){canvas=existing;ctx=canvas.getContext('2d');requestDraw();return true}activePointers.clear();drag=null;pinch=null;canvas=document.createElement('canvas');canvas.dataset.domLiveGlobe='1';canvas.setAttribute('aria-label','Interactive D.O.M. global event and sensor globe with live risk lighting');canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;touch-action:none;z-index:2;';map.appendChild(canvas);ctx=canvas.getContext('2d',{alpha:true});bind(canvas);if(resizeObserver)resizeObserver.disconnect();if(typeof ResizeObserver==='function'){resizeObserver=new ResizeObserver(requestDraw);resizeObserver.observe(map)}requestDraw();return true}
-  function pinchDistance(){const pts=[...activePointers.values()];return pts.length>=2?Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y):null}
-  function bind(c){c.addEventListener('pointerdown',e=>{c.setPointerCapture?.(e.pointerId);activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(activePointers.size===1){drag={id:e.pointerId,x:e.clientX,y:e.clientY};pinch=null}else if(activePointers.size===2){pinch={startZoom:zoom,startDistance:pinchDistance()};drag=null}});c.addEventListener('pointermove',e=>{if(!activePointers.has(e.pointerId))return;activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(activePointers.size>=2&&pinch){const d=pinchDistance();if(d&&pinch.startDistance>0){zoom=clamp(pinch.startZoom*d/pinch.startDistance,.65,2.2);requestDraw()}return}if(!drag||drag.id!==e.pointerId)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;yaw+=dx*.006;pitch=clamp(pitch-dy*.006,-Math.PI*.48,Math.PI*.48);requestDraw()});const end=e=>{activePointers.delete(e.pointerId);if(activePointers.size===1){const[id,p]=activePointers.entries().next().value;drag={id,x:p.x,y:p.y};pinch=null}else{drag=null;pinch=null}};c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end);c.addEventListener('lostpointercapture',end);c.addEventListener('wheel',e=>{e.preventDefault();zoom=clamp(zoom*(e.deltaY>0?.92:1.08),.65,2.2);requestDraw()},{passive:false})}
-  function setEvents(rows=[]){events=(rows||[]).filter(e=>valid(e.lat,e.lon)).slice(0,1200);mount();scheduleExpiry();requestDraw()}
-  function setSensors(rows=[]){sensors=(rows||[]).filter(s=>valid(s.lat,s.lon)).slice(0,15000);mount();scheduleExpiry();requestDraw()}
-  function resetView(){yaw=-25*Math.PI/180;pitch=18*Math.PI/180;zoom=1;requestDraw()}
+  function clean(rows,max){return(rows||[]).filter(r=>r&&valid(r.lat,r.lon)).slice(0,max)}
+  function feature(item,type,index){
+    const p=profile(item,type),activation=Number(item.activation&&item.activation.score!=null?item.activation.score:item.activation||0);
+    return{type:'Feature',id:`${type}-${String(item.id||item.sensorId||item.sourceId||index)}`,geometry:{type:'Point',coordinates:[Number(item.lon),Number(item.lat)]},properties:{kind:type,color:p.color,state:p.id,title:String(item.title||item.kind||item.sensorId||item.id||type),source:String(item.agency||item.source||item.network||''),activation:Number.isFinite(activation)?activation:0,lat:Number(item.lat),lon:Number(item.lon),observedAt:item.observedAt||item.time||null,locationPrecision:item.locationPrecision||'unresolved'}};
+  }
+  function geojson(){return{type:'FeatureCollection',features:[...sensors.map((x,i)=>feature(x,'sensor',i)),...events.map((x,i)=>feature(x,'event',i))]}}
+  function ensureCss(){if(document.querySelector('link[data-dom-maplibre-css]'))return;const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css';l.dataset.domMaplibreCss='1';document.head.appendChild(l)}
+  function setStatus(text){let el=document.getElementById('domGeoTruth');if(!host)return;if(!el){el=document.createElement('div');el.id='domGeoTruth';el.style.cssText='position:absolute;left:12px;top:10px;z-index:8;padding:7px 10px;border-radius:10px;background:rgba(2,14,22,.78);border:1px solid rgba(105,231,255,.28);font:600 12px system-ui;color:#d7f8ff;pointer-events:none;max-width:78%;';host.appendChild(el)}el.textContent=text}
+  function style(){return{version:8,sources:{earth:{type:'raster',tiles:[NASA_BLUE_MARBLE_WMS],tileSize:256,attribution:'NASA EOSDIS GIBS · Blue Marble'}},layers:[{id:'space',type:'background',paint:{'background-color':'#010813'}},{id:'earth',type:'raster',source:'earth',paint:{'raster-opacity':1,'raster-saturation':-.04,'raster-contrast':.08}}]}}
+  async function loadMapLibre(){if(maplibre)return maplibre;if(!loadPromise){ensureCss();loadPromise=import('https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs').then(m=>{maplibre=m;return m})}return loadPromise}
+  function addObservationLayers(){
+    if(!map||!map.loaded())return;
+    const data=geojson();
+    if(!map.getSource('dom-live-points'))map.addSource('dom-live-points',{type:'geojson',data,cluster:true,clusterRadius:34,clusterMaxZoom:5});else map.getSource('dom-live-points').setData(data);
+    if(!map.getLayer('dom-clusters'))map.addLayer({id:'dom-clusters',type:'circle',source:'dom-live-points',filter:['has','point_count'],paint:{'circle-color':'#173f52','circle-radius':['step',['get','point_count'],13,25,17,100,21],'circle-stroke-color':'#b7f6ff','circle-stroke-width':1.2,'circle-opacity':.88}});
+    if(!map.getLayer('dom-cluster-count'))map.addLayer({id:'dom-cluster-count',type:'symbol',source:'dom-live-points',filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-size':11},paint:{'text-color':'#effcff'}});
+    if(!map.getLayer('dom-live-points-layer'))map.addLayer({id:'dom-live-points-layer',type:'circle',source:'dom-live-points',filter:['!',['has','point_count']],paint:{'circle-color':['get','color'],'circle-radius':['case',['==',['get','kind'],'event'],7,5],'circle-stroke-color':'#06131b','circle-stroke-width':1.4,'circle-opacity':.92}});
+    setStatus(`${events.length} events · ${sensors.length} source-coordinate sensors · NASA geographic Earth`);
+  }
+  function bindClicks(){
+    map.on('click','dom-live-points-layer',e=>{const f=e.features&&e.features[0];if(!f)return;const p=f.properties||{};const html=`<strong>${String(p.title||'Observation')}</strong><br>${String(p.source||'Source unavailable')}<br><small>${Number(p.lat).toFixed(4)}, ${Number(p.lon).toFixed(4)} · ${String(p.locationPrecision||'unresolved')}</small>`;new maplibre.Popup({closeButton:true,maxWidth:'280px'}).setLngLat(f.geometry.coordinates).setHTML(html).addTo(map)});
+    map.on('mouseenter','dom-live-points-layer',()=>{map.getCanvas().style.cursor='pointer'});map.on('mouseleave','dom-live-points-layer',()=>{map.getCanvas().style.cursor=''})
+  }
+  async function mount(){
+    host=document.getElementById('map');if(!host)return false;if(map)return true;
+    host.querySelectorAll('canvas[data-dom-live-globe],.globe-grid').forEach(n=>n.remove());
+    host.style.background='#010813';host.style.overflow='hidden';
+    try{
+      await loadMapLibre();
+      map=new maplibre.Map({container:host,style:style(),center:[-25,18],zoom:0.55,pitch:0,bearing:0,attributionControl:true,renderWorldCopies:false,antialias:true});
+      map.setProjection({type:'globe'});
+      map.addControl(new maplibre.NavigationControl({showCompass:true,showZoom:true}),'bottom-right');
+      map.on('load',()=>{addObservationLayers();bindClicks()});
+      map.on('error',e=>{lastError=String(e&&e.error&&e.error.message||e&&e.message||'map error')});
+      return true;
+    }catch(e){lastError=String(e&&e.message||e);setStatus('Geographic Earth renderer unavailable — refusing to show synthetic/fake placement');return false}
+  }
+  function refresh(){if(map&&map.loaded())addObservationLayers()}
+  function scheduleExpiry(){if(expiryTimer)clearTimeout(expiryTimer);const now=Date.now(),times=[...events,...sensors].map(x=>x&&x.expiresAt?new Date(x.expiresAt).getTime():NaN).filter(t=>Number.isFinite(t)&&t>now).sort((a,b)=>a-b);if(times.length)expiryTimer=setTimeout(()=>{expiryTimer=null;events=clean(events.filter(isLive),1200);sensors=clean(sensors.filter(isLive),15000);refresh();scheduleExpiry()},Math.min(2147483647,Math.max(50,times[0]-now+25)))}
+  function setEvents(rows=[]){events=clean(rows,1200);mount().then(refresh);scheduleExpiry()}
+  function setSensors(rows=[]){sensors=clean(rows,15000);mount().then(refresh);scheduleExpiry()}
+  function resetView(){if(map)map.easeTo({center:[-25,18],zoom:.55,pitch:0,bearing:0,duration:450})}
   window.addEventListener('dom:hazard-refresh',ev=>setEvents((ev.detail&&ev.detail.events)||[]));
   window.addEventListener('dom:organism-state',ev=>setSensors((ev.detail&&ev.detail.sensors)||[]));
-  window.addEventListener('pagehide',()=>{if(raf)cancelAnimationFrame(raf);if(expiryTimer)clearTimeout(expiryTimer);if(resizeObserver)resizeObserver.disconnect();activePointers.clear()},{once:true});
-  return{mount,setEvents,setSensors,resetView,isLive,profile,state:()=>({eventCount:events.length,sensorCount:sensors.length,yaw,pitch,zoom,pointers:activePointers.size,lastFrame})};
+  window.addEventListener('pagehide',()=>{if(expiryTimer)clearTimeout(expiryTimer);if(map){map.remove();map=null}},{once:true});
+  return{mount,setEvents,setSensors,resetView,isLive,profile,state:()=>({eventCount:events.length,sensorCount:sensors.length,renderer:'maplibre-globe',imagery:'NASA GIBS Blue Marble',lastError})};
 })();
