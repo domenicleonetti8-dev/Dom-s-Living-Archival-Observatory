@@ -28,7 +28,34 @@ const DOMSHazardVoice=(()=>{
       const start=Date.now(),tick=()=>{const v=chooseVoice();if(v||Date.now()-start>=timeout)return resolve(v);setTimeout(tick,80)};tick();
     })
   }
-  function speechText(text){return String(text).replace(/\bD\.O\.M\./g,'D O M').replace(/\bDOM\b/g,'D O M').replace(/\bDerived statistics\b/gi,'Statistics calculated from source data').replace(/\bUNSCORED\b/g,'unscored').replace(/\bOLS\b/g,'ordinary least squares')}
+  function speechText(text){
+    return String(text)
+      .replace(/\bD\.O\.M\./gi,'Dee Oh Em')
+      .replace(/\bDOM\b/g,'Dee Oh Em')
+      .replace(/\bUSGS\b/g,'U S G S')
+      .replace(/\bNOAA\b/g,'Noah')
+      .replace(/\bNASA\b/g,'Nassa')
+      .replace(/\bNWS\b/g,'N W S')
+      .replace(/\bNHC\b/g,'N H C')
+      .replace(/\bNSIDC\b/g,'N S I D C')
+      .replace(/\bNDBC\b/g,'N D B C')
+      .replace(/\bCO-?OPS\b/gi,'C O Ops')
+      .replace(/\bEONET\b/g,'E O Net')
+      .replace(/\bGISTEMP\b/gi,'Giss Temp')
+      .replace(/\bGCRMN\b/g,'G C R M N')
+      .replace(/\bFAO\b/g,'F A O')
+      .replace(/\bOLS\b/g,'ordinary least squares')
+      .replace(/\bUNSCORED\b/g,'unscored')
+      .replace(/\bDerived statistics\b/gi,'Statistics calculated from source data')
+      .replace(/\bkm\s*\^?2\b/gi,'square kilometres')
+      .replace(/\bmm\s*\/\s*yr\b/gi,'millimetres per year')
+      .replace(/\bmm\b/gi,'millimetres')
+      .replace(/\bGt\b/g,'gigatonnes')
+      .replace(/\bCO2\b/g,'C O two')
+      .replace(/\bM(\d(?:\.\d+)?)\b/g,'magnitude $1')
+      .replace(/\s{2,}/g,' ')
+      .trim();
+  }
   function rememberTag(tag){if(!tag||S.lastSpoken.has(tag))return;S.lastSpoken.add(tag);S.tagOrder.push(tag);while(S.tagOrder.length>S.maxTags){const old=S.tagOrder.shift();S.lastSpoken.delete(old)}}
   async function speak(text,{force=false,tag='',autoEnable=false}={}){
     if(!supported()||!text)return false;
