@@ -1,6 +1,6 @@
 const DOMLiveGlobeRenderer=(()=>{
   'use strict';
-  let host=null,map=null,maplibre=null,events=[],sensors=[],expiryTimer=null,loadPromise=null,lastError=null;
+  let host=null,map=null,maplibre=null,events=[],sensors=[],expiryTimer=null,loadPromise=null,lastError=null,observer=null,remountQueued=false;
   const OSM_STYLE={version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm-basemap',type:'raster',source:'osm',paint:{'raster-opacity':1}}]};
   const stoppedStatus=s=>/cancel|ended|expired|inactive|closed|resolved|cleared/i.test(String(s||''));
   const staleStatus=s=>/stale|unknown|unavailable|source[-_ ]?stale/i.test(String(s||''));
@@ -36,8 +36,12 @@ const DOMLiveGlobeRenderer=(()=>{
   function ensureCss(){if(document.querySelector('link[data-dom-maplibre-css]'))return;const l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css';l.dataset.domMaplibreCss='1';document.head.appendChild(l)}
   function setStatus(text){let el=document.getElementById('domGeoTruth');if(!host)return;if(!el){el=document.createElement('div');el.id='domGeoTruth';el.style.cssText='position:absolute;left:12px;top:10px;z-index:8;padding:7px 10px;border-radius:10px;background:rgba(2,14,22,.84);border:1px solid rgba(105,231,255,.28);font:600 12px system-ui;color:#d7f8ff;pointer-events:none;max-width:82%;';host.appendChild(el)}el.textContent=text}
   async function loadMapLibre(){if(maplibre)return maplibre;if(!loadPromise){ensureCss();loadPromise=import('https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs').then(m=>{maplibre=m;return m})}return loadPromise}
+  function mapAttached(){try{const canvas=map&&typeof map.getCanvas==='function'?map.getCanvas():null;return !!(map&&host&&canvas&&host.contains(canvas))}catch(_){return false}}
+  function destroyMap(){if(map){try{map.remove()}catch(_){ }map=null}}
+  function queueRemount(){if(remountQueued)return;remountQueued=true;queueMicrotask(()=>{remountQueued=false;if(!mapAttached())mount().then(refresh)})}
+  function watchHost(){if(observer||!host||typeof MutationObserver==='undefined')return;observer=new MutationObserver(()=>{if(map&&!mapAttached())queueRemount()});observer.observe(host,{childList:true,subtree:false})}
   function addObservationLayers(){
-    if(!map||!map.loaded())return;
+    if(!map||!map.loaded()||!mapAttached())return;
     const data=geojson();
     if(!map.getSource('dom-live-points'))map.addSource('dom-live-points',{type:'geojson',data,cluster:true,clusterRadius:34,clusterMaxZoom:5});else map.getSource('dom-live-points').setData(data);
     if(!map.getLayer('dom-clusters'))map.addLayer({id:'dom-clusters',type:'circle',source:'dom-live-points',filter:['has','point_count'],paint:{'circle-color':'#173f52','circle-radius':['step',['get','point_count'],13,25,17,100,21],'circle-stroke-color':'#b7f6ff','circle-stroke-width':1.2,'circle-opacity':.88}});
@@ -59,26 +63,30 @@ const DOMLiveGlobeRenderer=(()=>{
     map.on('mouseenter','dom-live-points-layer',()=>{map.getCanvas().style.cursor='pointer'});map.on('mouseleave','dom-live-points-layer',()=>{map.getCanvas().style.cursor=''})
   }
   async function mount(){
-    host=document.getElementById('map');if(!host)return false;if(map)return true;
+    host=document.getElementById('map');if(!host)return false;
+    watchHost();
+    if(mapAttached())return true;
+    if(map)destroyMap();
     host.querySelectorAll('canvas[data-dom-live-globe],.globe-grid,.plot').forEach(n=>n.remove());
     host.style.background='#010813';host.style.overflow='hidden';
     try{
       await loadMapLibre();
+      if(mapAttached())return true;
       map=new maplibre.Map({container:host,style:OSM_STYLE,center:[-25,18],zoom:0.55,pitch:0,bearing:0,attributionControl:true,renderWorldCopies:false,antialias:true});
       map.setProjection({type:'globe'});
       map.addControl(new maplibre.NavigationControl({showCompass:true,showZoom:true}),'bottom-right');
       map.on('load',()=>{addObservationLayers();bindClicks()});
       map.on('error',e=>{lastError=String(e&&e.error&&e.error.message||e&&e.message||'map error');setStatus(`Geographic basemap error: ${lastError}`)});
       return true;
-    }catch(e){lastError=String(e&&e.message||e);setStatus('Geographic Earth renderer unavailable — refusing synthetic/fake placement');return false}
+    }catch(e){lastError=String(e&&e.message||e);destroyMap();setStatus('Geographic Earth renderer unavailable — refusing synthetic/fake placement');return false}
   }
-  function refresh(){if(map&&map.loaded())addObservationLayers()}
+  function refresh(){if(mapAttached()&&map.loaded())addObservationLayers();else if(host)queueRemount()}
   function scheduleExpiry(){if(expiryTimer)clearTimeout(expiryTimer);const now=Date.now(),times=[...events,...sensors].map(x=>x&&x.expiresAt?new Date(x.expiresAt).getTime():NaN).filter(t=>Number.isFinite(t)&&t>now).sort((a,b)=>a-b);if(times.length)expiryTimer=setTimeout(()=>{expiryTimer=null;events=clean(events.filter(isLive),1200);sensors=clean(sensors.filter(isLive),15000);refresh();scheduleExpiry()},Math.min(2147483647,Math.max(50,times[0]-now+25)))}
   function setEvents(rows=[]){events=clean(rows,1200);mount().then(refresh);scheduleExpiry()}
   function setSensors(rows=[]){sensors=clean(rows,15000);mount().then(refresh);scheduleExpiry()}
-  function resetView(){if(map)map.easeTo({center:[-25,18],zoom:.55,pitch:0,bearing:0,duration:450})}
+  function resetView(){if(mapAttached())map.easeTo({center:[-25,18],zoom:.55,pitch:0,bearing:0,duration:450})}
   window.addEventListener('dom:hazard-refresh',ev=>setEvents((ev.detail&&ev.detail.events)||[]));
   window.addEventListener('dom:organism-state',ev=>setSensors((ev.detail&&ev.detail.sensors)||[]));
-  window.addEventListener('pagehide',()=>{if(expiryTimer)clearTimeout(expiryTimer);if(map){map.remove();map=null}},{once:true});
+  window.addEventListener('pagehide',()=>{if(expiryTimer)clearTimeout(expiryTimer);if(observer){observer.disconnect();observer=null}destroyMap()},{once:true});
   return{mount,setEvents,setSensors,resetView,isLive,profile,state:()=>({eventCount:events.length,sensorCount:sensors.length,renderer:'maplibre-globe',imagery:'OpenStreetMap geographic basemap',labels:'country/state/region/town from basemap',lastError})};
 })();
