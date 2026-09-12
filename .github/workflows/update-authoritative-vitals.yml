@@ -25,16 +25,22 @@ jobs:
           python-version: '3.12'
       - name: Fetch authoritative vitals
         run: python tools/update_authoritative_vitals.py
-      - name: Validate snapshot contains no synthetic numeric fallback
+      - name: Validate authoritative snapshot
         run: |
           python - <<'PY'
           import json
           p=json.load(open('data/live-vitals.json'))
           assert p['schema']=='doms-authoritative-vitals-v1'
-          for key in ('population','temperature','seaLevel'):
+          for key in ('population','temperature','seaLevel','cryosphere'):
               row=p[key]
               assert row['status'] in ('live','failed')
-              assert row.get('sourceUrl','').startswith('https://')
+          for key in ('population','temperature','seaLevel'):
+              assert p[key].get('sourceUrl','').startswith('https://')
+          c=p['cryosphere']
+          if c['status']=='live':
+              assert any(x.get('status')=='live' for x in c['seaIce'].values())
+              for x in c['seaIce'].values():
+                  assert x.get('sourceUrl','').startswith('https://')
           print('AUTHORITATIVE_VITALS_SNAPSHOT=PASS')
           PY
       - name: Commit changed snapshot only
