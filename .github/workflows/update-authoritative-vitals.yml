@@ -9,7 +9,7 @@ on:
       - 'tools/update_2026_current_sources.py'
       - '.github/workflows/update-authoritative-vitals.yml'
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
 
 permissions:
   contents: write
