@@ -53,6 +53,32 @@ assert(Math.abs(pFive.weightSum-1)<1e-12,'five-dimension applied weights must su
 assert(Math.abs(pFive.components.reduce((s,x)=>s+x.contributionPoints,0)-pFive.score)<1e-9,'display contribution points must sum to the exact unrounded 0-100 score');
 assert.equal(pFive.scoreRounded,Math.round(pFive.score),'rounded public score must be derived only from the exact audited score');
 
+for(let i=0;i<20000;i++){
+  const a=(i%101)/100,b=((i*7)%101)/100,c=((i*13)%101)/100,d=((i*17)%101)/100,e=((i*19)%101)/100;
+  const urgencyApplicable=(i%3)!==0,localApplicable=(i%4)!==0;
+  const p=value(`DOMObservationModel.hazardPriority({physicalSeverity:${a},eventRecency:${b},officialUrgency:${c},officialUrgencyApplicable:${urgencyApplicable},localRelevance:${d},localRelevanceApplicable:${localApplicable},evidenceConfidence:${e}})`);
+  assert(Number.isFinite(p.value)&&p.value>=0&&p.value<=1,'stress priority must remain finite and bounded');
+  assert(Math.abs(p.weightSum-1)<1e-12,'stress applied weights must sum to one');
+  assert(Math.abs(p.components.reduce((s,x)=>s+x.contribution,0)-p.value)<1e-12,'stress contributions must exactly reconstruct priority');
+  for(const row of p.components){
+    if(row.omitted){assert.equal(row.appliedWeight,0);assert.equal(row.contribution,0);assert.equal(row.contributionPoints,0)}
+    else{assert(row.appliedWeight>0&&row.appliedWeight<=1);assert(row.contribution>=0&&row.contribution<=row.appliedWeight+1e-12)}
+  }
+}
+const noUrgencyLow=value(`DOMObservationModel.hazardPriority({physicalSeverity:.6,eventRecency:.6,officialUrgency:0,officialUrgencyApplicable:false,localRelevance:.5,localRelevanceApplicable:true,evidenceConfidence:.6}).value`);
+const noUrgencyHigh=value(`DOMObservationModel.hazardPriority({physicalSeverity:.6,eventRecency:.6,officialUrgency:1,officialUrgencyApplicable:false,localRelevance:.5,localRelevanceApplicable:true,evidenceConfidence:.6}).value`);
+assert.equal(noUrgencyLow,noUrgencyHigh,'inapplicable urgency value must have zero influence');
+const noLocalLow=value(`DOMObservationModel.hazardPriority({physicalSeverity:.6,eventRecency:.6,officialUrgency:.7,officialUrgencyApplicable:true,localRelevance:0,localRelevanceApplicable:false,evidenceConfidence:.6}).value`);
+const noLocalHigh=value(`DOMObservationModel.hazardPriority({physicalSeverity:.6,eventRecency:.6,officialUrgency:.7,officialUrgencyApplicable:true,localRelevance:1,localRelevanceApplicable:false,evidenceConfidence:.6}).value`);
+assert.equal(noLocalLow,noLocalHigh,'inapplicable local relevance must have zero influence');
+const sevLow=value(`DOMObservationModel.hazardPriority({physicalSeverity:.2,eventRecency:.6,officialUrgency:.7,officialUrgencyApplicable:true,localRelevance:.5,localRelevanceApplicable:true,evidenceConfidence:.6}).value`);
+const sevHigh=value(`DOMObservationModel.hazardPriority({physicalSeverity:.8,eventRecency:.6,officialUrgency:.7,officialUrgencyApplicable:true,localRelevance:.5,localRelevanceApplicable:true,evidenceConfidence:.6}).value`);
+assert(sevHigh>sevLow,'higher physical severity must monotonically increase priority when other dimensions are fixed');
+
+const arSource=fs.readFileSync('earth-ar-prediction-ui.js','utf8');
+assert(arSource.includes(`'"':'&quot;'`),'AR UI must terminate HTML quote entity correctly');
+assert(!arSource.includes(`'"':'&quot'`),'unterminated AR HTML quote entity must not regress');
+
 value(`H.user={lat:40,lon:-74}`);
 const local=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:true,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',publishedAt:new Date().toISOString(),validAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return {eligible:isAlertEligible(e),priority:e.priorityAudit,confidence:e.evidenceConfidence,local:e.localRelevance,html:priorityAuditHtml(e)}})()`);
 assert.equal(local.eligible,true,'point-qualified unexpired local official warning should be alert eligible');
