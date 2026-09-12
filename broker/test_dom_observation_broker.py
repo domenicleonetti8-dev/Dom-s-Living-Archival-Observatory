@@ -43,6 +43,50 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual(good["observationStatus"], "reported")
         self.assertIsNone(good["expiresAt"])
 
+    def test_record_normalizes_uncertainty_without_inference(self):
+        r = dom.record(source_id="u", lineage="L", agency="A", network="N", kind="Observation",
+                       modality="sensor", observed_at="2026-09-10T00:00:00Z", lat=40, lon=-74,
+                       source="https://example.com/u", title="U", horizontalAccuracyMeters=-1,
+                       uncertaintyRadiusMeters="12.5", confidenceLevel=87, uncertaintyBasis=" source metadata ")
+        self.assertIsNone(r["horizontalAccuracyMeters"])
+        self.assertEqual(r["uncertaintyRadiusMeters"], 12.5)
+        self.assertEqual(r["confidenceLevel"], 0.87)
+        self.assertEqual(r["uncertaintyBasis"], "source metadata")
+        self.assertEqual(r["locationPrecision"], "unresolved")
+        bad = dom.record(source_id="u2", lineage="L", agency="A", network="N", kind="Observation",
+                         modality="sensor", observed_at="2026-09-10T00:00:00Z", source="https://example.com/u2",
+                         title="U2", uncertaintyRadiusMeters=float("inf"), confidenceLevel=150)
+        self.assertIsNone(bad["uncertaintyRadiusMeters"])
+        self.assertIsNone(bad["confidenceLevel"])
+
+    def test_record_accepts_canonical_publication_time_without_fake_observation(self):
+        r = dom.record(source_id="pub", lineage="L", agency="A", network="N", kind="Official Weather Alert",
+                       modality="warning", observed_at=None, source="https://example.com/pub", title="P",
+                       publishedAt="2026-09-10T12:00:00Z", validAt="2026-09-10T12:05:00Z",
+                       expiresAt="2026-09-10T18:00:00Z", fetchedAt="2026-09-10T12:01:00Z", temporalKind="publication")
+        self.assertIsNotNone(r)
+        self.assertIsNone(r["observedAt"])
+        self.assertEqual(r["publishedAt"], "2026-09-10T12:00:00Z")
+        self.assertEqual(r["validAt"], "2026-09-10T12:05:00Z")
+        self.assertEqual(r["expiresAt"], "2026-09-10T18:00:00Z")
+        self.assertEqual(r["fetchedAt"], "2026-09-10T12:01:00Z")
+        self.assertEqual(r["temporalKind"], "publication")
+        self.assertIn("2026-09-10T12:00:00Z", dom.Broker.key(r))
+        fetch_only = dom.record(source_id="fetch-only", lineage="L", agency="A", network="N", kind="Observation",
+                                modality="sensor", observed_at=None, source="https://example.com/fetch", title="F")
+        self.assertIsNone(fetch_only)
+
+    def test_inventory_snapshot_can_have_unknown_source_event_time(self):
+        r = dom.record(source_id="station", lineage="inventory", agency="A", network="N", kind="Scientific Station",
+                       modality="station", observed_at=None, lat=40, lon=-74, source="https://example.com/stations",
+                       title="Station", inventorySnapshot=True, fetchedAt="2026-09-10T12:00:00Z", temporalKind="inventory",
+                       locationPrecision="source-coordinate")
+        self.assertIsNotNone(r)
+        self.assertIsNone(r["observedAt"])
+        self.assertIsNone(r["publishedAt"])
+        self.assertIsNone(r["validAt"])
+        self.assertEqual(r["fetchedAt"], "2026-09-10T12:00:00Z")
+
     def test_registry_truth_separates_registered_from_active_adapters(self):
         b = dom.Broker()
         try:
@@ -212,7 +256,7 @@ class BrokerTests(unittest.TestCase):
         fixture = {"features": [{
             "id": "https://api.weather.gov/alerts/test",
             "geometry": polygon,
-            "properties": {"event": "Test Warning", "sent": "2026-09-10T00:00:00Z", "expires": "2026-09-10T06:00:00Z",
+            "properties": {"event": "Test Warning", "sent": "2026-09-10T00:00:00Z", "effective": "2026-09-10T00:05:00Z", "expires": "2026-09-10T06:00:00Z",
                            "severity": "Severe", "certainty": "Observed", "urgency": "Immediate",
                            "@id": "https://api.weather.gov/alerts/test"}
         }]}
@@ -220,6 +264,9 @@ class BrokerTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         r = rows[0]
         self.assertTrue(r["officialAlert"])
+        self.assertIsNone(r["observedAt"])
+        self.assertEqual(r["publishedAt"], "2026-09-10T00:00:00Z")
+        self.assertEqual(r["validAt"], "2026-09-10T00:05:00Z")
         self.assertEqual(r["observationStatus"], "observed")
         self.assertEqual(r["expiresAt"], "2026-09-10T06:00:00Z")
         self.assertEqual(r["locationPrecision"], "alert-geometry-centroid")
@@ -237,6 +284,8 @@ class BrokerTests(unittest.TestCase):
         r = rows[0]
         self.assertEqual(r["kind"], "Space Weather")
         self.assertEqual(r["observationStatus"], "observed")
+        self.assertIsNone(r["observedAt"])
+        self.assertEqual(r["publishedAt"], "2026-09-10T12:00:00Z")
         self.assertTrue(r["authoritative"])
         self.assertFalse(r["officialAlert"])
         self.assertIsNone(r["lat"])

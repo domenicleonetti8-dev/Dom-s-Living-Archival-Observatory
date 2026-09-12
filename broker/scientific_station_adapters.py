@@ -70,7 +70,7 @@ def parse_fdsn_station_text(text: str, make_record: Callable, valid_lat_lon: Cal
             network=net.strip(),
             kind="Scientific Station",
             modality="seismic-station",
-            observed_at=observed_at,
+            observed_at=None,
             lat=lat,
             lon=lon,
             source=source_url,
@@ -82,7 +82,7 @@ def parse_fdsn_station_text(text: str, make_record: Callable, valid_lat_lon: Cal
             elevation=elev,
             stationId=sta.strip(),
             platformClass="surface-station",
-            inventorySnapshot=True,
+            inventorySnapshot=True, fetchedAt=observed_at, temporalKind="inventory",
             upstream={"stationStartTime": start.strip() or None, "stationEndTime": end.strip() or None},
         )
         if r:
@@ -125,10 +125,10 @@ def parse_generic_station_json(payload, make_record: Callable, valid_lat_lon: Ca
         title = first(title_keys) or str(sid)
         r = make_record(
             source_id=f"{lineage}:{sid}", lineage=lineage, agency=agency, network=lineage,
-            kind="Scientific Station", modality=modality, observed_at=observed_at,
+            kind="Scientific Station", modality=modality, observed_at=None,
             lat=lat, lon=lon, source=source_url, title=str(title), authoritative=True,
             observationStatus="reported", locationPrecision="source-coordinate", quality=1.0,
-            stationId=str(sid), platformClass=platform_class, inventorySnapshot=True,
+            stationId=str(sid), platformClass=platform_class, inventorySnapshot=True, fetchedAt=observed_at, temporalKind="inventory",
             upstream={"inventory": True},
         )
         if r:
@@ -164,10 +164,10 @@ def parse_usgs_monitoring_locations(payload, make_record: Callable, valid_lat_lo
         r = make_record(
             source_id=f"usgs-water-site:{sid}", lineage="usgs-water-monitoring-locations",
             agency=str(agency), network="USGS Water Data for the Nation",
-            kind="Scientific Station", modality="water-monitoring-station", observed_at=observed_at,
+            kind="Scientific Station", modality="water-monitoring-station", observed_at=None,
             lat=float(co[1]), lon=float(co[0]), source=source_url, title=str(title), authoritative=True,
             observationStatus="reported", locationPrecision="source-coordinate", quality=1.0,
-            stationId=str(sid), platformClass="water-monitoring-site", inventorySnapshot=True,
+            stationId=str(sid), platformClass="water-monitoring-site", inventorySnapshot=True, fetchedAt=observed_at, temporalKind="inventory",
             siteType=str(site_type), altitude=props.get("altitude"),
             upstream={"country": props.get("country_name"), "state": props.get("state_name"), "county": props.get("county_name")},
         )

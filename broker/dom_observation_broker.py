@@ -84,6 +84,41 @@ def clamp01(value) -> Optional[float]:
     return max(0.0, min(1.0, n))
 
 
+def nonnegative_float(value) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(n) or n < 0:
+        return None
+    return n
+
+
+def probability01(value) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(n):
+        return None
+    if 0 <= n <= 1:
+        return n
+    if 1 < n <= 100:
+        return n / 100.0
+    return None
+
+
+def clean_optional_text(value) -> Optional[str]:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
 def valid_lat_lon(lat, lon) -> bool:
     try:
         if lat is None or lon is None or lat == "" or lon == "":
@@ -114,10 +149,33 @@ def source_url(url) -> Optional[str]:
 
 
 def record(*, source_id: str, lineage: str, agency: str, network: str, kind: str,
-           modality: str, observed_at: Optional[str], lat=None, lon=None,
+           modality: str, observed_at: Optional[str] = None, lat=None, lon=None,
            source: Optional[str], title: str, authoritative: bool = True, **extra):
     loc_ok = valid_lat_lon(lat, lon)
     observed = normalize_iso(observed_at)
+    published_raw = extra.pop("publishedAt", None)
+    if published_raw is None:
+        published_raw = extra.pop("published_at", None)
+    valid_raw = extra.pop("validAt", None)
+    if valid_raw is None:
+        valid_raw = extra.pop("valid_at", None)
+    expires_raw = extra.pop("expiresAt", None)
+    if expires_raw is None:
+        expires_raw = extra.pop("expires_at", None)
+    fetched_raw = extra.pop("fetchedAt", None)
+    if fetched_raw is None:
+        fetched_raw = extra.pop("fetched_at", None)
+    published = normalize_iso(published_raw)
+    valid = normalize_iso(valid_raw)
+    expires = normalize_iso(expires_raw)
+    received = iso_now()
+    fetched = normalize_iso(fetched_raw) or received
+    location_precision = clean_optional_text(extra.pop("locationPrecision", None)) or "unresolved"
+    temporal_kind = clean_optional_text(extra.pop("temporalKind", None))
+    horizontal_accuracy = nonnegative_float(extra.pop("horizontalAccuracyMeters", None))
+    uncertainty_radius = nonnegative_float(extra.pop("uncertaintyRadiusMeters", None))
+    confidence_level = probability01(extra.pop("confidenceLevel", None))
+    uncertainty_basis = clean_optional_text(extra.pop("uncertaintyBasis", None))
     r = {
         "schema": "dom.observation.v1",
         "sourceId": str(source_id or "").strip(),
@@ -128,25 +186,35 @@ def record(*, source_id: str, lineage: str, agency: str, network: str, kind: str
         "modality": str(modality or "").strip(),
         "lat": float(lat) if loc_ok else None,
         "lon": float(lon) if loc_ok else None,
-        "locationPrecision": extra.pop("locationPrecision", "source-coordinate" if loc_ok else "unresolved"),
+        "locationPrecision": location_precision,
+        "horizontalAccuracyMeters": horizontal_accuracy,
+        "uncertaintyRadiusMeters": uncertainty_radius,
+        "confidenceLevel": confidence_level,
+        "uncertaintyBasis": uncertainty_basis,
         "observedAt": observed,
-        "receivedAt": iso_now(),
+        "publishedAt": published,
+        "validAt": valid,
+        "expiresAt": expires,
+        "fetchedAt": fetched,
+        "receivedAt": received,
         "sourceUrl": source_url(source),
         "authoritative": bool(authoritative),
         "officialAlert": False,
         "title": str(title or kind or "observation").strip(),
     }
+    if temporal_kind:
+        r["temporalKind"] = temporal_kind
     r.update(extra)
     status = str(r.get("observationStatus") or "reported").strip().lower()
     r["observationStatus"] = status if status in OBSERVATION_STATUSES else "reported"
-    if "expiresAt" in r:
-        r["expiresAt"] = normalize_iso(r.get("expiresAt"))
     for name in ("quality", "freshness", "corroboration", "persistence", "hazardCoupling", "anomaly"):
         if name in r:
             r[name] = clamp01(r.get(name))
     if r.get("officialAlert") and not (r.get("authoritative") and r.get("sourceAgency") and r.get("sourceUrl")):
         r["officialAlert"] = False
-    if not all((r["sourceId"], r["lineageId"], r["sourceAgency"], r["observedAt"], r["sourceUrl"])):
+    provenance_ok = all((r["sourceId"], r["lineageId"], r["sourceAgency"], r["sourceUrl"]))
+    source_time_ok = any((r.get("observedAt"), r.get("publishedAt"), r.get("validAt")))
+    if not provenance_ok or (not source_time_ok and not r.get("inventorySnapshot")):
         return None
     return r
 
@@ -240,7 +308,8 @@ class Broker:
     def key(r: dict) -> str:
         if r.get("inventorySnapshot"):
             return f"{r.get('lineageId','')}|{r.get('sourceId','')}|inventory"
-        return f"{r.get('lineageId','')}|{r.get('sourceId','')}|{r.get('observedAt','')}"
+        source_time = r.get("observedAt") or r.get("publishedAt") or r.get("validAt") or ""
+        return f"{r.get('lineageId','')}|{r.get('sourceId','')}|{source_time}"
 
     def _load_persisted(self):
         with self.lock:

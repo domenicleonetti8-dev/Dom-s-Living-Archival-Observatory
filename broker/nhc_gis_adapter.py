@@ -176,9 +176,9 @@ def poll_nhc_current_storms(
                 continue
             rec = make_record(
                 source_id=f"nhc:{sid}:{role}", lineage="noaa-nhc-gis", agency="NOAA/NHC", network="National Hurricane Center GIS",
-                kind="Tropical Cyclone Forecast Geometry", modality="official-nhc-gis", observed_at=issued,
+                kind="Tropical Cyclone Forecast Geometry", modality="official-nhc-gis", observed_at=None,
                 lat=None, lon=None, source=product_url, title=f"{name} {role.replace('-', ' ')}", authoritative=True,
-                locationPrecision="source-geometry", observationStatus="forecast", quality=1.0,
+                locationPrecision="source-geometry", observationStatus="forecast", publishedAt=issued, temporalKind="forecast", quality=1.0,
                 geometry=geometry, geometryRole=role, stormId=sid, stormName=name,
                 advisoryNumber=product.get("advNum"), issuance=issued,
             )
