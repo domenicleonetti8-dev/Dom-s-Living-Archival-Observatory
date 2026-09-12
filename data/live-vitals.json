@@ -1,29 +1,119 @@
 {
-  "generatedAt": "2026-09-12T08:45:49Z",
-  "policy": "No numeric fallback constants. A failed source remains unavailable until an authoritative fetch succeeds.",
+  "coralBleaching": {
+    "current": true,
+    "fetchedAt": "2026-09-12T12:12:43Z",
+    "globalReefPixelsExposedPct": 0.42488,
+    "historyEndDate": "2026-09-10",
+    "historySampleCount": 14781,
+    "historyStartDate": "1986-03-24",
+    "observationDate": "2026-09-10",
+    "productReleased": "2026-04-30",
+    "productUrl": "https://coralreefwatch.noaa.gov/product/5km/index_5km_bse-365d.php",
+    "productVersion": "3.1",
+    "source": "NOAA Coral Reef Watch Daily 5km 365-day Bleaching Stress Extent v3.1",
+    "sourceUrl": "https://coralreefwatch.noaa.gov/data_current/5km/v3.1_op/daily/csv/5km-v3.1_stats-alert01_baa5-max-365d_dailyupdate.csv",
+    "status": "live",
+    "threshold": "Bleaching Alert Level 1 or higher at any time during rolling 365-day window",
+    "unit": "percent of 5 km reef-containing pixels",
+    "updatedCadence": "daily; NOAA states about 13:30 U.S. Eastern Time",
+    "windowDays": 365
+  },
+  "cryosphere": {
+    "fetchedAt": "2026-09-12T12:12:40Z",
+    "note": "Sea-ice extent is distinct from land-ice mass loss. Daily anomaly is relative to the same calendar day in 1981-2010; no trend is inferred from a single daily value.",
+    "seaIce": {
+      "antarctic": {
+        "anomalyMillionKm2": -0.9071923076923056,
+        "anomalyPercent": -4.896809299100432,
+        "climatologyMeanMillionKm2": 18.526192307692305,
+        "climatologyPeriod": "1981-2010",
+        "climatologySampleCount": 26,
+        "climatologySampleSDMillionKm2": 0.3215445249704332,
+        "day": 11,
+        "extentMillionKm2": 17.619,
+        "fetchedAt": "2026-09-12T12:12:40Z",
+        "hemisphere": "south",
+        "missingMillionKm2": 0.0,
+        "month": 9,
+        "source": "NOAA/NSIDC Sea Ice Index v4",
+        "sourceUrl": "https://noaadata.apps.nsidc.org/NOAA/G02135/south/daily/data/S_seaice_extent_daily_v4.0.csv",
+        "statisticalInterpretation": "Exact-calendar-day anomaly versus 1981-2010 sample mean; z-score uses sample standard deviation across baseline years. Not a long-term trend estimate.",
+        "status": "live",
+        "unit": "million km^2 extent",
+        "year": 2026,
+        "zScoreVsCalendarDayClimatology": -2.821358279310538
+      },
+      "arctic": {
+        "anomalyMillionKm2": -1.5632307692307696,
+        "anomalyPercent": -25.3638201742343,
+        "climatologyMeanMillionKm2": 6.163230769230769,
+        "climatologyPeriod": "1981-2010",
+        "climatologySampleCount": 26,
+        "climatologySampleSDMillionKm2": 0.8297970984616568,
+        "day": 11,
+        "extentMillionKm2": 4.6,
+        "fetchedAt": "2026-09-12T12:12:40Z",
+        "hemisphere": "north",
+        "missingMillionKm2": 0.0,
+        "month": 9,
+        "source": "NOAA/NSIDC Sea Ice Index v4",
+        "sourceUrl": "https://noaadata.apps.nsidc.org/NOAA/G02135/north/daily/data/N_seaice_extent_daily_v4.0.csv",
+        "statisticalInterpretation": "Exact-calendar-day anomaly versus 1981-2010 sample mean; z-score uses sample standard deviation across baseline years. Not a long-term trend estimate.",
+        "status": "live",
+        "unit": "million km^2 extent",
+        "year": 2026,
+        "zScoreVsCalendarDayClimatology": -1.883871095872485
+      }
+    },
+    "source": "NOAA/NSIDC Sea Ice Index v4",
+    "status": "live"
+  },
+  "currentSourcePolicy": "Use the freshest authoritative source available as of 2026; retain older periods only when they are the latest authoritative assessment or required historical baseline.",
+  "generatedAt": "2026-09-12T12:12:40Z",
+  "latestAssessments": {
+    "coralCover": {
+      "latestAvailableAsOf2026": true,
+      "note": "Latest global coral-cover assessment available as of 2026.",
+      "observationCoverage": "1980-2024",
+      "released": "2026-08-31",
+      "source": "GCRMN Status of Coral Reefs of the World: 2025",
+      "sourceUrl": "https://gcrmn.net/2025-report/full-report/"
+    },
+    "forests": {
+      "coveragePeriod": "1990-2025",
+      "latestAvailableAsOf2026": true,
+      "note": "Latest FAO global assessment available as of 2026; 2015-2025 deforestation rate remains a published reference, not a live feed.",
+      "source": "FAO Global Forest Resources Assessment 2025",
+      "sourceUrl": "https://www.fao.org/forest-resources-assessment/past-assessments/fra-2025/en"
+    }
+  },
+  "policy": "No synthetic numeric fallback. Derived statistics identify their baseline, method, sample size, and statistical caveats.",
   "population": {
     "date": "20260912",
     "estimate": true,
-    "fetchedAt": "2026-09-12T08:45:49Z",
+    "fetchedAt": "2026-09-12T12:12:40Z",
     "ratePerSecond": 1.9952543442415018,
     "source": "U.S. Census Bureau Population Clock",
-    "sourceUpdatedAt": "2026-09-12T08:45:49Z",
+    "sourceUpdatedAt": "2026-09-12T12:12:40Z",
     "sourceUrl": "https://www.census.gov/popclock/data/population.php/world",
     "status": "live",
     "unit": "people",
-    "value": 8210599625
+    "value": 8210624388
   },
-  "schema": "doms-authoritative-vitals-v1",
+  "schema": "dom-authoritative-vitals-2026-v2",
   "seaLevel": {
     "endDecimalYear": 2025.1268,
-    "fetchedAt": "2026-09-12T08:45:49Z",
-    "method": "D.O.M. ordinary-least-squares trend of per-timestamp mean across available NOAA altimeter columns",
-    "r2": 0.9759554968713721,
+    "fetchedAt": "2026-09-12T12:12:40Z",
+    "interceptMm": -6467.114789789663,
+    "method": "D.O.M. linear OLS diagnostic of per-timestamp mean across available NOAA altimeter columns",
+    "naiveSlopeSEMmPerYear": 0.012869004047701837,
+    "r2": 0.975955496871372,
     "sampleCount": 1557,
     "scope": "global ocean 66S-66N, seasonal signals removed, multi-altimeter CSV",
     "source": "NOAA NESDIS Laboratory for Satellite Altimetry",
     "sourceUrl": "https://www.star.nesdis.noaa.gov/socd/lsa/SeaLevelRise/slr/slr_sla_gbl_free_all_66.csv",
     "startDecimalYear": 1992.9614,
+    "statisticalCaveat": "OLS slope is a D.O.M. diagnostic over the NOAA time series. Naive OLS standard error is not a formal confidence interval because temporal residuals are autocorrelated.",
     "status": "live",
     "trendMmPerYear": 3.2330858580874784,
     "unit": "mm/year"
@@ -31,7 +121,7 @@
   "temperature": {
     "anomalyC": 1.4,
     "baseline": "1951-1980",
-    "fetchedAt": "2026-09-12T08:45:49Z",
+    "fetchedAt": "2026-09-12T12:12:40Z",
     "month": 8,
     "observationPeriod": "2026-08",
     "source": "NASA GISS GISTEMP v4",
@@ -40,5 +130,6 @@
     "unit": "degC anomaly",
     "year": 2026
   },
-  "transport": "server-side-authoritative-source-refresh"
+  "transport": "server-side-authoritative-source-refresh",
+  "verifiedAsOf": "2026-09-12"
 }
