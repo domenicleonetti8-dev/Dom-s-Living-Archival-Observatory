@@ -43,7 +43,7 @@ function addRecord(r){
   const key=`${id}|${Number(r.lat).toFixed(6)}|${Number(r.lon).toFixed(6)}`;
   if(recordKeys.has(key))return false;
   recordKeys.add(key);
-  records.push({id,source:safeText(r.source||'Unknown'),type:r.type||'station',title:safeText(r.title||r.source||'Observation'),lat:Number(r.lat),lon:Number(r.lon),time:r.time||null,url:r.url||null,detail:safeText(r.detail||''),locationPrecision:safeText(r.locationPrecision||'source-coordinate'),horizontalAccuracyMeters:nonNegativeOrNull(r.horizontalAccuracyMeters),uncertaintyRadiusMeters:nonNegativeOrNull(r.uncertaintyRadiusMeters),confidenceLevel:probabilityOrNull(r.confidenceLevel),uncertaintyBasis:safeText(r.uncertaintyBasis||''),overlayClass:isStormLike(r)?'storm':safeText(r.overlayClass||'general')});
+  records.push({id,source:safeText(r.source||'Unknown'),type:r.type||'station',title:safeText(r.title||r.source||'Observation'),lat:Number(r.lat),lon:Number(r.lon),time:r.time||null,url:r.url||null,detail:safeText(r.detail||''),locationPrecision:safeText(r.locationPrecision||'unresolved'),horizontalAccuracyMeters:nonNegativeOrNull(r.horizontalAccuracyMeters),uncertaintyRadiusMeters:nonNegativeOrNull(r.uncertaintyRadiusMeters),confidenceLevel:probabilityOrNull(r.confidenceLevel),uncertaintyBasis:safeText(r.uncertaintyBasis||''),overlayClass:isStormLike(r)?'storm':safeText(r.overlayClass||'general')});
   return true;
 }
 function addAreaFeature(r){
