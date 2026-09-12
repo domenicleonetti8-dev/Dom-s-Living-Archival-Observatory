@@ -44,15 +44,22 @@ const confidenceStale=value(`DOMObservationModel.hazardEvidenceConfidence({quali
 assert.equal(confidenceFresh,confidenceStale,'event recency must not inflate evidence confidence');
 const pNoOptional=value(`DOMObservationModel.hazardPriority({physicalSeverity:.8,eventRecency:.7,officialUrgency:null,officialUrgencyApplicable:false,localRelevance:null,localRelevanceApplicable:false,evidenceConfidence:.7})`);
 assert.equal(pNoOptional.components.filter(x=>x.applicable!==false).length,3,'inapplicable official urgency and local relevance must be omitted from priority denominator');
+assert.equal(pNoOptional.components.filter(x=>x.omitted).length,2,'omitted dimensions must be explicit in the audit rather than disappearing');
+assert(Math.abs(pNoOptional.components.reduce((s,x)=>s+(x.appliedWeight||0),0)-1)<1e-12,'remaining applied weights must renormalize to exactly one');
+assert(Math.abs(pNoOptional.components.reduce((s,x)=>s+(x.contribution||0),0)-pNoOptional.value)<1e-12,'component contributions must sum exactly to the unrounded priority value');
 const pFive=value(`DOMObservationModel.hazardPriority({physicalSeverity:.8,eventRecency:.7,officialUrgency:.9,officialUrgencyApplicable:true,localRelevance:.6,localRelevanceApplicable:true,evidenceConfidence:.7})`);
 assert.deepEqual(Array.from(pFive.components,x=>x.name),['physicalSeverity','eventRecency','officialUrgency','localRelevance','evidenceConfidence'],'priority audit must expose exactly five top-level dimensions');
+assert(Math.abs(pFive.weightSum-1)<1e-12,'five-dimension applied weights must sum to one');
+assert(Math.abs(pFive.components.reduce((s,x)=>s+x.contributionPoints,0)-pFive.score)<1e-9,'display contribution points must sum to the exact unrounded 0-100 score');
+assert.equal(pFive.scoreRounded,Math.round(pFive.score),'rounded public score must be derived only from the exact audited score');
 
 value(`H.user={lat:40,lon:-74}`);
-const local=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:true,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',publishedAt:new Date().toISOString(),validAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return {eligible:isAlertEligible(e),priority:e.priorityAudit,confidence:e.evidenceConfidence,local:e.localRelevance}})()`);
+const local=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:true,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',publishedAt:new Date().toISOString(),validAt:new Date().toISOString(),expiresAt:new Date(Date.now()+3600000).toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return {eligible:isAlertEligible(e),priority:e.priorityAudit,confidence:e.evidenceConfidence,local:e.localRelevance,html:priorityAuditHtml(e)}})()`);
 assert.equal(local.eligible,true,'point-qualified unexpired local official warning should be alert eligible');
 assert.equal(local.local,1,'official point-qualified local warning receives explicit applicability-based local relevance');
 assert.equal(local.priority.components.length,5,'evaluated local official warning carries five-dimension priority audit');
 assert(local.confidence.excluded.includes('recency')&&local.confidence.excluded.includes('severity')&&local.confidence.excluded.includes('urgency')&&local.confidence.excluded.includes('localRelevance'),'hazard evidence confidence exposes anti-double-counting exclusions');
+assert(local.html.includes('Why this priority is')&&local.html.includes('applied weight')&&local.html.includes('priority points'),'hazard UI must expose value, applied weight and contribution for the public score');
 const expiredLocal=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:true,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',publishedAt:new Date(Date.now()-3600000).toISOString(),expiresAt:new Date(Date.now()-1000).toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return isAlertEligible(e)})()`);
 assert.equal(expiredLocal,false,'expired official warning must never trigger a local notification gate');
 const fetchOnlyLocal=value(`(()=>{const e={kind:'Official Weather Alert',officialAlert:true,appliesToUser:true,severityText:'Extreme',certaintyText:'Observed',urgencyText:'Immediate',fetchedAt:new Date().toISOString(),lat:40,lon:-74,sourceType:'official-alert'};Object.assign(e,evaluate(e));return isAlertEligible(e)})()`);
