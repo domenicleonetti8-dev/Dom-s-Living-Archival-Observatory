@@ -1,0 +1,21 @@
+{
+  "schema": "doms-authoritative-vitals-v1",
+  "generatedAt": null,
+  "transport": "uninitialized",
+  "policy": "No numeric fallback constants. A failed source remains unavailable until an authoritative fetch succeeds.",
+  "population": {
+    "status": "unavailable",
+    "source": "U.S. Census Bureau Population Clock",
+    "sourceUrl": "https://www.census.gov/popclock/data/population.php/world"
+  },
+  "temperature": {
+    "status": "unavailable",
+    "source": "NASA GISS GISTEMP v4",
+    "sourceUrl": "https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv"
+  },
+  "seaLevel": {
+    "status": "unavailable",
+    "source": "NOAA NESDIS Laboratory for Satellite Altimetry",
+    "sourceUrl": "https://www.star.nesdis.noaa.gov/socd/lsa/SeaLevelRise/LSA_SLR_timeseries_global.php"
+  }
+}
