@@ -3,6 +3,7 @@ import csv
 import io
 import json
 import math
+import statistics
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -102,15 +103,22 @@ def ols_slope(points):
     ys = [p[1] for p in points]
     xbar = sum(xs) / len(xs)
     ybar = sum(ys) / len(ys)
-    den = sum((x - xbar) ** 2 for x in xs)
-    if den <= 0:
+    sxx = sum((x - xbar) ** 2 for x in xs)
+    if sxx <= 0:
         raise ValueError("sea-level regression singular")
-    slope = sum((x - xbar) * (y - ybar) for x, y in points) / den
-    fitted = [ybar + slope * (x - xbar) for x in xs]
-    sse = sum((y - yhat) ** 2 for y, yhat in zip(ys, fitted))
+    slope = sum((x - xbar) * (y - ybar) for x, y in points) / sxx
+    intercept = ybar - slope * xbar
+    fitted = [intercept + slope * x for x in xs]
+    residuals = [y - yhat for y, yhat in zip(ys, fitted)]
+    sse = sum(r * r for r in residuals)
     sst = sum((y - ybar) ** 2 for y in ys)
     r2 = 1 - sse / sst if sst > 0 else None
-    return slope, r2
+    # This standard error is retained only as a regression diagnostic. Satellite
+    # time-series residuals are autocorrelated, so it is NOT advertised as a
+    # formal geophysical confidence interval.
+    dof = len(points) - 2
+    slope_se_naive = math.sqrt((sse / dof) / sxx) if dof > 0 else None
+    return slope, intercept, r2, slope_se_naive
 
 
 def parse_noaa_sea_csv(text):
@@ -127,14 +135,24 @@ def parse_noaa_sea_csv(text):
         if year is None or not vals:
             continue
         points.append((year, sum(vals) / len(vals)))
-    slope, r2 = ols_slope(points)
+    points.sort(key=lambda p: p[0])
+    slope, intercept, r2, slope_se_naive = ols_slope(points)
     if not (0 <= slope <= 20):
         raise ValueError("computed sea-level slope outside sanity bound")
-    return {"trendMmPerYear": slope, "r2": r2, "sampleCount": len(points), "startDecimalYear": points[0][0], "endDecimalYear": points[-1][0]}
+    return {
+        "trendMmPerYear": slope,
+        "interceptMm": intercept,
+        "r2": r2,
+        "naiveSlopeSEMmPerYear": slope_se_naive,
+        "sampleCount": len(points),
+        "startDecimalYear": points[0][0],
+        "endDecimalYear": points[-1][0],
+        "statisticalCaveat": "OLS slope is a D.O.M. diagnostic over the NOAA time series. Naive OLS standard error is not a formal confidence interval because temporal residuals are autocorrelated."
+    }
 
 
 def sea_record(fetched_at):
-    base = {"status": "failed", "source": "NOAA NESDIS Laboratory for Satellite Altimetry", "sourceUrl": SEA, "fetchedAt": fetched_at, "scope": "global ocean 66S-66N, seasonal signals removed, multi-altimeter CSV", "unit": "mm/year", "method": "D.O.M. ordinary-least-squares trend of per-timestamp mean across available NOAA altimeter columns"}
+    base = {"status": "failed", "source": "NOAA NESDIS Laboratory for Satellite Altimetry", "sourceUrl": SEA, "fetchedAt": fetched_at, "scope": "global ocean 66S-66N, seasonal signals removed, multi-altimeter CSV", "unit": "mm/year", "method": "D.O.M. linear OLS diagnostic of per-timestamp mean across available NOAA altimeter columns"}
     try:
         raw, _ = get(SEA)
         v = parse_noaa_sea_csv(raw.decode("utf-8", errors="strict"))
@@ -143,25 +161,56 @@ def sea_record(fetched_at):
         return {**base, "error": f"{type(e).__name__}: {e}"}
 
 
-def latest_sea_ice(text):
-    rows = list(csv.reader(io.StringIO(text)))
-    for row in reversed(rows):
+def parse_sea_ice_rows(text):
+    out = []
+    for row in csv.reader(io.StringIO(text)):
         if len(row) < 4:
             continue
-        year = finite_number(row[0])
-        month = finite_number(row[1])
-        day = finite_number(row[2])
-        extent = finite_number(row[3])
-        if year and month and day and extent and extent > 0:
-            return {"year": int(year), "month": int(month), "day": int(day), "extentMillionKm2": extent}
-    raise ValueError("no finite sea-ice extent row found")
+        year, month, day, extent = (finite_number(row[i]) for i in range(4))
+        missing = finite_number(row[4]) if len(row) > 4 else None
+        if None in (year, month, day, extent):
+            continue
+        year, month, day = int(year), int(month), int(day)
+        if not (1978 <= year <= 2100 and 1 <= month <= 12 and 1 <= day <= 31 and 0 < extent <= 30):
+            continue
+        out.append({"year": year, "month": month, "day": day, "extentMillionKm2": float(extent), "missingMillionKm2": missing})
+    if not out:
+        raise ValueError("no qualified sea-ice rows found")
+    out.sort(key=lambda r: (r["year"], r["month"], r["day"]))
+    return out
+
+
+def sea_ice_statistics(text):
+    rows = parse_sea_ice_rows(text)
+    latest = rows[-1]
+    # Exact calendar-day baseline, matching NSIDC's standard 1981-2010
+    # reference interval. This is a current-condition anomaly, not a long-term trend.
+    baseline = [r["extentMillionKm2"] for r in rows if 1981 <= r["year"] <= 2010 and r["month"] == latest["month"] and r["day"] == latest["day"]]
+    result = dict(latest)
+    if len(baseline) >= 20:
+        mean = statistics.fmean(baseline)
+        sd = statistics.stdev(baseline) if len(baseline) > 1 else None
+        anomaly = latest["extentMillionKm2"] - mean
+        result.update({
+            "climatologyPeriod": "1981-2010",
+            "climatologySampleCount": len(baseline),
+            "climatologyMeanMillionKm2": mean,
+            "climatologySampleSDMillionKm2": sd,
+            "anomalyMillionKm2": anomaly,
+            "anomalyPercent": (anomaly / mean * 100) if mean > 0 else None,
+            "zScoreVsCalendarDayClimatology": (anomaly / sd) if sd and sd > 0 else None,
+            "statisticalInterpretation": "Exact-calendar-day anomaly versus 1981-2010 sample mean; z-score uses sample standard deviation across baseline years. Not a long-term trend estimate."
+        })
+    else:
+        result.update({"climatologyPeriod": "1981-2010", "climatologySampleCount": len(baseline), "statisticalInterpretation": "Insufficient exact-calendar-day baseline samples for anomaly calculation."})
+    return result
 
 
 def sea_ice_record(url, hemisphere, fetched_at):
     base = {"status": "failed", "source": "NOAA/NSIDC Sea Ice Index v4", "sourceUrl": url, "hemisphere": hemisphere, "fetchedAt": fetched_at, "unit": "million km^2 extent"}
     try:
         raw, _ = get(url)
-        row = latest_sea_ice(raw.decode("utf-8", errors="replace"))
+        row = sea_ice_statistics(raw.decode("utf-8", errors="replace"))
         return {**base, "status": "live", **row}
     except Exception as e:
         return {**base, "error": f"{type(e).__name__}: {e}"}
@@ -176,7 +225,7 @@ def cryosphere_record(fetched_at):
         "source": "NOAA/NSIDC Sea Ice Index v4",
         "fetchedAt": fetched_at,
         "seaIce": {"arctic": arctic, "antarctic": antarctic},
-        "note": "Sea-ice extent is distinct from land-ice mass loss; no synthetic values are substituted."
+        "note": "Sea-ice extent is distinct from land-ice mass loss. Daily anomaly is relative to the same calendar day in 1981-2010; no trend is inferred from a single daily value."
     }
 
 
@@ -186,7 +235,7 @@ def main():
         "schema": "doms-authoritative-vitals-v1",
         "generatedAt": fetched_at,
         "transport": "server-side-authoritative-source-refresh",
-        "policy": "No numeric fallback constants. A failed source remains unavailable until an authoritative fetch succeeds.",
+        "policy": "No synthetic numeric fallback. Derived statistics identify their baseline, method, sample size, and statistical caveats.",
         "population": census_record(fetched_at),
         "temperature": giss_record(fetched_at),
         "seaLevel": sea_record(fetched_at),
