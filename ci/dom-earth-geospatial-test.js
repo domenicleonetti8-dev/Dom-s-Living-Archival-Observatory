@@ -18,6 +18,7 @@ assert(earth.includes('Surface view')&&!earth.includes('Walk / surface mode'),'w
 assert(earth.includes('station inventory rather than live measurement values'),'station inventory is explicitly separated from measurement liveness');
 assert(js.includes("style:'https://demotiles.maplibre.org/globe.json'")&&js.includes("map.setProjection({type:'globe'})"),'renderer uses geographic globe projection');
 assert(js.includes('validLatLon')&&js.includes("coordinates:[r.lon,r.lat]"),'observations are surface-anchored from validated longitude/latitude');
+assert(js.includes("locationPrecision:safeText(r.locationPrecision||'unresolved')")&&!js.includes("locationPrecision:safeText(r.locationPrecision||'source-coordinate')"),'generic Earth point ingestion defaults unknown precision to unresolved rather than source-coordinate');
 assert(js.includes('earthquake.usgs.gov')&&js.includes('eonet.gsfc.nasa.gov')&&js.includes('ndbc.noaa.gov')&&js.includes('tidesandcurrents.noaa.gov')&&js.includes('api.weather.gov'),'multi-source live/current product fabric is wired');
 assert(js.includes("SOURCE_GEOMETRY_TYPES=new Set(['Polygon','MultiPolygon','LineString','MultiLineString'])"),'Earth renderer accepts authoritative area and track geometry without inventing shape types');
 assert(js.includes("'dom-event-areas'")&&js.includes("'dom-event-area-fill'")&&js.includes("'dom-event-area-line'")&&js.includes("'dom-event-track-line'"),'Earth renderer has dedicated authoritative polygon and track layers');
