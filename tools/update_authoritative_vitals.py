@@ -108,7 +108,7 @@ def ols_slope(points):
     slope = sum((x - xbar) * (y - ybar) for x, y in points) / den
     fitted = [ybar + slope * (x - xbar) for x in xs]
     sse = sum((y - yhat) ** 2 for y, yhat in zip(ys, fitted))
-    sst = sum((y - xbar) ** 2 for y in ys)
+    sst = sum((y - ybar) ** 2 for y in ys)
     r2 = 1 - sse / sst if sst > 0 else None
     return slope, r2
 
