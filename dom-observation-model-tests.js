@@ -7,6 +7,13 @@
   t('MAD robust',M.mad([10,10,11,9,10])===0);
   t('lineage dedupe',M.uniqueLineages([{lineageId:'A'},{lineageId:'A'},{lineageId:'B'}])===2);
   t('evidence bounded',M.evidenceStrength({quality:2,freshness:2,geospatial:2,corroboration:2,uncertaintyQuality:2,trend:2})<=1);
+  const base={quality:.8,freshness:.7,geospatial:.6,uncertaintyQuality:.6};
+  t('corroboration not double counted in evidence confidence',M.evidenceStrength({...base,corroboration:0,trend:0})===M.evidenceStrength({...base,corroboration:1,trend:0}));
+  t('trend not double counted in evidence confidence',M.evidenceStrength({...base,corroboration:0,trend:0})===M.evidenceStrength({...base,corroboration:0,trend:1}));
+  const c=M.evidenceComponents({quality:.8,freshness:.7,geospatial:.6,uncertaintyQuality:.6});
+  t('geospatial and uncertainty collapse to one location dimension',Math.abs(c.locationEvidence-.6)<1e-12);
+  t('missing uncertainty does not invent a penalty',Math.abs(M.evidenceComponents({geospatial:.6}).locationEvidence-.6)<1e-12);
+  t('score audit exposes anti-double-counting boundary',M.scoreAudit(base).components.excludedFromEvidenceStrength.includes('corroboration')&&M.scoreAudit(base).components.excludedFromEvidenceStrength.includes('trend'));
   t('weak grade',M.evidenceGrade(.2)==='weak / insufficient');
   t('strong grade',M.evidenceGrade(.8)==='strong');
   t('no false certainty',!M.impactLanguage({evidence:.95,trend:.9}).includes('will'));
