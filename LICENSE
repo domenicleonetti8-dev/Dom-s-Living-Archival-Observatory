@@ -1,21 +1,19 @@
-MIT License
+D.O.M. PROPRIETARY SOFTWARE NOTICE
 
-Copyright (c) 2026 domenicleonetti8-dev
+Copyright © 2026 Domenic Leonetti / Kinetic Interface Systems LLC. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+D.O.M. (Diverse Observation Machine) is made available as a free public-information and research service. Public access to the D.O.M. website, observations, source links, reports, and displayed analyses does not grant a license to the underlying D.O.M. software.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Except where a particular third-party component or source is governed by its own license or terms, the original D.O.M. source code, software architecture, interfaces, evaluation logic, processing systems, and related original software materials are proprietary and protected by applicable copyright law.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+No permission is granted under this notice to copy, modify, distribute, sublicense, sell, commercially exploit, republish, or create derivative works from the protected D.O.M. software, in whole or in substantial part, without prior written permission from the applicable copyright holder.
+
+This notice does not restrict rights independently granted by third-party licenses, rights in public-domain materials, lawful use of underlying public data from its original sources, or rights that cannot lawfully be restricted.
+
+The D.O.M. public service is provided for informational and research purposes. THE SOFTWARE AND SERVICE ARE PROVIDED "AS IS," WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, TO THE MAXIMUM EXTENT PERMITTED BY LAW.
+
+For permissions beyond those stated above, written authorization from the applicable copyright holder is required.
+
+IMPORTANT TRANSITION NOTICE
+
+Earlier versions of material in this repository were published under the MIT License. This notice applies prospectively to material for which the copyright holder has authority to apply these terms. It does not revoke rights that were already validly granted under the MIT License to earlier copies or versions, and it does not override the licenses of third-party components or contributions.
