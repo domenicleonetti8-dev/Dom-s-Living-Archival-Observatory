@@ -1,21 +1,44 @@
 {
-  "schema": "doms-authoritative-vitals-v1",
-  "generatedAt": null,
-  "transport": "uninitialized",
+  "generatedAt": "2026-09-12T08:45:49Z",
   "policy": "No numeric fallback constants. A failed source remains unavailable until an authoritative fetch succeeds.",
   "population": {
-    "status": "unavailable",
+    "date": "20260912",
+    "estimate": true,
+    "fetchedAt": "2026-09-12T08:45:49Z",
+    "ratePerSecond": 1.9952543442415018,
     "source": "U.S. Census Bureau Population Clock",
-    "sourceUrl": "https://www.census.gov/popclock/data/population.php/world"
+    "sourceUpdatedAt": "2026-09-12T08:45:49Z",
+    "sourceUrl": "https://www.census.gov/popclock/data/population.php/world",
+    "status": "live",
+    "unit": "people",
+    "value": 8210599625
+  },
+  "schema": "doms-authoritative-vitals-v1",
+  "seaLevel": {
+    "endDecimalYear": 2025.1268,
+    "fetchedAt": "2026-09-12T08:45:49Z",
+    "method": "D.O.M. ordinary-least-squares trend of per-timestamp mean across available NOAA altimeter columns",
+    "r2": 0.9759554968713721,
+    "sampleCount": 1557,
+    "scope": "global ocean 66S-66N, seasonal signals removed, multi-altimeter CSV",
+    "source": "NOAA NESDIS Laboratory for Satellite Altimetry",
+    "sourceUrl": "https://www.star.nesdis.noaa.gov/socd/lsa/SeaLevelRise/slr/slr_sla_gbl_free_all_66.csv",
+    "startDecimalYear": 1992.9614,
+    "status": "live",
+    "trendMmPerYear": 3.2330858580874784,
+    "unit": "mm/year"
   },
   "temperature": {
-    "status": "unavailable",
+    "anomalyC": 1.4,
+    "baseline": "1951-1980",
+    "fetchedAt": "2026-09-12T08:45:49Z",
+    "month": 8,
+    "observationPeriod": "2026-08",
     "source": "NASA GISS GISTEMP v4",
-    "sourceUrl": "https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv"
+    "sourceUrl": "https://data.giss.nasa.gov/gistemp/tabledata_v4/GLB.Ts+dSST.csv",
+    "status": "live",
+    "unit": "degC anomaly",
+    "year": 2026
   },
-  "seaLevel": {
-    "status": "unavailable",
-    "source": "NOAA NESDIS Laboratory for Satellite Altimetry",
-    "sourceUrl": "https://www.star.nesdis.noaa.gov/socd/lsa/SeaLevelRise/LSA_SLR_timeseries_global.php"
-  }
+  "transport": "server-side-authoritative-source-refresh"
 }
