@@ -4,21 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07110f">
-<meta name="description" content="D.O.M. Geographic Earth: source-backed public observations at their published coordinates.">
+<meta name="description" content="D.O.M. Geographic Earth: a clean detailed geographic map of the planet.">
 <title>D.O.M. Geographic Earth</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="./styles.css?v=6">
-<link rel="stylesheet" href="./earth.css?v=4">
+<link rel="stylesheet" href="./earth.css?v=5">
 </head>
 <body class="earth-page">
 <header class="earth-header"><a class="brand" href="./index.html"><strong>D.O.M.</strong><span>Living Archival Observatory</span></a><div class="earth-header-links"><a href="./hazards.html">⚠ Hazard Observatory</a><a href="./index.html">Home</a></div></header>
 <main class="earth-shell">
-<section class="earth-intro"><div><p class="eyebrow">GEOGRAPHIC EARTH · SOURCE-BACKED OBSERVATIONS</p><h1>Geographic Earth</h1><p>A clean geographic globe for source-backed coordinates. Zoom into regions for roads, coastlines, cities and local geography; observation points stay tied to the coordinates published by their source.</p></div><div class="earth-actions"><button id="resetEarth" type="button">Global</button><button id="refreshEarth" type="button">Refresh</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Loading geographic Earth…</div></section>
-<section class="earth-map-card" aria-label="Interactive geographic Earth"><div id="earthMap"></div><div class="earth-map-hud"><strong id="earthCount">0 points</strong><span>source coordinates</span></div></section>
-<div class="earth-legend earth-legend-below"><span><i class="earth-dot quake"></i>earthquake</span><span><i class="earth-dot hazard"></i>hazard / event</span><span><i class="earth-dot station"></i>station / sensor</span><span><i class="earth-dot alert"></i>official alert</span></div>
-<details class="earth-details"><summary>Sources and coordinate rules</summary><div class="earth-grid"><article class="earth-panel"><p class="eyebrow">SOURCE INGESTION STATUS</p><h2>Current public adapters</h2><div id="sourceFabric" class="source-fabric"><p>Starting adapters…</p></div></article><article class="earth-panel"><p class="eyebrow">TRUTH BOUNDARY</p><h2>Geographic, not synthetic</h2><p>This lightweight MapLibre globe uses OpenStreetMap tiles and source-backed public coordinates.</p><p class="earth-truth">Missing locations are not invented. Polygon-only products are not converted into fake point locations on this lightweight geographic page.</p></article></div></details>
+<section class="earth-intro"><div><p class="eyebrow">GEOGRAPHIC EARTH · PLANET MAP</p><h1>Geographic Earth</h1><p>A clean, detailed map of the planet for geographic exploration. Roads, coastlines, cities and local geography remain here; hazard events, alerts, sensor networks and scientific overlays belong in the Hazard Observatory.</p></div><div class="earth-actions"><button id="resetEarth" type="button">Global</button><button id="refreshEarth" type="button">Refresh map</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Loading geographic Earth…</div></section>
+<section class="earth-map-card" aria-label="Interactive geographic Earth"><div id="earthMap"></div></section>
 </main>
-<script type="module" src="./earth-mobile.js?v=20260912-2"></script>
-<script src="./dom-live-refresh-2026.js?v=1" defer></script>
+<script type="module" src="./earth-mobile.js?v=20260913-3"></script>
 </body>
 </html>
