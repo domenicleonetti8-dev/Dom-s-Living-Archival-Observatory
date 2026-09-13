@@ -40,7 +40,7 @@ jobs:
       - name: Validate authoritative snapshots and station fabric
         run: |
           python - <<'PY'
-          import json, math, pathlib
+          import json, math, pathlib, re
           from datetime import datetime, timezone
           p=json.load(open('data/live-vitals.json'))
           assert p['schema']=='dom-authoritative-vitals-2026-v2'
@@ -81,15 +81,27 @@ jobs:
           for s in coral['stations']:
               assert -90 <= float(s['lat']) <= 90 and -180 <= float(s['lon']) <= 180; assert s.get('sourceUrl','').startswith('https://')
           wc=json.load(open('data/weather-climate/manifest.json'))
-          assert wc['schema']=='dom-weather-climate-manifest-v1'; assert int(wc['currentYear'])==datetime.now(timezone.utc).year
+          assert wc['schema']=='dom-weather-climate-manifest-v2'; assert int(wc['currentYear'])==datetime.now(timezone.utc).year
           assert int(wc['stationCount'])>10000; assert int(wc['tileCount'])>100
-          total=0
+          lv=wc.get('locationValidation') or {}; assert lv.get('rangeValidated') is True; assert int(lv.get('crossNetworkSupportRadiusM'))==500
+          total=0; supported=0
+          tile_re=re.compile(r'^lat_([+-]\d+)_lon_([+-]\d+)$')
           for t in wc['tiles']:
+              m=tile_re.match(t['id']); assert m
+              south,west=int(m.group(1)),int(m.group(2)); north=south+10; east=west+10
               f=pathlib.Path(t['path'].replace('./','')); assert f.exists()
-              q=json.load(open(f)); assert q['schema']=='dom-weather-climate-tile-v1'; assert int(q['stationCount'])==len(q['stations']); total+=len(q['stations'])
+              q=json.load(open(f)); assert q['schema']=='dom-weather-climate-tile-v2'; assert int(q['stationCount'])==len(q['stations']); total+=len(q['stations'])
               for s in q['stations']:
-                  assert -90 <= float(s['lat']) <= 90 and -180 <= float(s['lon']) <= 180; assert str(s.get('sourceUrl','')).startswith('https://')
-          assert total==int(wc['stationCount'])
+                  lat=float(s['lat']); lon=float(s['lon'])
+                  assert -90 <= lat <= 90 and -180 <= lon <= 180
+                  assert south <= lat <= north and west <= lon <= east
+                  assert str(s.get('sourceUrl','')).startswith('https://'); assert s.get('coordinateValidated') is True
+                  r=s.get('coordinatePrecisionRadiusM')
+                  if r is not None: assert 0 <= float(r) <= 100000
+                  assert str(s.get('coordinatePrecisionClass','')).startswith(('documented-coordinate','source-coordinate'))
+                  if s.get('crossNetworkLocationSupport'):
+                      supported+=1; assert 0 <= float(s['crossNetworkNearestM']) <= 500
+          assert total==int(wc['stationCount']); assert supported==int(lv.get('crossNetworkSupportedStations',supported))
           print('AUTHORITATIVE_EARTH_CORAL_WEATHER_CLIMATE_2026=PASS')
           PY
       - name: Commit changed snapshots only
