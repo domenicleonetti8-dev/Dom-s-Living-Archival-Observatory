@@ -2,20 +2,17 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-g
 
 const $=s=>document.querySelector(s);
 const OSM_STYLE={version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm'}]};
-let map=null;
+let provider='none',googleMap=null,fallbackMap=null;
 function setState(message){const el=$('#providerState');if(el)el.textContent=message}
-function buildMap(){
-  try{
-    map=new maplibregl.Map({container:'earthMap',style:OSM_STYLE,center:[0,15],zoom:1.15,minZoom:.35,maxZoom:18,attributionControl:true,renderWorldCopies:false,antialias:false,pitchWithRotate:false,touchPitch:false});
-    map.addControl(new maplibregl.NavigationControl({showCompass:true,showZoom:true,visualizePitch:false}),'top-right');
-    map.on('load',()=>{
-      try{map.setProjection({type:'globe'})}catch(_){ }
-      setState('Geographic Earth active · planet map only · hazard, alert and sensor overlays are kept in the Hazard Observatory.');
-    });
-    map.on('error',e=>setState(`Geographic map error: ${e?.error?.message||e?.message||'unknown error'}`));
-  }catch(e){setState(`Geographic Earth failed to initialize: ${e.message||e}`)}
-}
-buildMap();
-$('#resetEarth')?.addEventListener('click',()=>map?.easeTo({center:[0,15],zoom:1.15,pitch:0,bearing:0,duration:400}));
-$('#refreshEarth')?.addEventListener('click',()=>{if(!map)return;map.triggerRepaint();setState('Geographic Earth refreshed · planet map only.')});
-$('#locateMe')?.addEventListener('click',()=>navigator.geolocation?.getCurrentPosition(p=>map?.flyTo({center:[p.coords.longitude,p.coords.latitude],zoom:9,duration:700}),()=>setState('Location unavailable. Geographic Earth remains in global view.')));
+function googleKey(){return String(window.DOMSRuntimeConfig?.googleMapsApiKey||window.DOM_GOOGLE_MAPS_API_KEY||'').trim()}
+function loadGoogle(key){return new Promise((resolve,reject)=>{if(window.google?.maps)return resolve(window.google.maps);window.__DOMGoogleMapsReady=()=>resolve(window.google.maps);const s=document.createElement('script');s.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&loading=async&callback=__DOMGoogleMapsReady`;s.async=true;s.defer=true;s.onerror=()=>reject(new Error('Google Maps JavaScript API failed to load'));document.head.appendChild(s)})}
+async function buildGoogle(){const key=googleKey();if(!key)return false;try{const maps=await loadGoogle(key);googleMap=new maps.Map($('#earthMap'),{center:{lat:15,lng:0},zoom:2,mapTypeId:'hybrid',streetViewControl:false,mapTypeControl:true,fullscreenControl:true,zoomControl:true,rotateControl:true,scaleControl:true,gestureHandling:'greedy',backgroundColor:'#010813'});provider='google';setState('Geographical Earth active · Google satellite + geographic labels · hazard, alert and sensor overlays remain in the Hazard Observatory.');return true}catch(e){setState(`Google satellite imagery unavailable: ${e.message||e}. Loading geographic fallback…`);return false}}
+function buildFallback(){try{fallbackMap=new maplibregl.Map({container:'earthMap',style:OSM_STYLE,center:[0,15],zoom:1.15,minZoom:.35,maxZoom:18,attributionControl:true,renderWorldCopies:false,antialias:false,pitchWithRotate:false,touchPitch:false});fallbackMap.addControl(new maplibregl.NavigationControl({showCompass:true,showZoom:true,visualizePitch:false}),'top-right');fallbackMap.on('load',()=>{try{fallbackMap.setProjection({type:'globe'})}catch(_){ }provider='osm';setState(googleKey()?'Geographical Earth fallback active · Google imagery could not initialize.':'Geographical Earth active · geographic fallback map. Google satellite imagery will activate when the authorized browser API key is configured.');});fallbackMap.on('error',e=>setState(`Geographical map error: ${e?.error?.message||e?.message||'unknown error'}`))}catch(e){setState(`Geographical Earth failed to initialize: ${e.message||e}`)}}
+async function build(){if(!(await buildGoogle()))buildFallback()}
+function reset(){if(provider==='google'&&googleMap){googleMap.setCenter({lat:15,lng:0});googleMap.setZoom(2);return}fallbackMap?.easeTo({center:[0,15],zoom:1.15,pitch:0,bearing:0,duration:400})}
+function refresh(){if(provider==='google'&&googleMap){const c=googleMap.getCenter(),z=googleMap.getZoom();google.maps.event.trigger(googleMap,'resize');if(c)googleMap.setCenter(c);if(Number.isFinite(z))googleMap.setZoom(z);setState('Geographical Earth refreshed · Google satellite imagery active.');return}if(fallbackMap){fallbackMap.triggerRepaint();setState('Geographical Earth refreshed · geographic fallback active.')}}
+function locate(){if(!navigator.geolocation){setState('Location unavailable. Geographical Earth remains in global view.');return}navigator.geolocation.getCurrentPosition(p=>{const lat=p.coords.latitude,lng=p.coords.longitude;if(provider==='google'&&googleMap){googleMap.panTo({lat,lng});googleMap.setZoom(10)}else fallbackMap?.flyTo({center:[lng,lat],zoom:9,duration:700})},()=>setState('Location unavailable. Geographical Earth remains in global view.'))}
+build();
+$('#resetEarth')?.addEventListener('click',reset);
+$('#refreshEarth')?.addEventListener('click',refresh);
+$('#locateMe')?.addEventListener('click',locate);
