@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07110f">
-<meta name="description" content="D.O.M. Geographic Earth: a clean detailed geographic map of the planet.">
-<title>D.O.M. Geographic Earth</title>
+<meta name="description" content="D.O.M. Geographical Earth: a clean detailed geographic map of the planet.">
+<title>D.O.M. Geographical Earth</title>
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="./styles.css?v=6">
 <link rel="stylesheet" href="./earth.css?v=5">
@@ -13,9 +13,10 @@
 <body class="earth-page">
 <header class="earth-header"><a class="brand" href="./index.html"><strong>D.O.M.</strong><span>Living Archival Observatory</span></a><div class="earth-header-links"><a href="./hazards.html">⚠ Hazard Observatory</a><a href="./index.html">Home</a></div></header>
 <main class="earth-shell">
-<section class="earth-intro"><div><p class="eyebrow">GEOGRAPHIC EARTH · PLANET MAP</p><h1>Geographic Earth</h1><p>A clean, detailed map of the planet for geographic exploration. Roads, coastlines, cities and local geography remain here; hazard events, alerts, sensor networks and scientific overlays belong in the Hazard Observatory.</p></div><div class="earth-actions"><button id="resetEarth" type="button">Global</button><button id="refreshEarth" type="button">Refresh map</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Loading geographic Earth…</div></section>
-<section class="earth-map-card" aria-label="Interactive geographic Earth"><div id="earthMap"></div></section>
+<section class="earth-intro"><div><p class="eyebrow">GEOGRAPHICAL EARTH · PLANET MAP</p><h1>Geographical Earth</h1><p>A clean, detailed map of the planet for geographic exploration. Google satellite imagery is preferred when the authorized Google Maps browser key is configured; roads, coastlines, cities and local geography remain here while hazard events, alerts, sensor networks and scientific overlays stay in the Hazard Observatory.</p></div><div class="earth-actions"><button id="resetEarth" type="button">Global</button><button id="refreshEarth" type="button">Refresh map</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Loading Geographical Earth…</div></section>
+<section class="earth-map-card" aria-label="Interactive Geographical Earth"><div id="earthMap"></div></section>
 </main>
-<script type="module" src="./earth-mobile.js?v=20260913-3"></script>
+<script src="./dom-runtime-config.js?v=2"></script>
+<script type="module" src="./earth-mobile.js?v=20260913-google-1"></script>
 </body>
 </html>
