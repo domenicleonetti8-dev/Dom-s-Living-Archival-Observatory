@@ -8,6 +8,7 @@ on:
       - 'tools/update_authoritative_vitals.py'
       - 'tools/update_2026_current_sources.py'
       - 'tools/update_coral_network.py'
+      - 'tools/update_weather_climate_networks.py'
       - '.github/workflows/update-authoritative-vitals.yml'
   schedule:
     - cron: '*/5 * * * *'
@@ -22,7 +23,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,15 +31,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Fetch authoritative vitals and coral network
+      - name: Fetch authoritative vitals, coral, weather and climate networks
         run: |
           python tools/update_authoritative_vitals.py
           python tools/update_2026_current_sources.py
           python tools/update_coral_network.py
-      - name: Validate authoritative snapshot and coral network
+          python tools/update_weather_climate_networks.py
+      - name: Validate authoritative snapshots and station fabric
         run: |
           python - <<'PY'
-          import json, math
+          import json, math, pathlib
           from datetime import datetime, timezone
           p=json.load(open('data/live-vitals.json'))
           assert p['schema']=='dom-authoritative-vitals-2026-v2'
@@ -48,8 +50,7 @@ jobs:
           for key in ('population','temperature','seaLevel','seaLevelCurrent'):
               assert p[key].get('sourceUrl','').startswith('https://')
           if p['temperature']['status']=='live':
-              assert p['temperature']['baseline']=='1951-1980'
-              assert -5 <= float(p['temperature']['anomalyC']) <= 5
+              assert p['temperature']['baseline']=='1951-1980'; assert -5 <= float(p['temperature']['anomalyC']) <= 5
           if p['seaLevel']['status']=='live':
               s=p['seaLevel']; assert 0 <= float(s['trendMmPerYear']) <= 20; assert int(s['sampleCount']) >= 24
               assert float(s['endDecimalYear']) >= float(s['startDecimalYear']); assert -1 <= float(s['r2']) <= 1
@@ -76,23 +77,31 @@ jobs:
               assert 0 <= float(cb['globalReefPixelsExposedPct']) <= 100; assert int(cb['windowDays']) == 365; assert cb.get('observationDate')
           latest=p.get('latestAssessments') or {}; assert latest.get('forests',{}).get('latestAvailableAsOf2026') is True; assert latest.get('coralCover',{}).get('latestAvailableAsOf2026') is True
           coral=json.load(open('data/coral-live.json'))
-          assert coral['schema']=='dom-coral-live-v1'; assert int(coral['stationCount']) >= 150
-          assert len(coral['stations'])==int(coral['stationCount'])
+          assert coral['schema']=='dom-coral-live-v1'; assert int(coral['stationCount']) >= 150; assert len(coral['stations'])==int(coral['stationCount'])
           for s in coral['stations']:
-              assert -90 <= float(s['lat']) <= 90 and -180 <= float(s['lon']) <= 180
-              assert s.get('sourceUrl','').startswith('https://')
-          print('AUTHORITATIVE_VITALS_AND_CORAL_2026=PASS')
+              assert -90 <= float(s['lat']) <= 90 and -180 <= float(s['lon']) <= 180; assert s.get('sourceUrl','').startswith('https://')
+          wc=json.load(open('data/weather-climate/manifest.json'))
+          assert wc['schema']=='dom-weather-climate-manifest-v1'; assert int(wc['currentYear'])==datetime.now(timezone.utc).year
+          assert int(wc['stationCount'])>10000; assert int(wc['tileCount'])>100
+          total=0
+          for t in wc['tiles']:
+              f=pathlib.Path(t['path'].replace('./','')); assert f.exists()
+              q=json.load(open(f)); assert q['schema']=='dom-weather-climate-tile-v1'; assert int(q['stationCount'])==len(q['stations']); total+=len(q['stations'])
+              for s in q['stations']:
+                  assert -90 <= float(s['lat']) <= 90 and -180 <= float(s['lon']) <= 180; assert str(s.get('sourceUrl','')).startswith('https://')
+          assert total==int(wc['stationCount'])
+          print('AUTHORITATIVE_EARTH_CORAL_WEATHER_CLIMATE_2026=PASS')
           PY
       - name: Commit changed snapshots only
         shell: bash
         run: |
-          if git diff --quiet -- data/live-vitals.json data/coral-live.json; then
+          if git diff --quiet -- data/live-vitals.json data/coral-live.json data/weather-climate; then
             echo 'No authoritative snapshot change.'
             exit 0
           fi
           git config user.name 'dom-vitals-bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add data/live-vitals.json data/coral-live.json
-          git commit -m 'Refresh authoritative Earth and coral snapshots'
+          git add data/live-vitals.json data/coral-live.json data/weather-climate
+          git commit -m 'Refresh authoritative Earth sensor snapshots'
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
