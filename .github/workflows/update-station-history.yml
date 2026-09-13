@@ -1,0 +1,66 @@
+name: Incremental station history evaluation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/update_ghcn_history_aggregate.py'
+      - '.github/workflows/update-station-history.yml'
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: station-history-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Aggregate one authoritative GHCN history year
+        run: python tools/update_ghcn_history_aggregate.py
+      - name: Validate bounded history output
+        run: |
+          python - <<'PY'
+          import json, pathlib
+          p=json.load(open('data/weather-climate/history/progress.json'))
+          assert p['schema']=='dom-ghcn-history-progress-v1'
+          y=int(p['lastProcessedYear'])
+          q=json.load(open(f'data/weather-climate/history/annual-{y}.json'))
+          assert q['schema']=='dom-ghcn-history-annual-v1'
+          assert int(q['year'])==y
+          assert str(q['sourceUrl']).startswith('https://www.ncei.noaa.gov/pub/data/ghcn/daily/by_year/')
+          assert int(q['sourceUniverseIndexedStations'])>10000
+          assert int(q['ghcnStationUniverse'])>10000
+          assert int(q['sourceRowsRead'])>=int(q['matchedQualityAcceptedRows'])
+          assert isinstance(q.get('tiles'),dict)
+          assert isinstance(q.get('globalSpatialDiagnostics'),dict)
+          for element,v in q['globalSpatialDiagnostics'].items():
+              assert int(v['populatedTileCount'])>=0
+              assert int(v['contributingStationYears'])>=0
+          print('DOM_INCREMENTAL_GHCN_HISTORY=PASS',y)
+          PY
+      - name: Commit compact annual history diagnostic
+        shell: bash
+        run: |
+          if git diff --quiet -- data/weather-climate/history; then
+            echo 'No history change.'
+            exit 0
+          fi
+          git config user.name 'dom-history-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add data/weather-climate/history
+          git commit -m 'Advance authoritative station history evaluation'
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
