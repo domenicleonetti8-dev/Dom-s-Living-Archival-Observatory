@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import csv, io, json, math, re, urllib.request
-from collections import defaultdict
+import csv, io, json, math, re, statistics, urllib.request
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -64,13 +64,26 @@ def haversine_m(a,b,c,d):
     return 2*EARTH_RADIUS_M*math.asin(min(1,math.sqrt(h)))
 
 
-def parse_ghcn(stations_txt,inventory_txt):
-    active=set()
+def ghcn_inventory_metadata(inventory_txt):
+    meta={}
     for line in inventory_txt.splitlines():
         if len(line)<45:continue
-        try:last=int(line[41:45])
+        sid=line[0:11];element=clean(line[31:35])
+        try:first=int(line[36:40]);last=int(line[41:45])
         except Exception:continue
-        if last>=YEAR:active.add(line[0:11])
+        if not (1700<=first<=YEAR+1 and first<=last<=YEAR+1):continue
+        m=meta.setdefault(sid,{'firstYear':first,'lastYear':last,'elements':set(),'elementRanges':{}})
+        m['firstYear']=min(m['firstYear'],first);m['lastYear']=max(m['lastYear'],last)
+        if element:
+            m['elements'].add(element)
+            prior=m['elementRanges'].get(element)
+            m['elementRanges'][element]=[first,last] if prior is None else [min(prior[0],first),max(prior[1],last)]
+    return meta
+
+
+def parse_ghcn(stations_txt,inventory_txt):
+    metadata=ghcn_inventory_metadata(inventory_txt)
+    active={sid for sid,m in metadata.items() if m['lastYear']>=YEAR}
     out=[]
     for line in stations_txt.splitlines():
         if len(line)<71:continue
@@ -79,7 +92,11 @@ def parse_ghcn(stations_txt,inventory_txt):
         lat_raw=line[12:20];lon_raw=line[21:30]
         lat=finite(lat_raw);lon=finite(lon_raw);elev=finite(line[31:37])
         if not valid(lat,lon):continue
-        s={'id':sid,'network':'GHCN-D','agency':'NOAA/NCEI','name':clean(line[41:71]) or sid,'elevM':elev,'countryCode':sid[:2],'state':clean(line[38:40]),'wmoId':clean(line[80:85]) if len(line)>=85 else '', 'sourceUrl':GHCN_STATIONS,'status':'reporting-current-year'}
+        m=metadata.get(sid) or {}
+        first=m.get('firstYear');last=m.get('lastYear');elements=sorted(m.get('elements') or [])
+        s={'id':sid,'network':'GHCN-D','agency':'NOAA/NCEI','name':clean(line[41:71]) or sid,'elevM':elev,'countryCode':sid[:2],'state':clean(line[38:40]),'wmoId':clean(line[80:85]) if len(line)>=85 else '', 'sourceUrl':GHCN_STATIONS,'sourceInventoryUrl':GHCN_INVENTORY,'status':'reporting-current-year'}
+        if first is not None and last is not None:
+            s.update({'firstYear':first,'lastYear':last,'recordSpanYears':last-first+1,'recordElements':elements,'recordElementCount':len(elements),'elementRanges':m.get('elementRanges',{})})
         s.update(location_fields(lat,lon,lat_raw,lon_raw,GHCN_STATIONS));out.append(s)
     return out
 
@@ -99,7 +116,7 @@ def parse_isd(text):
         if not line.strip():continue
         try:row=parse_csv_line(line)
         except Exception:continue
-        end=re.sub(r'\D','',g(row,'END'))
+        begin=re.sub(r'\D','',g(row,'BEGIN'));end=re.sub(r'\D','',g(row,'END'))
         if len(end)>=4:
             try:
                 if int(end[:4])<YEAR:continue
@@ -108,6 +125,11 @@ def parse_isd(text):
         if not valid(lat,lon):continue
         usaf=clean(g(row,'USAF'));wban=clean(g(row,'WBAN'));sid=f'{usaf}-{wban}'.strip('-')
         s={'id':sid,'network':'ISD','agency':'NOAA/NCEI','name':clean(g(row,'STATION NAME')) or sid,'elevM':finite(g(row,'ELEV(M)')),'countryCode':clean(g(row,'CTRY')),'state':clean(g(row,'STATE')),'icao':clean(g(row,'ICAO')),'sourceUrl':ISD_HISTORY,'status':'record-current-year'}
+        if len(begin)>=4 and len(end)>=4:
+            try:
+                first,last=int(begin[:4]),int(end[:4])
+                if 1700<=first<=last<=YEAR+1:s.update({'firstYear':first,'lastYear':last,'recordSpanYears':last-first+1})
+            except Exception:pass
         s.update(location_fields(lat,lon,lat_raw,lon_raw,ISD_HISTORY));out.append(s)
     return out
 
@@ -157,11 +179,33 @@ def cross_network_validation(stations):
             s['crossNetworkNearestM']=round(best,1);s['crossNetworkLocationSupport']=True;matched+=1
     return matched
 
+def history_summary(stations):
+    rows=[s for s in stations if isinstance(s.get('firstYear'),int) and isinstance(s.get('lastYear'),int) and s['firstYear']<=s['lastYear']]
+    if not rows:return {'stationCountWithHistoryMetadata':0,'truthNote':'No source-published station history metadata available in this generation.'}
+    spans=[s['lastYear']-s['firstYear']+1 for s in rows]
+    starts=[s['firstYear'] for s in rows];ends=[s['lastYear'] for s in rows]
+    elements=Counter()
+    for s in rows:
+        for e in s.get('recordElements') or []:elements[e]+=1
+    return {
+      'stationCountWithHistoryMetadata':len(rows),
+      'earliestRecordStartYear':min(starts),
+      'latestRecordEndYear':max(ends),
+      'medianRecordSpanYears':round(float(statistics.median(spans)),1),
+      'meanRecordSpanYears':round(sum(spans)/len(spans),1),
+      'potentialStationYears':sum(spans),
+      'elementStationCounts':dict(sorted(elements.items())),
+      'sourceInventoryUrl':GHCN_INVENTORY,
+      'meaning':'Record lifespan metadata from authoritative inventories. It tells D.O.M. how far back each station can be queried; it is not a claim that every historical measurement has already been ingested.',
+      'evaluationRole':'Use record lifespan to drive historical measurement retrieval and coverage/confidence. Never treat lifespan alone as a climate-health measurement.'
+    }
+
 def main():
     OUT.mkdir(parents=True,exist_ok=True)
     for old in OUT.glob('tile_*.json'): old.unlink()
     sources=[];stations=[]
-    gh=parse_ghcn(get(GHCN_STATIONS),get(GHCN_INVENTORY));stations+=gh;sources.append({'id':'ghcn-d','count':len(gh),'sourceUrl':GHCN_STATIONS,'scope':'global current-year reporting stations'})
+    stations_txt=get(GHCN_STATIONS);inventory_txt=get(GHCN_INVENTORY)
+    gh=parse_ghcn(stations_txt,inventory_txt);stations+=gh;sources.append({'id':'ghcn-d','count':len(gh),'sourceUrl':GHCN_STATIONS,'inventoryUrl':GHCN_INVENTORY,'scope':'global current-year reporting stations with source-published record lifespans'})
     try:isd=parse_isd(get(ISD_HISTORY))
     except Exception as e:isd=[];sources.append({'id':'isd','count':0,'sourceUrl':ISD_HISTORY,'scope':'global hourly/synoptic stations with current-year record','error':f'{type(e).__name__}: {e}'})
     else:sources.append({'id':'isd','count':len(isd),'sourceUrl':ISD_HISTORY,'scope':'global hourly/synoptic stations with current-year record'})
@@ -186,7 +230,7 @@ def main():
     for tid,rows in sorted(tiles.items()):
         p=OUT/f'tile_{tid}.json';p.write_text(json.dumps({'schema':'dom-weather-climate-tile-v2','tile':tid,'stationCount':len(rows),'stations':rows},separators=(',',':'))+'\n',encoding='utf-8')
         tile_meta.append({'id':tid,'path':f'./data/weather-climate/{p.name}','count':len(rows)})
-    manifest={'schema':'dom-weather-climate-manifest-v2','generatedAt':now_iso(),'currentYear':YEAR,'stationCount':len(dedup),'tileDegrees':10,'tileCount':len(tile_meta),'sources':sources,'tiles':tile_meta,'locationValidation':{'coordinateSystem':'source-published geographic latitude/longitude; rendered as WGS84-compatible map coordinates','rangeValidated':True,'precisionMethod':'half-cell diagonal derived from decimal-degree source precision using latitude-adjusted longitude scale','crossNetworkSupportRadiusM':500,'crossNetworkSupportedStations':matched,'precisionClassCounts':dict(sorted(precision.items()))},'truthNote':'Markers use source-published station coordinates. Precision circles are mathematical envelopes from the coordinate resolution, not surveyed legal boundaries. Cross-network proximity is supporting evidence only and never moves a station marker. Current-year filtering indicates records/stations documented as current; it does not imply every instrument is transmitting at this instant.'}
+    manifest={'schema':'dom-weather-climate-manifest-v2','generatedAt':now_iso(),'currentYear':YEAR,'stationCount':len(dedup),'tileDegrees':10,'tileCount':len(tile_meta),'sources':sources,'tiles':tile_meta,'historyCoverage':history_summary(dedup),'locationValidation':{'coordinateSystem':'source-published geographic latitude/longitude; rendered as WGS84-compatible map coordinates','rangeValidated':True,'precisionMethod':'half-cell diagonal derived from decimal-degree source precision using latitude-adjusted longitude scale','crossNetworkSupportRadiusM':500,'crossNetworkSupportedStations':matched,'precisionClassCounts':dict(sorted(precision.items()))},'truthNote':'Markers use source-published station coordinates. Precision circles are mathematical envelopes from the coordinate resolution, not surveyed legal boundaries. Cross-network proximity is supporting evidence only and never moves a station marker. Current-year filtering indicates records/stations documented as current; it does not imply every instrument is transmitting at this instant. History metadata identifies each station record lifespan where published; D.O.M. must still retrieve and evaluate the underlying measurements before claiming historical measurement coverage.'}
     (OUT/'manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n',encoding='utf-8')
-    print(json.dumps({'stationCount':len(dedup),'tileCount':len(tile_meta),'crossNetworkSupported':matched,'precisionClasses':dict(precision),'sources':{x['id']:x['count'] for x in sources}},sort_keys=True))
+    print(json.dumps({'stationCount':len(dedup),'tileCount':len(tile_meta),'crossNetworkSupported':matched,'historyCoverage':manifest['historyCoverage'],'precisionClasses':dict(precision),'sources':{x['id']:x['count'] for x in sources}},sort_keys=True))
 if __name__=='__main__':main()
