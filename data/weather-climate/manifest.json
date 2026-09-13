@@ -1,7 +1,20 @@
 {
   "currentYear": 2026,
-  "generatedAt": "2026-09-13T00:50:48Z",
-  "schema": "dom-weather-climate-manifest-v1",
+  "generatedAt": "2026-09-13T00:56:49Z",
+  "locationValidation": {
+    "coordinateSystem": "source-published geographic latitude/longitude; rendered as WGS84-compatible map coordinates",
+    "crossNetworkSupportRadiusM": 500,
+    "crossNetworkSupportedStations": 2743,
+    "precisionClassCounts": {
+      "documented-coordinate-coarse": 175,
+      "documented-coordinate-high-precision": 39548,
+      "documented-coordinate-medium-precision": 242,
+      "documented-coordinate-very-coarse": 131
+    },
+    "precisionMethod": "half-cell diagonal derived from decimal-degree source precision using latitude-adjusted longitude scale",
+    "rangeValidated": true
+  },
+  "schema": "dom-weather-climate-manifest-v2",
   "sources": [
     {
       "count": 37641,
@@ -1389,5 +1402,5 @@
       "path": "./data/weather-climate/tile_lat_-90_lon_-020.json"
     }
   ],
-  "truthNote": "Coordinates come from NOAA/NCEI GHCN-D, ISD, and current HOMR station metadata. Current-year filtering indicates records/stations documented as current; it does not imply every instrument is transmitting at this instant."
+  "truthNote": "Markers use source-published station coordinates. Precision circles are mathematical envelopes from the coordinate resolution, not surveyed legal boundaries. Cross-network proximity is supporting evidence only and never moves a station marker. Current-year filtering indicates records/stations documented as current; it does not imply every instrument is transmitting at this instant."
 }
