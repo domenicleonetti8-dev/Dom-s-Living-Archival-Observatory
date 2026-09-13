@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""D.O.M. combined observation + anonymous visitor telemetry server."""
+"""D.O.M. combined observation, search federation, and visitor telemetry server."""
 from __future__ import annotations
 
 import json
 import signal
 import threading
 from http.server import ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
 
 import dom_observation_broker as core
+from dom_search_federation import search as federated_search
 from dom_visitors import VisitorLedger
 
 VISITORS = VisitorLedger(core.DB_PATH)
@@ -50,9 +52,24 @@ class Handler(core.Handler):
         self.send_json(200, payload)
 
     def do_GET(self):
-        path = self.path.split("?", 1)[0]
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path == "/v1/visitors":
             self.send_json(200, VISITORS.stats())
+            return
+        if path == "/v1/search":
+            params = parse_qs(parsed.query, keep_blank_values=False)
+            query = (params.get("q") or [""])[0]
+            scope = (params.get("scope") or ["all"])[0]
+            try:
+                payload = federated_search(query, scope)
+            except ValueError as exc:
+                self.send_json(400, {"error": str(exc)})
+                return
+            except Exception as exc:
+                self.send_json(502, {"error": "search federation failed", "detail": str(exc)[:240]})
+                return
+            self.send_json(200, payload)
             return
         super().do_GET()
 
@@ -70,9 +87,9 @@ def main():
     signal.signal(signal.SIGTERM, stop)
     print(
         f"D.O.M. server listening on http://{core.HOST}:{core.PORT} · "
-        f"{len(core.BROKER.adapters)} active adapters · "
+        f"{len(core.BROKER.adapters)} active observation adapters · "
         f"{len(core.BROKER.sources)} registered source families · "
-        f"visitor telemetry enabled · SQLite {core.DB_PATH}"
+        f"federated search enabled · visitor telemetry enabled · SQLite {core.DB_PATH}"
     )
     try:
         server.serve_forever(poll_interval=0.5)
