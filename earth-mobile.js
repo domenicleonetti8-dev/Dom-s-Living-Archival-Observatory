@@ -1,80 +1,80 @@
+import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
+
 const $=s=>document.querySelector(s);
-let earth3d=null;
+let map=null;
+
+const EARTH_STYLE={
+  version:8,
+  sources:{
+    imagery:{
+      type:'raster',
+      tiles:['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+      tileSize:256,
+      maxzoom:19,
+      attribution:'Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+    },
+    labels:{
+      type:'raster',
+      tiles:['https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
+      tileSize:256,
+      maxzoom:19,
+      attribution:'Reference labels © Esri and contributors'
+    },
+    terrain:{
+      type:'raster-dem',
+      tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+      tileSize:256,
+      maxzoom:15,
+      encoding:'terrarium',
+      attribution:'Terrain: Mapzen / AWS Open Data'
+    }
+  },
+  layers:[
+    {id:'space',type:'background',paint:{'background-color':'#01070b'}},
+    {id:'satellite',type:'raster',source:'imagery',paint:{'raster-opacity':1,'raster-saturation':.08,'raster-contrast':.08}},
+    {id:'place-labels',type:'raster',source:'labels',paint:{'raster-opacity':['interpolate',['linear'],['zoom'],0,.45,2,.62,6,.82,12,.94]}}
+  ]
+};
 
 function setState(message){const el=$('#providerState');if(el)el.textContent=message}
-function googleKey(){return String(window.DOMSRuntimeConfig?.googleMapsApiKey||window.DOM_GOOGLE_MAPS_API_KEY||'').trim()}
-function clearMap(){const host=$('#earthMap');if(host)host.replaceChildren()}
-function showSetup(message){
-  const host=$('#earthMap');
-  if(!host)return;
-  clearMap();
-  const panel=document.createElement('div');
-  panel.style.cssText='height:100%;display:grid;place-items:center;padding:28px;text-align:center;background:radial-gradient(circle at 50% 40%,#0a2531 0,#031219 55%,#01080d 100%);color:#eafcff;font:600 15px/1.5 system-ui';
-  panel.innerHTML=`<div style="max-width:560px"><div style="font-size:42px;margin-bottom:12px">🌎</div><strong style="font-size:20px">Google 3D Earth view</strong><p style="opacity:.72;font-weight:500">${message}</p><p style="opacity:.58;font-size:12px;font-weight:500">This page intentionally no longer falls back to the old synthetic globe. Once the authorized Google Maps browser key is configured, this exact panel is replaced by Google's interactive photorealistic 3D Earth.</p></div>`;
-  host.appendChild(panel);
-}
-function loadGoogle(key){
-  return new Promise((resolve,reject)=>{
-    if(window.google?.maps)return resolve(window.google.maps);
-    window.__DOMGoogleMapsReady=()=>resolve(window.google.maps);
-    const s=document.createElement('script');
-    s.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&loading=async&libraries=maps3d&callback=__DOMGoogleMapsReady`;
-    s.async=true;s.defer=true;
-    s.onerror=()=>reject(new Error('Google Maps JavaScript API failed to load'));
-    document.head.appendChild(s);
-  });
-}
-async function build(){
-  const key=googleKey();
-  if(!key){
-    showSetup('An authorized Google Maps JavaScript API browser key is required before Google can render its 3D imagery on this public page.');
-    setState('Google 3D Earth is configured as the only map provider · browser API key still required.');
-    return;
-  }
+
+function build(){
   try{
-    const maps=await loadGoogle(key);
-    const {Map3DElement}=await maps.importLibrary('maps3d');
-    earth3d=new Map3DElement({
-      center:{lat:15,lng:0,altitude:0},
-      range:19000000,
-      tilt:0,
-      heading:0,
-      mode:'HYBRID',
-      gestureHandling:'GREEDY'
+    map=new maplibregl.Map({
+      container:'earthMap',
+      style:EARTH_STYLE,
+      center:[0,15],
+      zoom:1.15,
+      minZoom:.35,
+      maxZoom:19,
+      pitch:0,
+      bearing:0,
+      attributionControl:true,
+      renderWorldCopies:false,
+      antialias:true,
+      pitchWithRotate:true,
+      touchPitch:true
     });
-    earth3d.style.width='100%';
-    earth3d.style.height='100%';
-    earth3d.setAttribute('aria-label','Google photorealistic 3D Earth');
-    clearMap();
-    $('#earthMap')?.appendChild(earth3d);
-    earth3d.addEventListener?.('gmp-steadystate',e=>{if(e?.isSteady)setState('Geographical Earth active · Google photorealistic 3D imagery + geographic labels · hazards and sensors remain in the Hazard Observatory.')});
-    setState('Loading Google photorealistic 3D Earth…');
-  }catch(e){
-    showSetup(`Google 3D Earth could not initialize: ${String(e?.message||e)}`);
-    setState(`Google 3D Earth unavailable: ${String(e?.message||e)}`);
-  }
+    map.addControl(new maplibregl.NavigationControl({showCompass:true,showZoom:true,visualizePitch:true}),'top-right');
+    map.on('load',()=>{
+      try{map.setProjection({type:'globe'})}catch(_){ }
+      try{map.setTerrain({source:'terrain',exaggeration:1.12})}catch(_){ }
+      try{map.setFog({range:[.4,8],color:'#8bb7c8','horizon-blend':.12,'high-color':'#0d3550','space-color':'#000207','star-intensity':.18})}catch(_){ }
+      setState('Geographical Earth active · photoreal satellite imagery + global terrain + geographic labels · no paid Google Maps key required.');
+    });
+    map.on('error',e=>{
+      const m=e?.error?.message||e?.message||'unknown map error';
+      setState(`Geographical Earth imagery error: ${m}`);
+    });
+  }catch(e){setState(`Geographical Earth failed to initialize: ${e?.message||e}`)}
 }
-function reset(){
-  if(!earth3d)return;
-  earth3d.center={lat:15,lng:0,altitude:0};
-  earth3d.range=19000000;
-  earth3d.tilt=0;
-  earth3d.heading=0;
-}
-function refresh(){
-  if(!earth3d){build();return}
-  const host=$('#earthMap');
-  if(host){host.style.display='none';requestAnimationFrame(()=>{host.style.display='block'})}
-  setState('Geographical Earth refreshed · Google photorealistic 3D imagery active.');
-}
+
+function reset(){map?.easeTo({center:[0,15],zoom:1.15,pitch:0,bearing:0,duration:500})}
+function refresh(){if(!map)return;map.triggerRepaint();setState('Geographical Earth refreshed · satellite + terrain globe active.')}
 function locate(){
   if(!navigator.geolocation){setState('Location unavailable. Geographical Earth remains in global view.');return}
   navigator.geolocation.getCurrentPosition(p=>{
-    if(!earth3d)return;
-    earth3d.center={lat:p.coords.latitude,lng:p.coords.longitude,altitude:0};
-    earth3d.range=18000;
-    earth3d.tilt=62;
-    earth3d.heading=0;
+    map?.flyTo({center:[p.coords.longitude,p.coords.latitude],zoom:10,pitch:55,bearing:0,duration:900});
   },()=>setState('Location unavailable. Geographical Earth remains in global view.'));
 }
 
