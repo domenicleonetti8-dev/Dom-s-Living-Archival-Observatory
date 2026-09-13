@@ -54,6 +54,15 @@ class Handler(core.Handler):
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
+        if path in {"/", "/health", "/v1/health"}:
+            self.send_json(200, {
+                "service": "D.O.M. broker",
+                "status": "ok",
+                "searchFederation": True,
+                "observationAdapters": len(core.BROKER.adapters),
+                "registeredSourceFamilies": len(core.BROKER.sources),
+            })
+            return
         if path == "/v1/visitors":
             self.send_json(200, VISITORS.stats())
             return
