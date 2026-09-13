@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-70_lon_+110","stationCount":1,"stations":[{"id":"AYM00089611","network":"GHCN-D","agency":"NOAA/NCEI","name":"CASEY","lat":-66.283,"lon":110.517,"elevM":41.0,"countryCode":"AY","wmoId":"89611","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

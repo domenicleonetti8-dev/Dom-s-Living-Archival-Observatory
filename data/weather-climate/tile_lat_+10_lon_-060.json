@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_+10_lon_-060","stationCount":1,"stations":[{"id":"30083432","network":"AWOS","agency":"NOAA/NCEI HOMR","name":"GRANTLEY ADAMS INTL AP","lat":13.067,"lon":-59.483,"elevM":171.0,"country":"BARBADOS","sourceUrl":"https://www.ncei.noaa.gov/access/homr/file/awos-stations.txt","status":"current-station-list"}]}

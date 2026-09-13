@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-60_lon_-080","stationCount":1,"stations":[{"id":"ARM00087904","network":"GHCN-D","agency":"NOAA/NCEI","name":"EL CALAFATE AERO","lat":-50.267,"lon":-72.05,"elevM":204.0,"countryCode":"AR","wmoId":"87904","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

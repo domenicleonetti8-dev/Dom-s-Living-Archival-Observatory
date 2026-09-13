@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_+60_lon_+110","stationCount":1,"stations":[{"id":"RSM00024738","network":"GHCN-D","agency":"NOAA/NCEI","name":"SUNTAR","lat":62.15,"lon":117.65,"elevM":131.0,"countryCode":"RS","wmoId":"24738","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

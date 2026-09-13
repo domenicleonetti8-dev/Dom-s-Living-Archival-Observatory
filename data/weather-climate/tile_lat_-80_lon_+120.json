@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-80_lon_+120","stationCount":1,"stations":[{"id":"AYM00089828","network":"GHCN-D","agency":"NOAA/NCEI","name":"DOME C II","lat":-75.117,"lon":123.367,"elevM":3250.0,"countryCode":"AY","wmoId":"89828","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

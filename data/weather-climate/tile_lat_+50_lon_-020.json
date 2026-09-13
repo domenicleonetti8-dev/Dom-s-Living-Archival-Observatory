@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_+50_lon_-020","stationCount":1,"stations":[{"id":"EI000003953","network":"GHCN-D","agency":"NOAA/NCEI","name":"VALENTIA OBSERVATORY","lat":51.9394,"lon":-10.2219,"elevM":9.0,"countryCode":"EI","wmoId":"03953","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

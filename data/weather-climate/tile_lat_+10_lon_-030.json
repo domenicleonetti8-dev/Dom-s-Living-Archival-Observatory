@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_+10_lon_-030","stationCount":1,"stations":[{"id":"CVM00008583","network":"GHCN-D","agency":"NOAA/NCEI","name":"MINDELO","lat":16.883,"lon":-25.0,"elevM":63.0,"countryCode":"CV","wmoId":"08583","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

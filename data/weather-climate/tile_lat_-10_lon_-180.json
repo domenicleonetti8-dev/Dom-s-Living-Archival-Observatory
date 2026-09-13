@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-10_lon_-180","stationCount":1,"stations":[{"id":"KRW00060703","network":"GHCN-D","agency":"NOAA/NCEI","name":"CANTON ISLAND","lat":-2.7667,"lon":-171.7167,"elevM":3.0,"countryCode":"KR","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

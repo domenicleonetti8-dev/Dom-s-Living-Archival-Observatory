@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_+60_lon_+060","stationCount":1,"stations":[{"id":"RSM00023032","network":"GHCN-D","agency":"NOAA/NCEI","name":"MARRE-SALE","lat":69.72,"lon":66.8194,"elevM":24.0,"countryCode":"RS","wmoId":"23032","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

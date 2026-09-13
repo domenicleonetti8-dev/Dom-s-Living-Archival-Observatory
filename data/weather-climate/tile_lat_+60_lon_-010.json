@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_+60_lon_-010","stationCount":1,"stations":[{"id":"UK000003005","network":"GHCN-D","agency":"NOAA/NCEI","name":"LERWICK","lat":60.1331,"lon":-1.1831,"elevM":82.0,"countryCode":"UK","wmoId":"03005","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

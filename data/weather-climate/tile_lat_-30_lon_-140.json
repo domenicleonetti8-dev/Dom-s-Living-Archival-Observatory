@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-30_lon_-140","stationCount":1,"stations":[{"id":"FP000091948","network":"GHCN-D","agency":"NOAA/NCEI","name":"MANGAREVA","lat":-23.133,"lon":-134.967,"elevM":89.0,"countryCode":"FP","wmoId":"91948","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

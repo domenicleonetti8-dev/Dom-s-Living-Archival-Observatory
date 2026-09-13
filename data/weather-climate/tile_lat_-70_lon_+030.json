@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-70_lon_+030","stationCount":1,"stations":[{"id":"AYM00089532","network":"GHCN-D","agency":"NOAA/NCEI","name":"SYOWA","lat":-69.0,"lon":39.583,"elevM":21.0,"countryCode":"AY","wmoId":"89532","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

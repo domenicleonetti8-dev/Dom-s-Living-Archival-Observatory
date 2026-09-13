@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-80_lon_+100","stationCount":1,"stations":[{"id":"AYM00089606","network":"GHCN-D","agency":"NOAA/NCEI","name":"VOSTOK","lat":-78.45,"lon":106.867,"elevM":3488.0,"countryCode":"AY","wmoId":"89606","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

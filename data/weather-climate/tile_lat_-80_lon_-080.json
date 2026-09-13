@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-80_lon_-080","stationCount":1,"stations":[{"id":"AYM00089272","network":"GHCN-D","agency":"NOAA/NCEI","name":"UNIV. WI ID 8917 (SKI-BLU)","lat":-74.8,"lon":-71.483,"elevM":1589.0,"countryCode":"AY","wmoId":"89272","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

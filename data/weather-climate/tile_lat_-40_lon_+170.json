@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-40_lon_+170","stationCount":1,"stations":[{"id":"NZM00093110","network":"GHCN-D","agency":"NOAA/NCEI","name":"AUCKLAND AERO AWS","lat":-37.0,"lon":174.8,"elevM":7.0,"countryCode":"NZ","wmoId":"93110","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

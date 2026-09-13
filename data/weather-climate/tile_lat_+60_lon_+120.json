@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_+60_lon_+120","stationCount":1,"stations":[{"id":"RSM00024652","network":"GHCN-D","agency":"NOAA/NCEI","name":"SANGARY","lat":63.967,"lon":127.467,"elevM":96.0,"countryCode":"RS","wmoId":"24652","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

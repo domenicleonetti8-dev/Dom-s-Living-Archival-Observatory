@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_+70_lon_-020","stationCount":1,"stations":[{"id":"GL000004320","network":"GHCN-D","agency":"NOAA/NCEI","name":"DANMARKSHAVN","lat":76.77,"lon":-18.67,"elevM":12.0,"countryCode":"GL","wmoId":"04320","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

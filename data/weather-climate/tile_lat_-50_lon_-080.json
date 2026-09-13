@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-50_lon_-080","stationCount":1,"stations":[{"id":"CIM00085782","network":"GHCN-D","agency":"NOAA/NCEI","name":"OSORNO","lat":-40.6,"lon":-73.05,"elevM":58.0,"countryCode":"CI","wmoId":"85782","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

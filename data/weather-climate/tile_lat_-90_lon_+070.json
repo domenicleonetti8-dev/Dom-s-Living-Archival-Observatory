@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-90_lon_+070","stationCount":1,"stations":[{"id":"AYM00089577","network":"GHCN-D","agency":"NOAA/NCEI","name":"DOME PLATEAU DOME A","lat":-80.37,"lon":77.37,"elevM":4084.0,"countryCode":"AY","wmoId":"89577","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

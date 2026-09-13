@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_+60_lon_+050","stationCount":1,"stations":[{"id":"RSM00023711","network":"GHCN-D","agency":"NOAA/NCEI","name":"TROICKO-PECHERSKOE","lat":62.7,"lon":56.2,"elevM":135.0,"countryCode":"RS","wmoId":"23711","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

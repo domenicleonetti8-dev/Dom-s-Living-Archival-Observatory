@@ -1,0 +1,1393 @@
+{
+  "currentYear": 2026,
+  "generatedAt": "2026-09-13T00:50:48Z",
+  "schema": "dom-weather-climate-manifest-v1",
+  "sources": [
+    {
+      "count": 37641,
+      "id": "ghcn-d",
+      "scope": "global current-year reporting stations",
+      "sourceUrl": "https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt"
+    },
+    {
+      "count": 0,
+      "id": "isd",
+      "scope": "global hourly/synoptic stations with current-year record",
+      "sourceUrl": "https://www.ncei.noaa.gov/pub/data/noaa/isd-history.csv"
+    },
+    {
+      "count": 0,
+      "id": "coop",
+      "scope": "current official station list",
+      "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/coop-stations.txt"
+    },
+    {
+      "count": 0,
+      "id": "lcd",
+      "scope": "current official station list",
+      "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/lcd-stations.txt"
+    },
+    {
+      "count": 210,
+      "id": "nexrad",
+      "scope": "current official station list",
+      "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/nexrad-stations.txt"
+    },
+    {
+      "count": 144,
+      "id": "crn",
+      "scope": "current official station list",
+      "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/crn-stations.txt"
+    },
+    {
+      "count": 16,
+      "id": "alrcrn",
+      "scope": "current official station list",
+      "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/alrcrn-stations.txt"
+    },
+    {
+      "count": 1156,
+      "id": "awos",
+      "scope": "current official station list",
+      "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/awos-stations.txt"
+    },
+    {
+      "count": 929,
+      "id": "asos",
+      "scope": "current official station list",
+      "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/asos-stations.txt"
+    },
+    {
+      "count": 0,
+      "id": "ccd",
+      "scope": "current official station list",
+      "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/ccd-stations.txt"
+    }
+  ],
+  "stationCount": 40096,
+  "tileCount": 264,
+  "tileDegrees": 10,
+  "tiles": [
+    {
+      "count": 4,
+      "id": "lat_+00_lon_+000",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+000.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+00_lon_+030",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+030.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+00_lon_+040",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+040.json"
+    },
+    {
+      "count": 6,
+      "id": "lat_+00_lon_+070",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+070.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+00_lon_+080",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+080.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+00_lon_+090",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+090.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+00_lon_+100",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+100.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+00_lon_+120",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+120.json"
+    },
+    {
+      "count": 13,
+      "id": "lat_+00_lon_+130",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+130.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+00_lon_+140",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+140.json"
+    },
+    {
+      "count": 5,
+      "id": "lat_+00_lon_+150",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+150.json"
+    },
+    {
+      "count": 6,
+      "id": "lat_+00_lon_+160",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+160.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+00_lon_+170",
+      "path": "./data/weather-climate/tile_lat_+00_lon_+170.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+00_lon_-010",
+      "path": "./data/weather-climate/tile_lat_+00_lon_-010.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+00_lon_-060",
+      "path": "./data/weather-climate/tile_lat_+00_lon_-060.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+00_lon_-080",
+      "path": "./data/weather-climate/tile_lat_+00_lon_-080.json"
+    },
+    {
+      "count": 4,
+      "id": "lat_+10_lon_+000",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+000.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+10_lon_+050",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+050.json"
+    },
+    {
+      "count": 15,
+      "id": "lat_+10_lon_+070",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+070.json"
+    },
+    {
+      "count": 6,
+      "id": "lat_+10_lon_+080",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+080.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+10_lon_+090",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+090.json"
+    },
+    {
+      "count": 17,
+      "id": "lat_+10_lon_+100",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+100.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+10_lon_+110",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+110.json"
+    },
+    {
+      "count": 4,
+      "id": "lat_+10_lon_+120",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+120.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+10_lon_+130",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+130.json"
+    },
+    {
+      "count": 22,
+      "id": "lat_+10_lon_+140",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+140.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+10_lon_+160",
+      "path": "./data/weather-climate/tile_lat_+10_lon_+160.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+10_lon_-010",
+      "path": "./data/weather-climate/tile_lat_+10_lon_-010.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+10_lon_-030",
+      "path": "./data/weather-climate/tile_lat_+10_lon_-030.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+10_lon_-060",
+      "path": "./data/weather-climate/tile_lat_+10_lon_-060.json"
+    },
+    {
+      "count": 163,
+      "id": "lat_+10_lon_-070",
+      "path": "./data/weather-climate/tile_lat_+10_lon_-070.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+10_lon_-080",
+      "path": "./data/weather-climate/tile_lat_+10_lon_-080.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+10_lon_-090",
+      "path": "./data/weather-climate/tile_lat_+10_lon_-090.json"
+    },
+    {
+      "count": 18,
+      "id": "lat_+10_lon_-100",
+      "path": "./data/weather-climate/tile_lat_+10_lon_-100.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+10_lon_-110",
+      "path": "./data/weather-climate/tile_lat_+10_lon_-110.json"
+    },
+    {
+      "count": 61,
+      "id": "lat_+10_lon_-160",
+      "path": "./data/weather-climate/tile_lat_+10_lon_-160.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+20_lon_+020",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+020.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+20_lon_+030",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+030.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+20_lon_+040",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+040.json"
+    },
+    {
+      "count": 15,
+      "id": "lat_+20_lon_+050",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+050.json"
+    },
+    {
+      "count": 9,
+      "id": "lat_+20_lon_+060",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+060.json"
+    },
+    {
+      "count": 19,
+      "id": "lat_+20_lon_+070",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+070.json"
+    },
+    {
+      "count": 17,
+      "id": "lat_+20_lon_+080",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+080.json"
+    },
+    {
+      "count": 9,
+      "id": "lat_+20_lon_+090",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+090.json"
+    },
+    {
+      "count": 17,
+      "id": "lat_+20_lon_+100",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+100.json"
+    },
+    {
+      "count": 14,
+      "id": "lat_+20_lon_+110",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+110.json"
+    },
+    {
+      "count": 8,
+      "id": "lat_+20_lon_+120",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+120.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+20_lon_+140",
+      "path": "./data/weather-climate/tile_lat_+20_lon_+140.json"
+    },
+    {
+      "count": 8,
+      "id": "lat_+20_lon_-020",
+      "path": "./data/weather-climate/tile_lat_+20_lon_-020.json"
+    },
+    {
+      "count": 25,
+      "id": "lat_+20_lon_-080",
+      "path": "./data/weather-climate/tile_lat_+20_lon_-080.json"
+    },
+    {
+      "count": 800,
+      "id": "lat_+20_lon_-090",
+      "path": "./data/weather-climate/tile_lat_+20_lon_-090.json"
+    },
+    {
+      "count": 1051,
+      "id": "lat_+20_lon_-100",
+      "path": "./data/weather-climate/tile_lat_+20_lon_-100.json"
+    },
+    {
+      "count": 54,
+      "id": "lat_+20_lon_-110",
+      "path": "./data/weather-climate/tile_lat_+20_lon_-110.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+20_lon_-120",
+      "path": "./data/weather-climate/tile_lat_+20_lon_-120.json"
+    },
+    {
+      "count": 145,
+      "id": "lat_+20_lon_-160",
+      "path": "./data/weather-climate/tile_lat_+20_lon_-160.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+20_lon_-180",
+      "path": "./data/weather-climate/tile_lat_+20_lon_-180.json"
+    },
+    {
+      "count": 15,
+      "id": "lat_+30_lon_+000",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+000.json"
+    },
+    {
+      "count": 6,
+      "id": "lat_+30_lon_+010",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+010.json"
+    },
+    {
+      "count": 5,
+      "id": "lat_+30_lon_+020",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+020.json"
+    },
+    {
+      "count": 16,
+      "id": "lat_+30_lon_+030",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+030.json"
+    },
+    {
+      "count": 9,
+      "id": "lat_+30_lon_+040",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+040.json"
+    },
+    {
+      "count": 6,
+      "id": "lat_+30_lon_+050",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+050.json"
+    },
+    {
+      "count": 30,
+      "id": "lat_+30_lon_+060",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+060.json"
+    },
+    {
+      "count": 22,
+      "id": "lat_+30_lon_+070",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+30_lon_+080",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+080.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+30_lon_+090",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+090.json"
+    },
+    {
+      "count": 16,
+      "id": "lat_+30_lon_+100",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+100.json"
+    },
+    {
+      "count": 13,
+      "id": "lat_+30_lon_+110",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+110.json"
+    },
+    {
+      "count": 20,
+      "id": "lat_+30_lon_+120",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+120.json"
+    },
+    {
+      "count": 99,
+      "id": "lat_+30_lon_+130",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+130.json"
+    },
+    {
+      "count": 15,
+      "id": "lat_+30_lon_+140",
+      "path": "./data/weather-climate/tile_lat_+30_lon_+140.json"
+    },
+    {
+      "count": 34,
+      "id": "lat_+30_lon_-010",
+      "path": "./data/weather-climate/tile_lat_+30_lon_-010.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+30_lon_-020",
+      "path": "./data/weather-climate/tile_lat_+30_lon_-020.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+30_lon_-030",
+      "path": "./data/weather-climate/tile_lat_+30_lon_-030.json"
+    },
+    {
+      "count": 2045,
+      "id": "lat_+30_lon_-080",
+      "path": "./data/weather-climate/tile_lat_+30_lon_-080.json"
+    },
+    {
+      "count": 4505,
+      "id": "lat_+30_lon_-090",
+      "path": "./data/weather-climate/tile_lat_+30_lon_-090.json"
+    },
+    {
+      "count": 4268,
+      "id": "lat_+30_lon_-100",
+      "path": "./data/weather-climate/tile_lat_+30_lon_-100.json"
+    },
+    {
+      "count": 2633,
+      "id": "lat_+30_lon_-110",
+      "path": "./data/weather-climate/tile_lat_+30_lon_-110.json"
+    },
+    {
+      "count": 1439,
+      "id": "lat_+30_lon_-120",
+      "path": "./data/weather-climate/tile_lat_+30_lon_-120.json"
+    },
+    {
+      "count": 522,
+      "id": "lat_+30_lon_-130",
+      "path": "./data/weather-climate/tile_lat_+30_lon_-130.json"
+    },
+    {
+      "count": 247,
+      "id": "lat_+40_lon_+000",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+000.json"
+    },
+    {
+      "count": 133,
+      "id": "lat_+40_lon_+010",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+010.json"
+    },
+    {
+      "count": 48,
+      "id": "lat_+40_lon_+020",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+020.json"
+    },
+    {
+      "count": 26,
+      "id": "lat_+40_lon_+030",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+030.json"
+    },
+    {
+      "count": 34,
+      "id": "lat_+40_lon_+040",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+040.json"
+    },
+    {
+      "count": 16,
+      "id": "lat_+40_lon_+050",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+050.json"
+    },
+    {
+      "count": 34,
+      "id": "lat_+40_lon_+060",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+060.json"
+    },
+    {
+      "count": 48,
+      "id": "lat_+40_lon_+070",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+070.json"
+    },
+    {
+      "count": 25,
+      "id": "lat_+40_lon_+080",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+080.json"
+    },
+    {
+      "count": 8,
+      "id": "lat_+40_lon_+090",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+090.json"
+    },
+    {
+      "count": 18,
+      "id": "lat_+40_lon_+100",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+100.json"
+    },
+    {
+      "count": 21,
+      "id": "lat_+40_lon_+110",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+110.json"
+    },
+    {
+      "count": 21,
+      "id": "lat_+40_lon_+120",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+120.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+40_lon_+130",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+130.json"
+    },
+    {
+      "count": 25,
+      "id": "lat_+40_lon_+140",
+      "path": "./data/weather-climate/tile_lat_+40_lon_+140.json"
+    },
+    {
+      "count": 53,
+      "id": "lat_+40_lon_-010",
+      "path": "./data/weather-climate/tile_lat_+40_lon_-010.json"
+    },
+    {
+      "count": 24,
+      "id": "lat_+40_lon_-060",
+      "path": "./data/weather-climate/tile_lat_+40_lon_-060.json"
+    },
+    {
+      "count": 355,
+      "id": "lat_+40_lon_-070",
+      "path": "./data/weather-climate/tile_lat_+40_lon_-070.json"
+    },
+    {
+      "count": 2777,
+      "id": "lat_+40_lon_-080",
+      "path": "./data/weather-climate/tile_lat_+40_lon_-080.json"
+    },
+    {
+      "count": 3026,
+      "id": "lat_+40_lon_-090",
+      "path": "./data/weather-climate/tile_lat_+40_lon_-090.json"
+    },
+    {
+      "count": 4003,
+      "id": "lat_+40_lon_-100",
+      "path": "./data/weather-climate/tile_lat_+40_lon_-100.json"
+    },
+    {
+      "count": 1786,
+      "id": "lat_+40_lon_-110",
+      "path": "./data/weather-climate/tile_lat_+40_lon_-110.json"
+    },
+    {
+      "count": 1214,
+      "id": "lat_+40_lon_-120",
+      "path": "./data/weather-climate/tile_lat_+40_lon_-120.json"
+    },
+    {
+      "count": 1456,
+      "id": "lat_+40_lon_-130",
+      "path": "./data/weather-climate/tile_lat_+40_lon_-130.json"
+    },
+    {
+      "count": 592,
+      "id": "lat_+50_lon_+000",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+000.json"
+    },
+    {
+      "count": 498,
+      "id": "lat_+50_lon_+010",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+010.json"
+    },
+    {
+      "count": 104,
+      "id": "lat_+50_lon_+020",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+020.json"
+    },
+    {
+      "count": 15,
+      "id": "lat_+50_lon_+030",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+030.json"
+    },
+    {
+      "count": 5,
+      "id": "lat_+50_lon_+040",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+040.json"
+    },
+    {
+      "count": 8,
+      "id": "lat_+50_lon_+050",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+050.json"
+    },
+    {
+      "count": 20,
+      "id": "lat_+50_lon_+060",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+060.json"
+    },
+    {
+      "count": 20,
+      "id": "lat_+50_lon_+070",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+070.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+50_lon_+080",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+080.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+50_lon_+090",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+090.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+50_lon_+100",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+100.json"
+    },
+    {
+      "count": 4,
+      "id": "lat_+50_lon_+120",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+120.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+50_lon_+130",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+130.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+50_lon_+150",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+150.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+50_lon_+160",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+160.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+50_lon_+170",
+      "path": "./data/weather-climate/tile_lat_+50_lon_+170.json"
+    },
+    {
+      "count": 71,
+      "id": "lat_+50_lon_-010",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-010.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+50_lon_-020",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-020.json"
+    },
+    {
+      "count": 6,
+      "id": "lat_+50_lon_-060",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-060.json"
+    },
+    {
+      "count": 13,
+      "id": "lat_+50_lon_-070",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-070.json"
+    },
+    {
+      "count": 6,
+      "id": "lat_+50_lon_-080",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-080.json"
+    },
+    {
+      "count": 7,
+      "id": "lat_+50_lon_-090",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-090.json"
+    },
+    {
+      "count": 30,
+      "id": "lat_+50_lon_-100",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-100.json"
+    },
+    {
+      "count": 73,
+      "id": "lat_+50_lon_-110",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-110.json"
+    },
+    {
+      "count": 92,
+      "id": "lat_+50_lon_-120",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-120.json"
+    },
+    {
+      "count": 30,
+      "id": "lat_+50_lon_-130",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-130.json"
+    },
+    {
+      "count": 73,
+      "id": "lat_+50_lon_-140",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-140.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+50_lon_-150",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-150.json"
+    },
+    {
+      "count": 35,
+      "id": "lat_+50_lon_-160",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-160.json"
+    },
+    {
+      "count": 16,
+      "id": "lat_+50_lon_-170",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-170.json"
+    },
+    {
+      "count": 8,
+      "id": "lat_+50_lon_-180",
+      "path": "./data/weather-climate/tile_lat_+50_lon_-180.json"
+    },
+    {
+      "count": 85,
+      "id": "lat_+60_lon_+000",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+000.json"
+    },
+    {
+      "count": 278,
+      "id": "lat_+60_lon_+010",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+010.json"
+    },
+    {
+      "count": 275,
+      "id": "lat_+60_lon_+020",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+020.json"
+    },
+    {
+      "count": 10,
+      "id": "lat_+60_lon_+030",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+030.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+60_lon_+040",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+040.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+60_lon_+050",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+050.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+60_lon_+060",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+060.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+60_lon_+070",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+60_lon_+110",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+110.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+60_lon_+120",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+120.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+60_lon_+130",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+130.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+60_lon_+170",
+      "path": "./data/weather-climate/tile_lat_+60_lon_+170.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+60_lon_-010",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-010.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+60_lon_-020",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-020.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+60_lon_-030",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-030.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+60_lon_-040",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-040.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+60_lon_-050",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-050.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+60_lon_-060",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-060.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+60_lon_-070",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-070.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+60_lon_-080",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-080.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+60_lon_-090",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-090.json"
+    },
+    {
+      "count": 5,
+      "id": "lat_+60_lon_-100",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-100.json"
+    },
+    {
+      "count": 4,
+      "id": "lat_+60_lon_-110",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-110.json"
+    },
+    {
+      "count": 10,
+      "id": "lat_+60_lon_-120",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-120.json"
+    },
+    {
+      "count": 13,
+      "id": "lat_+60_lon_-130",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-130.json"
+    },
+    {
+      "count": 15,
+      "id": "lat_+60_lon_-140",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-140.json"
+    },
+    {
+      "count": 148,
+      "id": "lat_+60_lon_-150",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-150.json"
+    },
+    {
+      "count": 72,
+      "id": "lat_+60_lon_-160",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-160.json"
+    },
+    {
+      "count": 66,
+      "id": "lat_+60_lon_-170",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-170.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+60_lon_-180",
+      "path": "./data/weather-climate/tile_lat_+60_lon_-180.json"
+    },
+    {
+      "count": 6,
+      "id": "lat_+70_lon_+010",
+      "path": "./data/weather-climate/tile_lat_+70_lon_+010.json"
+    },
+    {
+      "count": 10,
+      "id": "lat_+70_lon_+020",
+      "path": "./data/weather-climate/tile_lat_+70_lon_+020.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+70_lon_+030",
+      "path": "./data/weather-climate/tile_lat_+70_lon_+030.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+70_lon_+090",
+      "path": "./data/weather-climate/tile_lat_+70_lon_+090.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+70_lon_+130",
+      "path": "./data/weather-climate/tile_lat_+70_lon_+130.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+70_lon_-010",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-010.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+70_lon_-020",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-020.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+70_lon_-030",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-030.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+70_lon_-070",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+70_lon_-080",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-080.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+70_lon_-090",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-090.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+70_lon_-100",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-100.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+70_lon_-110",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-110.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_+70_lon_-120",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-120.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+70_lon_-130",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-130.json"
+    },
+    {
+      "count": 9,
+      "id": "lat_+70_lon_-150",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-150.json"
+    },
+    {
+      "count": 10,
+      "id": "lat_+70_lon_-160",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-160.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_+70_lon_-170",
+      "path": "./data/weather-climate/tile_lat_+70_lon_-170.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_+80_lon_-100",
+      "path": "./data/weather-climate/tile_lat_+80_lon_-100.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-10_lon_+100",
+      "path": "./data/weather-climate/tile_lat_-10_lon_+100.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-10_lon_+130",
+      "path": "./data/weather-climate/tile_lat_-10_lon_+130.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-10_lon_-050",
+      "path": "./data/weather-climate/tile_lat_-10_lon_-050.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-10_lon_-080",
+      "path": "./data/weather-climate/tile_lat_-10_lon_-080.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-10_lon_-140",
+      "path": "./data/weather-climate/tile_lat_-10_lon_-140.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-10_lon_-180",
+      "path": "./data/weather-climate/tile_lat_-10_lon_-180.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-20_lon_+010",
+      "path": "./data/weather-climate/tile_lat_-20_lon_+010.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-20_lon_+020",
+      "path": "./data/weather-climate/tile_lat_-20_lon_+020.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-20_lon_+040",
+      "path": "./data/weather-climate/tile_lat_-20_lon_+040.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-20_lon_+050",
+      "path": "./data/weather-climate/tile_lat_-20_lon_+050.json"
+    },
+    {
+      "count": 62,
+      "id": "lat_-20_lon_+120",
+      "path": "./data/weather-climate/tile_lat_-20_lon_+120.json"
+    },
+    {
+      "count": 122,
+      "id": "lat_-20_lon_+130",
+      "path": "./data/weather-climate/tile_lat_-20_lon_+130.json"
+    },
+    {
+      "count": 152,
+      "id": "lat_-20_lon_+140",
+      "path": "./data/weather-climate/tile_lat_-20_lon_+140.json"
+    },
+    {
+      "count": 4,
+      "id": "lat_-20_lon_+170",
+      "path": "./data/weather-climate/tile_lat_-20_lon_+170.json"
+    },
+    {
+      "count": 5,
+      "id": "lat_-20_lon_-050",
+      "path": "./data/weather-climate/tile_lat_-20_lon_-050.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_-20_lon_-070",
+      "path": "./data/weather-climate/tile_lat_-20_lon_-070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-20_lon_-150",
+      "path": "./data/weather-climate/tile_lat_-20_lon_-150.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_-20_lon_-180",
+      "path": "./data/weather-climate/tile_lat_-20_lon_-180.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-30_lon_+010",
+      "path": "./data/weather-climate/tile_lat_-30_lon_+010.json"
+    },
+    {
+      "count": 7,
+      "id": "lat_-30_lon_+020",
+      "path": "./data/weather-climate/tile_lat_-30_lon_+020.json"
+    },
+    {
+      "count": 6,
+      "id": "lat_-30_lon_+030",
+      "path": "./data/weather-climate/tile_lat_-30_lon_+030.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-30_lon_+040",
+      "path": "./data/weather-climate/tile_lat_-30_lon_+040.json"
+    },
+    {
+      "count": 138,
+      "id": "lat_-30_lon_+110",
+      "path": "./data/weather-climate/tile_lat_-30_lon_+110.json"
+    },
+    {
+      "count": 23,
+      "id": "lat_-30_lon_+120",
+      "path": "./data/weather-climate/tile_lat_-30_lon_+120.json"
+    },
+    {
+      "count": 64,
+      "id": "lat_-30_lon_+130",
+      "path": "./data/weather-climate/tile_lat_-30_lon_+130.json"
+    },
+    {
+      "count": 278,
+      "id": "lat_-30_lon_+140",
+      "path": "./data/weather-climate/tile_lat_-30_lon_+140.json"
+    },
+    {
+      "count": 502,
+      "id": "lat_-30_lon_+150",
+      "path": "./data/weather-climate/tile_lat_-30_lon_+150.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-30_lon_+160",
+      "path": "./data/weather-climate/tile_lat_-30_lon_+160.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-30_lon_-050",
+      "path": "./data/weather-climate/tile_lat_-30_lon_-050.json"
+    },
+    {
+      "count": 10,
+      "id": "lat_-30_lon_-060",
+      "path": "./data/weather-climate/tile_lat_-30_lon_-060.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-30_lon_-070",
+      "path": "./data/weather-climate/tile_lat_-30_lon_-070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-30_lon_-140",
+      "path": "./data/weather-climate/tile_lat_-30_lon_-140.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-30_lon_-150",
+      "path": "./data/weather-climate/tile_lat_-30_lon_-150.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-30_lon_-180",
+      "path": "./data/weather-climate/tile_lat_-30_lon_-180.json"
+    },
+    {
+      "count": 4,
+      "id": "lat_-40_lon_+010",
+      "path": "./data/weather-climate/tile_lat_-40_lon_+010.json"
+    },
+    {
+      "count": 13,
+      "id": "lat_-40_lon_+020",
+      "path": "./data/weather-climate/tile_lat_-40_lon_+020.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-40_lon_+030",
+      "path": "./data/weather-climate/tile_lat_-40_lon_+030.json"
+    },
+    {
+      "count": 301,
+      "id": "lat_-40_lon_+110",
+      "path": "./data/weather-climate/tile_lat_-40_lon_+110.json"
+    },
+    {
+      "count": 41,
+      "id": "lat_-40_lon_+120",
+      "path": "./data/weather-climate/tile_lat_-40_lon_+120.json"
+    },
+    {
+      "count": 374,
+      "id": "lat_-40_lon_+130",
+      "path": "./data/weather-climate/tile_lat_-40_lon_+130.json"
+    },
+    {
+      "count": 854,
+      "id": "lat_-40_lon_+140",
+      "path": "./data/weather-climate/tile_lat_-40_lon_+140.json"
+    },
+    {
+      "count": 308,
+      "id": "lat_-40_lon_+150",
+      "path": "./data/weather-climate/tile_lat_-40_lon_+150.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-40_lon_+170",
+      "path": "./data/weather-climate/tile_lat_-40_lon_+170.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-40_lon_-060",
+      "path": "./data/weather-climate/tile_lat_-40_lon_-060.json"
+    },
+    {
+      "count": 4,
+      "id": "lat_-40_lon_-070",
+      "path": "./data/weather-climate/tile_lat_-40_lon_-070.json"
+    },
+    {
+      "count": 206,
+      "id": "lat_-50_lon_+140",
+      "path": "./data/weather-climate/tile_lat_-50_lon_+140.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-50_lon_+160",
+      "path": "./data/weather-climate/tile_lat_-50_lon_+160.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_-50_lon_+170",
+      "path": "./data/weather-climate/tile_lat_-50_lon_+170.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-50_lon_-070",
+      "path": "./data/weather-climate/tile_lat_-50_lon_-070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-50_lon_-080",
+      "path": "./data/weather-climate/tile_lat_-50_lon_-080.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-60_lon_+150",
+      "path": "./data/weather-climate/tile_lat_-60_lon_+150.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-60_lon_+160",
+      "path": "./data/weather-climate/tile_lat_-60_lon_+160.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-60_lon_-040",
+      "path": "./data/weather-climate/tile_lat_-60_lon_-040.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-60_lon_-060",
+      "path": "./data/weather-climate/tile_lat_-60_lon_-060.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-60_lon_-070",
+      "path": "./data/weather-climate/tile_lat_-60_lon_-070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-60_lon_-080",
+      "path": "./data/weather-climate/tile_lat_-60_lon_-080.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-70_lon_+030",
+      "path": "./data/weather-climate/tile_lat_-70_lon_+030.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-70_lon_+040",
+      "path": "./data/weather-climate/tile_lat_-70_lon_+040.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-70_lon_+060",
+      "path": "./data/weather-climate/tile_lat_-70_lon_+060.json"
+    },
+    {
+      "count": 4,
+      "id": "lat_-70_lon_+070",
+      "path": "./data/weather-climate/tile_lat_-70_lon_+070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-70_lon_+090",
+      "path": "./data/weather-climate/tile_lat_-70_lon_+090.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-70_lon_+110",
+      "path": "./data/weather-climate/tile_lat_-70_lon_+110.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-70_lon_+140",
+      "path": "./data/weather-climate/tile_lat_-70_lon_+140.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-70_lon_-050",
+      "path": "./data/weather-climate/tile_lat_-70_lon_-050.json"
+    },
+    {
+      "count": 10,
+      "id": "lat_-70_lon_-060",
+      "path": "./data/weather-climate/tile_lat_-70_lon_-060.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-70_lon_-070",
+      "path": "./data/weather-climate/tile_lat_-70_lon_-070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-80_lon_+000",
+      "path": "./data/weather-climate/tile_lat_-80_lon_+000.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-80_lon_+010",
+      "path": "./data/weather-climate/tile_lat_-80_lon_+010.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-80_lon_+060",
+      "path": "./data/weather-climate/tile_lat_-80_lon_+060.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-80_lon_+100",
+      "path": "./data/weather-climate/tile_lat_-80_lon_+100.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-80_lon_+120",
+      "path": "./data/weather-climate/tile_lat_-80_lon_+120.json"
+    },
+    {
+      "count": 6,
+      "id": "lat_-80_lon_+160",
+      "path": "./data/weather-climate/tile_lat_-80_lon_+160.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-80_lon_+170",
+      "path": "./data/weather-climate/tile_lat_-80_lon_+170.json"
+    },
+    {
+      "count": 3,
+      "id": "lat_-80_lon_-010",
+      "path": "./data/weather-climate/tile_lat_-80_lon_-010.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-80_lon_-030",
+      "path": "./data/weather-climate/tile_lat_-80_lon_-030.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-80_lon_-040",
+      "path": "./data/weather-climate/tile_lat_-80_lon_-040.json"
+    },
+    {
+      "count": 2,
+      "id": "lat_-80_lon_-070",
+      "path": "./data/weather-climate/tile_lat_-80_lon_-070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-80_lon_-080",
+      "path": "./data/weather-climate/tile_lat_-80_lon_-080.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-90_lon_+070",
+      "path": "./data/weather-climate/tile_lat_-90_lon_+070.json"
+    },
+    {
+      "count": 1,
+      "id": "lat_-90_lon_-020",
+      "path": "./data/weather-climate/tile_lat_-90_lon_-020.json"
+    }
+  ],
+  "truthNote": "Coordinates come from NOAA/NCEI GHCN-D, ISD, and current HOMR station metadata. Current-year filtering indicates records/stations documented as current; it does not imply every instrument is transmitting at this instant."
+}

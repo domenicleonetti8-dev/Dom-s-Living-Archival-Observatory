@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_+30_lon_+080","stationCount":1,"stations":[{"id":"CHM00051747","network":"GHCN-D","agency":"NOAA/NCEI","name":"TAZHONG","lat":39.0,"lon":83.667,"elevM":1099.0,"countryCode":"CH","wmoId":"51747","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

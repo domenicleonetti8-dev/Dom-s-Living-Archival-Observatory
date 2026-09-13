@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-20_lon_+040","stationCount":1,"stations":[{"id":"FSM00061968","network":"GHCN-D","agency":"NOAA/NCEI","name":"ILES GLORIEUSES","lat":-11.583,"lon":47.283,"elevM":4.0,"countryCode":"FS","wmoId":"61968","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

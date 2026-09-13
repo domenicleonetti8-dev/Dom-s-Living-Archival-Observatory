@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-70_lon_+140","stationCount":1,"stations":[{"id":"AYM00089642","network":"GHCN-D","agency":"NOAA/NCEI","name":"DUMONT D'URVILLE","lat":-66.667,"lon":140.017,"elevM":43.0,"countryCode":"AY","wmoId":"89642","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}

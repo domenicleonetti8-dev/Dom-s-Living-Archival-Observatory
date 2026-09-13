@@ -1,0 +1,1 @@
+{"schema":"dom-weather-climate-tile-v1","tile":"lat_-20_lon_-150","stationCount":1,"stations":[{"id":"FP000091943","network":"GHCN-D","agency":"NOAA/NCEI","name":"TAKAROA","lat":-14.483,"lon":-145.033,"elevM":3.0,"countryCode":"FP","wmoId":"91943","sourceUrl":"https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt","status":"reporting-current-year"}]}
