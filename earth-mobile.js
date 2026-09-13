@@ -1,17 +1,83 @@
-import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.mjs';
-
 const $=s=>document.querySelector(s);
-const OSM_STYLE={version:8,sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OpenStreetMap contributors'}},layers:[{id:'osm',type:'raster',source:'osm'}]};
-let provider='none',googleMap=null,fallbackMap=null;
+let earth3d=null;
+
 function setState(message){const el=$('#providerState');if(el)el.textContent=message}
 function googleKey(){return String(window.DOMSRuntimeConfig?.googleMapsApiKey||window.DOM_GOOGLE_MAPS_API_KEY||'').trim()}
-function loadGoogle(key){return new Promise((resolve,reject)=>{if(window.google?.maps)return resolve(window.google.maps);window.__DOMGoogleMapsReady=()=>resolve(window.google.maps);const s=document.createElement('script');s.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&loading=async&callback=__DOMGoogleMapsReady`;s.async=true;s.defer=true;s.onerror=()=>reject(new Error('Google Maps JavaScript API failed to load'));document.head.appendChild(s)})}
-async function buildGoogle(){const key=googleKey();if(!key)return false;try{const maps=await loadGoogle(key);googleMap=new maps.Map($('#earthMap'),{center:{lat:15,lng:0},zoom:2,mapTypeId:'hybrid',streetViewControl:false,mapTypeControl:true,fullscreenControl:true,zoomControl:true,rotateControl:true,scaleControl:true,gestureHandling:'greedy',backgroundColor:'#010813'});provider='google';setState('Geographical Earth active · Google satellite + geographic labels · hazard, alert and sensor overlays remain in the Hazard Observatory.');return true}catch(e){setState(`Google satellite imagery unavailable: ${e.message||e}. Loading geographic fallback…`);return false}}
-function buildFallback(){try{fallbackMap=new maplibregl.Map({container:'earthMap',style:OSM_STYLE,center:[0,15],zoom:1.15,minZoom:.35,maxZoom:18,attributionControl:true,renderWorldCopies:false,antialias:false,pitchWithRotate:false,touchPitch:false});fallbackMap.addControl(new maplibregl.NavigationControl({showCompass:true,showZoom:true,visualizePitch:false}),'top-right');fallbackMap.on('load',()=>{try{fallbackMap.setProjection({type:'globe'})}catch(_){ }provider='osm';setState(googleKey()?'Geographical Earth fallback active · Google imagery could not initialize.':'Geographical Earth active · geographic fallback map. Google satellite imagery will activate when the authorized browser API key is configured.');});fallbackMap.on('error',e=>setState(`Geographical map error: ${e?.error?.message||e?.message||'unknown error'}`))}catch(e){setState(`Geographical Earth failed to initialize: ${e.message||e}`)}}
-async function build(){if(!(await buildGoogle()))buildFallback()}
-function reset(){if(provider==='google'&&googleMap){googleMap.setCenter({lat:15,lng:0});googleMap.setZoom(2);return}fallbackMap?.easeTo({center:[0,15],zoom:1.15,pitch:0,bearing:0,duration:400})}
-function refresh(){if(provider==='google'&&googleMap){const c=googleMap.getCenter(),z=googleMap.getZoom();google.maps.event.trigger(googleMap,'resize');if(c)googleMap.setCenter(c);if(Number.isFinite(z))googleMap.setZoom(z);setState('Geographical Earth refreshed · Google satellite imagery active.');return}if(fallbackMap){fallbackMap.triggerRepaint();setState('Geographical Earth refreshed · geographic fallback active.')}}
-function locate(){if(!navigator.geolocation){setState('Location unavailable. Geographical Earth remains in global view.');return}navigator.geolocation.getCurrentPosition(p=>{const lat=p.coords.latitude,lng=p.coords.longitude;if(provider==='google'&&googleMap){googleMap.panTo({lat,lng});googleMap.setZoom(10)}else fallbackMap?.flyTo({center:[lng,lat],zoom:9,duration:700})},()=>setState('Location unavailable. Geographical Earth remains in global view.'))}
+function clearMap(){const host=$('#earthMap');if(host)host.replaceChildren()}
+function showSetup(message){
+  const host=$('#earthMap');
+  if(!host)return;
+  clearMap();
+  const panel=document.createElement('div');
+  panel.style.cssText='height:100%;display:grid;place-items:center;padding:28px;text-align:center;background:radial-gradient(circle at 50% 40%,#0a2531 0,#031219 55%,#01080d 100%);color:#eafcff;font:600 15px/1.5 system-ui';
+  panel.innerHTML=`<div style="max-width:560px"><div style="font-size:42px;margin-bottom:12px">🌎</div><strong style="font-size:20px">Google 3D Earth view</strong><p style="opacity:.72;font-weight:500">${message}</p><p style="opacity:.58;font-size:12px;font-weight:500">This page intentionally no longer falls back to the old synthetic globe. Once the authorized Google Maps browser key is configured, this exact panel is replaced by Google's interactive photorealistic 3D Earth.</p></div>`;
+  host.appendChild(panel);
+}
+function loadGoogle(key){
+  return new Promise((resolve,reject)=>{
+    if(window.google?.maps)return resolve(window.google.maps);
+    window.__DOMGoogleMapsReady=()=>resolve(window.google.maps);
+    const s=document.createElement('script');
+    s.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&loading=async&libraries=maps3d&callback=__DOMGoogleMapsReady`;
+    s.async=true;s.defer=true;
+    s.onerror=()=>reject(new Error('Google Maps JavaScript API failed to load'));
+    document.head.appendChild(s);
+  });
+}
+async function build(){
+  const key=googleKey();
+  if(!key){
+    showSetup('An authorized Google Maps JavaScript API browser key is required before Google can render its 3D imagery on this public page.');
+    setState('Google 3D Earth is configured as the only map provider · browser API key still required.');
+    return;
+  }
+  try{
+    const maps=await loadGoogle(key);
+    const {Map3DElement}=await maps.importLibrary('maps3d');
+    earth3d=new Map3DElement({
+      center:{lat:15,lng:0,altitude:0},
+      range:19000000,
+      tilt:0,
+      heading:0,
+      mode:'HYBRID',
+      gestureHandling:'GREEDY'
+    });
+    earth3d.style.width='100%';
+    earth3d.style.height='100%';
+    earth3d.setAttribute('aria-label','Google photorealistic 3D Earth');
+    clearMap();
+    $('#earthMap')?.appendChild(earth3d);
+    earth3d.addEventListener?.('gmp-steadystate',e=>{if(e?.isSteady)setState('Geographical Earth active · Google photorealistic 3D imagery + geographic labels · hazards and sensors remain in the Hazard Observatory.')});
+    setState('Loading Google photorealistic 3D Earth…');
+  }catch(e){
+    showSetup(`Google 3D Earth could not initialize: ${String(e?.message||e)}`);
+    setState(`Google 3D Earth unavailable: ${String(e?.message||e)}`);
+  }
+}
+function reset(){
+  if(!earth3d)return;
+  earth3d.center={lat:15,lng:0,altitude:0};
+  earth3d.range=19000000;
+  earth3d.tilt=0;
+  earth3d.heading=0;
+}
+function refresh(){
+  if(!earth3d){build();return}
+  const host=$('#earthMap');
+  if(host){host.style.display='none';requestAnimationFrame(()=>{host.style.display='block'})}
+  setState('Geographical Earth refreshed · Google photorealistic 3D imagery active.');
+}
+function locate(){
+  if(!navigator.geolocation){setState('Location unavailable. Geographical Earth remains in global view.');return}
+  navigator.geolocation.getCurrentPosition(p=>{
+    if(!earth3d)return;
+    earth3d.center={lat:p.coords.latitude,lng:p.coords.longitude,altitude:0};
+    earth3d.range=18000;
+    earth3d.tilt=62;
+    earth3d.heading=0;
+  },()=>setState('Location unavailable. Geographical Earth remains in global view.'));
+}
+
 build();
 $('#resetEarth')?.addEventListener('click',reset);
 $('#refreshEarth')?.addEventListener('click',refresh);
