@@ -20,7 +20,8 @@
     ['./dom-earthquake-visual-restoration.js?v=20260914-2','domEarthquakeVisualRestoration'],
     ['./dom-geographic-hazard-motion.js?v=20260914-4','domGeographicHazardMotion'],
     ['./dom-global-operational-weather-field.js?v=20260914-5','domGlobalOperationalWeather'],
-    ['./dom-wmo-gbon-station-supplement.js?v=20260914-1','domWmoGbonStations']
+    ['./dom-wmo-gbon-station-supplement.js?v=20260914-1','domWmoGbonStations'],
+    ['./dom-global-coverage-gap-audit.js?v=20260914-1','domGlobalCoverageGapAudit']
   ];
   let pending=coreModules.length,replayed=false;
   const coreDone=()=>{
