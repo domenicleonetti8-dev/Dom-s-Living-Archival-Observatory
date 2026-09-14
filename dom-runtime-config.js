@@ -18,7 +18,7 @@
     ['./dom-geographic-semantic-forensic-audit.js?v=20260914-2','domGeographicSemanticForensicAudit'],
     ['./dom-weather-climate-station-inspector.js?v=20260914-2','domWeatherClimateStationInspector'],
     ['./dom-earthquake-visual-restoration.js?v=20260914-2','domEarthquakeVisualRestoration'],
-    ['./dom-geographic-hazard-motion.js?v=20260914-4','domGeographicHazardMotion'],
+    ['./dom-geographic-hazard-motion.js?v=20260914-5','domGeographicHazardMotion'],
     ['./dom-global-operational-weather-field.js?v=20260914-5','domGlobalOperationalWeather'],
     ['./dom-wmo-gbon-station-supplement.js?v=20260914-1','domWmoGbonStations'],
     ['./dom-global-coverage-gap-audit.js?v=20260914-1','domGlobalCoverageGapAudit']
@@ -47,7 +47,7 @@
   const dashboardKey='domObservatoryDashboardShell';
   if(document.querySelector(`script[data-dom-runtime-module="${dashboardKey}"]`))return;
   let css=document.querySelector('link[data-dom-dashboard-shell]');
-  const loadDashboard=()=>loadScript('./dom-observatory-dashboard-shell.js?v=20260914-7',dashboardKey);
+  const loadDashboard=()=>loadScript('./dom-observatory-dashboard-shell.js?v=20260914-8',dashboardKey);
   if(css){
     if(css.sheet)loadDashboard();
     else css.addEventListener('load',loadDashboard,{once:true});
