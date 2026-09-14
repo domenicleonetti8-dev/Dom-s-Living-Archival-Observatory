@@ -9,7 +9,8 @@
     for(const [src,key] of [
       ['./dom-geographic-semantic-forensic-audit.js?v=20260914-1','domGeographicSemanticForensicAudit'],
       ['./dom-weather-climate-station-inspector.js?v=20260914-1','domWeatherClimateStationInspector'],
-      ['./dom-earthquake-visual-restoration.js?v=20260914-1','domEarthquakeVisualRestoration']
+      ['./dom-earthquake-visual-restoration.js?v=20260914-1','domEarthquakeVisualRestoration'],
+      ['./dom-geographic-hazard-motion.js?v=20260914-1','domGeographicHazardMotion']
     ]){
       if(document.querySelector(`script[data-dom-runtime-module="${key}"]`))continue;
       const s=document.createElement('script');
