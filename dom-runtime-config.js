@@ -14,34 +14,44 @@
     });
   }
 
-  const loadScript=(src,key)=>{
-    if(document.querySelector(`script[data-dom-runtime-module="${key}"]`))return;
-    const s=document.createElement('script');
-    s.src=src;
-    s.defer=true;
-    s.dataset.domRuntimeModule=key;
-    document.head.appendChild(s);
-  };
-
-  for(const [src,key] of [
+  const coreModules=[
     ['./dom-geographic-semantic-forensic-audit.js?v=20260914-2','domGeographicSemanticForensicAudit'],
     ['./dom-weather-climate-station-inspector.js?v=20260914-2','domWeatherClimateStationInspector'],
     ['./dom-earthquake-visual-restoration.js?v=20260914-2','domEarthquakeVisualRestoration'],
     ['./dom-geographic-hazard-motion.js?v=20260914-4','domGeographicHazardMotion'],
-    ['./dom-global-operational-weather-field.js?v=20260914-4','domGlobalOperationalWeather']
-  ])loadScript(src,key);
+    ['./dom-global-operational-weather-field.js?v=20260914-5','domGlobalOperationalWeather'],
+    ['./dom-wmo-gbon-station-supplement.js?v=20260914-1','domWmoGbonStations']
+  ];
+  let pending=coreModules.length,replayed=false;
+  const coreDone=()=>{
+    pending=Math.max(0,pending-1);
+    if(!replayed&&pending===0&&window.DOMCurrentHazardMap?.map){
+      replayed=true;
+      queueMicrotask(()=>window.dispatchEvent(new CustomEvent('dom:map-ready',{detail:window.DOMCurrentHazardMap})));
+    }
+  };
+  const loadScript=(src,key,onload)=>{
+    const existing=document.querySelector(`script[data-dom-runtime-module="${key}"]`);
+    if(existing){onload?.();return}
+    const s=document.createElement('script');
+    s.src=src;
+    s.defer=true;
+    s.dataset.domRuntimeModule=key;
+    if(onload)s.addEventListener('load',onload,{once:true});
+    if(onload)s.addEventListener('error',onload,{once:true});
+    document.head.appendChild(s);
+  };
+  for(const [src,key] of coreModules)loadScript(src,key,coreDone);
 
   const dashboardKey='domObservatoryDashboardShell';
   if(document.querySelector(`script[data-dom-runtime-module="${dashboardKey}"]`))return;
-
   let css=document.querySelector('link[data-dom-dashboard-shell]');
-  const loadDashboard=()=>loadScript('./dom-observatory-dashboard-shell.js?v=20260914-6',dashboardKey);
+  const loadDashboard=()=>loadScript('./dom-observatory-dashboard-shell.js?v=20260914-7',dashboardKey);
   if(css){
     if(css.sheet)loadDashboard();
     else css.addEventListener('load',loadDashboard,{once:true});
     return;
   }
-
   css=document.createElement('link');
   css.rel='stylesheet';
   css.href='./dom-observatory-dashboard-shell.css?v=20260914-4';
