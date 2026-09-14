@@ -6,7 +6,7 @@ OUT=pathlib.Path('data/global-realtime')
 OUT.mkdir(parents=True, exist_ok=True)
 UA={'User-Agent':'DOM-Living-Observatory/1.0'}
 
-def get(url,timeout=25):
+def get(url,timeout=20):
     req=urllib.request.Request(url,headers=UA)
     with urllib.request.urlopen(req,timeout=timeout) as r:
         return r.read()
@@ -20,46 +20,52 @@ if station_path.exists():
 index={str(s.get('id','')):s for s in stations if s.get('id')}
 
 PROVIDERS=[
-    ('NSF EarthScope','https://service.earthscope.org/fdsnws/availability/1/query'),
-    ('GFZ GEOFON','https://geofon.gfz.de/fdsnws/availability/1/query'),
-    ('EIDA BGR','https://eida.bgr.de/fdsnws/availability/1/query'),
-    ('EIDA UIB-NORSAR','https://eida.geo.uib.no/fdsnws/availability/1/query'),
-    ('EIDA KOERI','https://eida.koeri.boun.edu.tr/fdsnws/availability/1/query'),
-    ('EIDA NIEP','https://eida-sc3.infp.ro/fdsnws/availability/1/query'),
+    ('GFZ GEOFON','https://geofon.gfz.de/fdsnws/availability/1/query',['GE','II','IC']),
+    ('EIDA BGR','https://eida.bgr.de/fdsnws/availability/1/query',['GR','GQ','HS','TH','LE','BQ','NH','KQ','SX','RN']),
+    ('EIDA UIB-NORSAR','https://eida.geo.uib.no/fdsnws/availability/1/query',['IU','NO','NS','QE']),
+    ('EIDA KOERI','https://eida.koeri.boun.edu.tr/fdsnws/availability/1/query',['KO','IJ','TL']),
+    ('EIDA NIEP','https://eida-sc3.infp.ro/fdsnws/availability/1/query',['RO','BS','MD','UD','UT','S5','RQ','AM']),
 ]
-params={
-    'format':'text',
-    'starttime':start.strftime('%Y-%m-%dT%H:%M:%S'),
-    'endtime':now.strftime('%Y-%m-%dT%H:%M:%S'),
-    'channel':'*Z',
-    'merge':'quality',
-    'nodata':'404'
-}
 
-def fetch_provider(provider,base):
+# EarthScope explicitly retired this availability endpoint in 2026. Keep that fact in status,
+# but do not query it and do not turn the outage into synthetic sensor activity.
+provider_status=[{'provider':'NSF EarthScope','status':'retired','http':410}]
+
+def fetch_network(provider,base,net):
+    params={
+        'format':'text',
+        'net':net,
+        'cha':'*Z',
+        'start':start.strftime('%Y-%m-%dT%H:%M:%S'),
+        'end':now.strftime('%Y-%m-%dT%H:%M:%S'),
+        'merge':'quality',
+        'nodata':'404'
+    }
     url=base+'?'+urllib.parse.urlencode(params)
     try:
         raw=get(url).decode('utf-8','replace')
     except urllib.error.HTTPError as e:
-        return provider,[],{'provider':provider,'status':'unavailable','http':e.code}
+        return provider,net,[],{'network':net,'status':'no-data' if e.code in (204,404) else 'unavailable','http':e.code}
     except Exception as e:
-        return provider,[],{'provider':provider,'status':'unavailable','error':str(e)}
+        return provider,net,[],{'network':net,'status':'unavailable','error':str(e)}
     rows=[]
     for line in raw.splitlines():
         if not line or line.startswith('#'): continue
         p=[x.strip() for x in (line.split('|') if '|' in line else line.split())]
-        if len(p)<2: continue
-        rows.append(p)
-    return provider,rows,{'provider':provider,'status':'ok','rowsReturned':len(rows)}
+        if len(p)>=2: rows.append(p)
+    return provider,net,rows,{'network':net,'status':'ok','rowsReturned':len(rows)}
 
-provider_rows={}; provider_status=[]
-with ThreadPoolExecutor(max_workers=len(PROVIDERS)) as ex:
-    futures={ex.submit(fetch_provider,p,b):(p,b) for p,b in PROVIDERS}
-    for fut in as_completed(futures):
-        provider,rows,status=fut.result(); provider_rows[provider]=rows; provider_status.append(status)
+tasks=[]
+with ThreadPoolExecutor(max_workers=12) as ex:
+    for provider,base,nets in PROVIDERS:
+        for net in nets:
+            tasks.append(ex.submit(fetch_network,provider,base,net))
+    provider_rows={p:[] for p,_,_ in PROVIDERS}; network_status={p:[] for p,_,_ in PROVIDERS}
+    for fut in as_completed(tasks):
+        provider,net,rows,status=fut.result(); provider_rows[provider].extend(rows); network_status[provider].append(status)
 
 active={}
-for provider,_ in PROVIDERS:
+for provider,_,nets in PROVIDERS:
     matched=0
     for p in provider_rows.get(provider,[]):
         sid=f'{p[0]}.{p[1]}'
@@ -75,13 +81,13 @@ for provider,_ in PROVIDERS:
         })
         a['channels']+=1
         if provider not in a['providers']: a['providers'].append(provider)
-    for st in provider_status:
-        if st.get('provider')==provider and st.get('status')=='ok': st['stationsMatched']=matched
+    statuses=network_status.get(provider,[])
+    ok=sum(1 for x in statuses if x['status']=='ok')
+    provider_status.append({'provider':provider,'status':'ok' if ok else 'unavailable','networksResponded':ok,'networksQueried':len(nets),'stationsMatched':matched,'networks':statuses})
 
-ok=[p for p in provider_status if p['status']=='ok']
-status='LIVE' if ok and len(ok)==len(PROVIDERS) else ('PARTIAL' if ok else 'UPSTREAM_UNAVAILABLE')
-notice=(f'{len(ok)}/{len(PROVIDERS)} official FDSN availability providers responded. '
-        f'{len(active)} stations had verified recent vertical-channel waveform availability.') if ok else 'No configured FDSN availability provider responded; no recent-waveform activity is inferred.'
+responding=[p for p in provider_status if p.get('status')=='ok']
+status='PARTIAL' if responding else 'UPSTREAM_UNAVAILABLE'
+notice=(f'{len(responding)} availability providers returned recent data; {len(active)} stations had verified recent vertical-channel waveform availability.') if responding else 'No configured availability provider returned recent waveform data; no sensor movement is inferred.'
 obj={
     'updatedAt':now.isoformat(),
     'windowStart':start.isoformat(),
@@ -94,4 +100,4 @@ obj={
     'activeStations':list(active.values())
 }
 (OUT/'seismic_activity.json').write_text(json.dumps(obj,separators=(',',':')))
-print('seismic heartbeat status',status,'providers',len(ok),'stations',len(active))
+print('seismic heartbeat status',status,'providers',len(responding),'stations',len(active))
