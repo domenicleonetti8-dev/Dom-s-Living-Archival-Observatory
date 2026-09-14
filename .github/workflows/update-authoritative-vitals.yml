@@ -9,6 +9,7 @@ on:
       - 'tools/update_2026_current_sources.py'
       - 'tools/update_coral_network.py'
       - 'tools/update_weather_climate_networks.py'
+      - 'tools/update_global_hydrology.py'
       - '.github/workflows/update-authoritative-vitals.yml'
   schedule:
     - cron: '*/5 * * * *'
@@ -31,10 +32,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Fetch authoritative vitals, coral, weather and climate networks
+      - name: Fetch authoritative vitals, hydrology, coral, weather and climate networks
         run: |
           python tools/update_authoritative_vitals.py
           python tools/update_2026_current_sources.py
+          python tools/update_global_hydrology.py
           python tools/update_coral_network.py
           python tools/update_weather_climate_networks.py
       - name: Validate authoritative snapshots and station fabric
@@ -75,6 +77,15 @@ jobs:
           if cb['status']=='live':
               assert cb.get('productVersion')=='3.1'; assert cb.get('productReleased')=='2026-04-30'
               assert 0 <= float(cb['globalReefPixelsExposedPct']) <= 100; assert int(cb['windowDays']) == 365; assert cb.get('observationDate')
+          hyd=json.load(open('data/global-hydrology.json'))
+          assert hyd['schema']=='dom-global-hydrology-source-v1'
+          assert hyd['status']=='source-connected'
+          assert hyd['sourceUrl'].startswith('https://')
+          assert hyd['coverage']=='global land'
+          assert float(hyd['resolutionDegrees'])==0.25
+          assert hyd['qualification']=='SOURCE_CONNECTED_INDEX_WITHHELD'
+          assert hyd.get('healthIndex') is None
+          assert re.fullmatch(r'20\d{2}-\d{2}-\d{2}',hyd['latestProductDate'])
           latest=p.get('latestAssessments') or {}; assert latest.get('forests',{}).get('latestAvailableAsOf2026') is True; assert latest.get('coralCover',{}).get('latestAvailableAsOf2026') is True
           coral=json.load(open('data/coral-live.json'))
           assert coral['schema']=='dom-coral-live-v1'; assert int(coral['stationCount']) >= 150; assert len(coral['stations'])==int(coral['stationCount'])
@@ -102,18 +113,18 @@ jobs:
                   if s.get('crossNetworkLocationSupport'):
                       supported+=1; assert 0 <= float(s['crossNetworkNearestM']) <= 500
           assert total==int(wc['stationCount']); assert supported==int(lv.get('crossNetworkSupportedStations',supported))
-          print('AUTHORITATIVE_EARTH_CORAL_WEATHER_CLIMATE_2026=PASS')
+          print('AUTHORITATIVE_EARTH_HYDROLOGY_CORAL_WEATHER_CLIMATE_2026=PASS')
           PY
       - name: Commit changed snapshots only
         shell: bash
         run: |
-          if git diff --quiet -- data/live-vitals.json data/coral-live.json data/weather-climate; then
+          if git diff --quiet -- data/live-vitals.json data/global-hydrology.json data/coral-live.json data/weather-climate; then
             echo 'No authoritative snapshot change.'
             exit 0
           fi
           git config user.name 'dom-vitals-bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add data/live-vitals.json data/coral-live.json data/weather-climate
+          git add data/live-vitals.json data/global-hydrology.json data/coral-live.json data/weather-climate
           git commit -m 'Refresh authoritative Earth sensor snapshots'
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
