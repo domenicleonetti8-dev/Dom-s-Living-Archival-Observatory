@@ -18,13 +18,16 @@ function ensure(){if(!map||!map.loaded()||!map.getSource('dom-integrity-hazards'
  promote();start();return true}
 function wave(ms,offset=0){return((performance.now()+offset)%ms)/ms}
 function animate(ts){raf=0;if(!map||!map.loaded()){start();return}if(ts-lastFrame<28){start();return}lastFrame=ts;
- const fire=wave(1500),storm=wave(1900,430),volcano=wave(2500,870),tsunami=wave(2100,220),env=wave(3200,1200);
+ const fire=wave(1500),storm=wave(1900,430),volcano=wave(2500,870),tsunami=wave(2100,220),env=wave(3200,1200),generic=wave(2200,640);
  paint('dom-integrity-wildfire-pulse','circle-radius',10+fire*30);paint('dom-integrity-wildfire-pulse','circle-stroke-opacity',.88*(1-fire));
  paint('dom-integrity-wildfire','circle-radius',['interpolate',['linear'],['zoom'],0,4.8+Math.sin(fire*Math.PI)*2.3,5,7+Math.sin(fire*Math.PI)*2.6,10,9.5+Math.sin(fire*Math.PI)*3]);paint('dom-integrity-wildfire','circle-opacity',.65+Math.sin(fire*Math.PI)*.25);
  paint('dom-integrity-storm-pulse','circle-radius',11+storm*32);paint('dom-integrity-storm-pulse','circle-stroke-opacity',.90*(1-storm));
  paint('dom-integrity-volcano-pulse','circle-radius',10+volcano*26);paint('dom-integrity-volcano-pulse','circle-stroke-opacity',.80*(1-volcano));
  paint('dom-integrity-tsunami-pulse','circle-radius',12+tsunami*40);paint('dom-integrity-tsunami-pulse','circle-stroke-opacity',.92*(1-tsunami));
  paint('dom-integrity-environment-pulse','circle-radius',9+env*18);paint('dom-integrity-environment-pulse','circle-stroke-opacity',.62*(1-env));
+ paint('dom-integrity-area-fill','fill-opacity',.025+Math.sin(generic*Math.PI)*.08);paint('dom-integrity-area-line','line-width',1.8+Math.sin(generic*Math.PI)*1.8);paint('dom-integrity-area-line','line-opacity',.55+Math.sin(generic*Math.PI)*.4);
+ paint('dom-hazard-rings','circle-radius',12+generic*18);paint('dom-hazard-rings','circle-stroke-opacity',.72*(1-generic));
+ paint('dom-hazard-area-fill','fill-opacity',.025+Math.sin(generic*Math.PI)*.07);paint('dom-hazard-area-line','line-width',1.7+Math.sin(generic*Math.PI)*1.5);
  promote();start()}
 function start(){if(raf||reduced()||document.visibilityState==='hidden')return;raf=requestAnimationFrame(animate)}
 function stop(){if(raf)cancelAnimationFrame(raf);raf=0}
@@ -32,6 +35,7 @@ function attach(m){map=m;ensure();try{map.on('styledata',()=>setTimeout(ensure,0
 window.addEventListener('dom:map-ready',e=>{if(e.detail?.map)attach(e.detail.map)});
 for(const n of ['dom:hazard-extension','dom:hazard-refresh','dom:verified-global-events'])window.addEventListener(n,()=>setTimeout(()=>{ensure();start()},0));
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){ensure();start()}else stop()});
+window.addEventListener('pageshow',()=>{setTimeout(()=>{ensure();start()},0)});
 window.addEventListener('pagehide',stop,{once:true});
 window.DOMHazardAnimationIntegrity=Object.freeze({state:()=>({attached:!!map,running:!!raf,reducedMotion:reduced(),layers:promoted.filter(has)}),ensure});
 })();
