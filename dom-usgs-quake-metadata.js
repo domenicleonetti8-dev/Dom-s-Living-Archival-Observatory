@@ -1,0 +1,8 @@
+(()=>{
+'use strict';
+const rows=new Map();let updatedAt=null,lastError=null,timer=null;
+const finite=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v));
+async function refresh(){try{const r=await fetch(`https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson?t=${Date.now()}`,{cache:'no-store',headers:{Accept:'application/geo+json, application/json'}});if(!r.ok)throw Error(`USGS HTTP ${r.status}`);const j=await r.json();rows.clear();for(const f of j.features||[]){const p=f.properties||{},c=f.geometry?.coordinates;if(!f.id||!Array.isArray(c)||!finite(c[0])||!finite(c[1]))continue;rows.set(`usgs:${f.id}`,{id:`usgs:${f.id}`,usgsId:String(f.id),lat:+c[1],lon:+c[0],depthKm:finite(c[2])?+c[2]:null,mag:finite(p.mag)?+p.mag:null,place:p.place||null,title:p.title||null,network:p.net||null,stationCount:finite(p.nst)?+p.nst:null,gap:finite(p.gap)?+p.gap:null,dmin:finite(p.dmin)?+p.dmin:null,rms:finite(p.rms)?+p.rms:null,status:p.status||null,eventType:p.type||null,tsunami:finite(p.tsunami)?+p.tsunami:null,time:p.time||null,updated:p.updated||null,detailUrl:p.detail||p.url||null});}updatedAt=new Date().toISOString();lastError=null}catch(e){lastError=String(e?.message||e)}}
+refresh();timer=setInterval(()=>{if(document.visibilityState==='visible')refresh()},60000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});window.addEventListener('pagehide',()=>{if(timer)clearInterval(timer)},{once:true});
+window.DOMUSGSQuakeMetadata=Object.freeze({refresh,get:id=>rows.get(String(id))||null,state:()=>({events:rows.size,updatedAt,lastError})});
+})();
