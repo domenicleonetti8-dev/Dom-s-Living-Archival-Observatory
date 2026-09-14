@@ -1,8 +1,9 @@
-name: D.O.M. isolated organism qualification
+name: D.O.M. organism qualification
 
 on:
   push:
     branches:
+      - main
       - global-hazard-observatory-isolated
       - prominent-hazards-ar-entry-isolated
       - isolated-earth-geospatial-sensor-fabric-v1
