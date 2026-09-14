@@ -1,0 +1,35 @@
+name: D.O.M. hazard coupled physics qualification
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dom-planetary-coupled-hazard-math.js'
+      - 'dom-hazard-popup-provenance.js'
+      - 'dom-global-operational-weather-field.js'
+      - 'dom-hazard-geophysical-adapter.js'
+      - 'dom-hazard-render-reconciler.js'
+      - 'ci/dom-hazard-coupled-physics-100000-test.js'
+      - '.github/workflows/hazard-coupled-physics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hazard-physics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Hazard JavaScript syntax
+        run: |
+          node --check dom-planetary-coupled-hazard-math.js
+          node --check dom-hazard-popup-provenance.js
+          node --check dom-global-operational-weather-field.js
+      - name: 100,000-case coupled hazard physics
+        run: node ci/dom-hazard-coupled-physics-100000-test.js
