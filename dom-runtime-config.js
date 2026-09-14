@@ -7,6 +7,13 @@
 
   if(!/\/hazards\.html$/i.test(location.pathname))return;
 
+  if(!window.__domCurrentMapCaptureInstalled){
+    window.__domCurrentMapCaptureInstalled=true;
+    window.addEventListener('dom:map-ready',e=>{
+      if(e.detail?.map)window.DOMCurrentHazardMap={map:e.detail.map,maplibre:e.detail.maplibre||null,capturedAt:new Date().toISOString()};
+    });
+  }
+
   const loadScript=(src,key)=>{
     if(document.querySelector(`script[data-dom-runtime-module="${key}"]`))return;
     const s=document.createElement('script');
@@ -20,15 +27,15 @@
     ['./dom-geographic-semantic-forensic-audit.js?v=20260914-2','domGeographicSemanticForensicAudit'],
     ['./dom-weather-climate-station-inspector.js?v=20260914-2','domWeatherClimateStationInspector'],
     ['./dom-earthquake-visual-restoration.js?v=20260914-2','domEarthquakeVisualRestoration'],
-    ['./dom-geographic-hazard-motion.js?v=20260914-3','domGeographicHazardMotion'],
-    ['./dom-global-operational-weather-field.js?v=20260914-3','domGlobalOperationalWeather']
+    ['./dom-geographic-hazard-motion.js?v=20260914-4','domGeographicHazardMotion'],
+    ['./dom-global-operational-weather-field.js?v=20260914-4','domGlobalOperationalWeather']
   ])loadScript(src,key);
 
   const dashboardKey='domObservatoryDashboardShell';
   if(document.querySelector(`script[data-dom-runtime-module="${dashboardKey}"]`))return;
 
   let css=document.querySelector('link[data-dom-dashboard-shell]');
-  const loadDashboard=()=>loadScript('./dom-observatory-dashboard-shell.js?v=20260914-5',dashboardKey);
+  const loadDashboard=()=>loadScript('./dom-observatory-dashboard-shell.js?v=20260914-6',dashboardKey);
   if(css){
     if(css.sheet)loadDashboard();
     else css.addEventListener('load',loadDashboard,{once:true});
