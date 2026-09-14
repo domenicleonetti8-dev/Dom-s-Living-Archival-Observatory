@@ -2,13 +2,15 @@
 'use strict';
 let map=window.DOMHazardMap||window.DOMCurrentHazardMap?.map||null,boundMap=null,styleBoundMap=null;
 const SOURCE='dom-wildfire-symbols-source',DOT='dom-wildfire-origin-dot',LOW='dom-wildfire-symbols',HIGH='dom-wildfire-symbols-all',ICON='dom-wildfire-flame-emoji';
+const LEGACY=['dom-hazard-wildfire-flame','dom-hazard-wildfire-glow','dom-integrity-wildfire','dom-integrity-wildfire-pulse','dom-animated-wildfire','dom-animated-wildfire-glow'];
 const valid=(a,b)=>Number.isFinite(Number(a))&&Number.isFinite(Number(b))&&Number(a)>=-90&&Number(a)<=90&&Number(b)>=-180&&Number(b)<=180;
 function point(e){const g=e?.sourceGeometry;if(g?.type==='Point'&&Array.isArray(g.coordinates)&&valid(g.coordinates[1],g.coordinates[0]))return{lat:+g.coordinates[1],lon:+g.coordinates[0],basis:'exact upstream Point geometry'};if(valid(e?.lat,e?.lon))return{lat:+e.lat,lon:+e.lon,basis:String(e?.locationPrecision||'source-derived coordinates')};return null}
 function rows(){const r=window.DOMHazardRenderReconciler?.rows?.()||[];return r.filter(e=>String(e?.kind||'').toLowerCase()==='wildfire'&&e?.geometryIntegrity!=='QUARANTINED').map(e=>({e,p:point(e)})).filter(x=>x.p)}
 function data(){return{type:'FeatureCollection',features:rows().map(({e,p})=>({type:'Feature',geometry:{type:'Point',coordinates:[p.lon,p.lat]},properties:{id:String(e.id||''),title:String(e.title||'Wildfire'),source:String(e.source||e.agency||''),precision:String(e.locationPrecision||p.basis),basis:p.basis,lat:p.lat,lon:p.lon}}))}}
+function hideLegacy(){for(const id of LEGACY)try{if(map?.getLayer?.(id))map.setLayoutProperty(id,'visibility','none')}catch(_){}}
 function addFlame(){if(!map||map.hasImage?.(ICON))return;const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.clearRect(0,0,64,64);x.textAlign='center';x.textBaseline='middle';x.font='44px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.fillText('🔥',32,33);try{map.addImage(ICON,x.getImageData(0,0,64,64),{pixelRatio:2})}catch(_){}}
 function add(id,def,before){if(map?.getLayer(id))return;try{before&&map.getLayer(before)?map.addLayer(def,before):map.addLayer(def)}catch(_){}}
-function ensure(){if(!map||!map.loaded?.())return;addFlame();const d=data();if(!map.getSource(SOURCE))map.addSource(SOURCE,{type:'geojson',data:d});else map.getSource(SOURCE).setData(d);
+function ensure(){if(!map||!map.loaded?.())return;hideLegacy();addFlame();const d=data();if(!map.getSource(SOURCE))map.addSource(SOURCE,{type:'geojson',data:d});else map.getSource(SOURCE).setData(d);
   add(DOT,{id:DOT,type:'circle',source:SOURCE,paint:{'circle-color':'#ff7a1a','circle-radius':['interpolate',['linear'],['zoom'],0,1.25,5,1.8,9,2.5,14,3.2],'circle-opacity':.9,'circle-stroke-color':'#ffd166','circle-stroke-width':.65,'circle-stroke-opacity':.9}});
   add(LOW,{id:LOW,type:'symbol',source:SOURCE,maxzoom:6.5,layout:{'icon-image':ICON,'icon-size':['interpolate',['linear'],['zoom'],0,.42,3,.48,6,.56],'icon-allow-overlap':false,'icon-ignore-placement':false,'icon-padding':2,'symbol-sort-key':0},paint:{'icon-opacity':.98}});
   add(HIGH,{id:HIGH,type:'symbol',source:SOURCE,minzoom:6.5,layout:{'icon-image':ICON,'icon-size':['interpolate',['linear'],['zoom'],6.5,.5,10,.62,14,.72],'icon-allow-overlap':true,'icon-ignore-placement':true},paint:{'icon-opacity':.98}});
@@ -20,5 +22,5 @@ function bind(){if(!map||boundMap===map)return;boundMap=map;for(const id of [LOW
 function attach(m){if(m)map=m;if(!map)return;ensure();if(styleBoundMap===map)return;styleBoundMap=map;try{map.on('styledata',()=>setTimeout(ensure,0))}catch(_){} }
 function schedule(){queueMicrotask(ensure)}
 window.addEventListener('dom:map-ready',e=>attach(e.detail?.map||null));for(const n of ['dom:hazard-refresh','dom:hazard-extension','dom:verified-global-events'])window.addEventListener(n,schedule);if(map)queueMicrotask(ensure);document.addEventListener('DOMContentLoaded',schedule,{once:true});
-window.DOMWildfireSymbolLayer=Object.freeze({attach,refresh:ensure,state:()=>({wildfires:rows().length,source:SOURCE,layers:[DOT,LOW,HIGH],icon:ICON,mapAttached:!!map,semantics:'exact coordinates; collision-aware flames at global zoom; every fire flame visible at local zoom'})});
+window.DOMWildfireSymbolLayer=Object.freeze({attach,refresh:ensure,state:()=>({wildfires:rows().length,source:SOURCE,layers:[DOT,LOW,HIGH],legacySuppressed:LEGACY.slice(),icon:ICON,mapAttached:!!map,semantics:'exact coordinates; collision-aware flames at global zoom; every fire flame visible at local zoom'})});
 })();
