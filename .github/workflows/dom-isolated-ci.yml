@@ -1,9 +1,8 @@
-name: D.O.M. organism qualification
+name: D.O.M. isolated organism qualification
 
 on:
   push:
     branches:
-      - main
       - global-hazard-observatory-isolated
       - prominent-hazards-ar-entry-isolated
       - isolated-earth-geospatial-sensor-fabric-v1
@@ -16,7 +15,7 @@ permissions:
 jobs:
   canonical-runtime:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,25 +27,18 @@ jobs:
       - name: JavaScript syntax qualification
         run: find . -maxdepth 1 -type f -name '*.js' -print0 | xargs -0 -n1 node --check
       - name: Geographic Earth routing and anchoring
-        if: always()
         run: node ci/dom-earth-geospatial-test.js
       - name: Geographic Earth 20,000-case invariant qualification
-        if: always()
         run: node ci/dom-earth-20000-invariant-test.js
       - name: WGS84 Earth and AR geodesy 100,000-case qualification
-        if: always()
         run: node ci/dom-earth-geodesy-100000-test.js
       - name: Scientific instrument fabric 50,000-case qualification
-        if: always()
         run: node ci/dom-scientific-instrument-fabric-test.js
       - name: Authoritative vitals 50,000-case math and truth qualification
-        if: always()
         run: node ci/dom-authoritative-vitals-truth-50000-test.js
       - name: Snapshot generator compile qualification
-        if: always()
         run: python -m py_compile tools/update_authoritative_vitals.py
       - name: Authoritative source live-fetch qualification
-        if: always()
         run: |
           python tools/update_authoritative_vitals.py
           python - <<'PY'
@@ -59,36 +51,25 @@ jobs:
           print(json.dumps({k:{x:p[k].get(x) for x in ('source','fetchedAt','value','anomalyC','trendMmPerYear','uncertaintyMmPerYear')} for k in ('population','temperature','seaLevel')}, sort_keys=True))
           PY
       - name: Scientific broker integration qualification
-        if: always()
         run: node ci/dom-scientific-broker-integration-test.js
       - name: Earth controls, AR bridge and prediction qualification
-        if: always()
         run: node ci/dom-control-ar-prediction-test.js
       - name: Federated search connector truth qualification
-        if: always()
         run: node ci/dom-search-source-truth-test.js
       - name: Source time and freshness truth qualification
-        if: always()
         run: node ci/dom-source-time-truth-test.js
       - name: Extreme events and Earth vitals qualification
-        if: always()
         run: node ci/dom-extreme-events-vitals-test.js
       - name: Canonical JavaScript organism execution
-        if: always()
         run: node ci/dom-canonical-runtime-test.js
       - name: Hazard semantics execution
-        if: always()
         run: node ci/dom-hazard-semantics-test.js
       - name: Live risk lighting lifecycle
-        if: always()
         run: node ci/dom-risk-lighting-test.js
       - name: Shared visitor client execution
-        if: always()
         run: node ci/dom-visitor-client-test.js
       - name: Broker compile qualification
-        if: always()
         run: python -m compileall -q broker
       - name: Canonical path and broker regression suites
-        if: always()
         working-directory: broker
         run: python -m unittest discover -v -p 'test_*.py'
