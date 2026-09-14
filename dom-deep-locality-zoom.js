@@ -1,0 +1,6 @@
+(()=>{'use strict';
+let map=null;
+function note(){let el=document.getElementById('domDeepLocalityState');if(!el){const a=document.getElementById('sourceState')||document.getElementById('stationFabricState');if(!a)return;el=document.createElement('div');el.id='domDeepLocalityState';el.className='source-state';a.insertAdjacentElement('afterend',el)}el.innerHTML='<strong>Locality zoom</strong> · world → country → county → town → street-context zoom enabled<br><span class="tiny">Hazard and sensor coordinates are never moved to match labels. OpenStreetMap detail increases as you zoom; source coordinates remain authoritative.</span>'}
+function attach(m){if(!m)return;map=m;try{map.setMaxZoom(18);map.setMinZoom(.35);if(map.scrollZoom?.setWheelZoomRate)map.scrollZoom.setWheelZoomRate(1/450);if(map.touchZoomRotate?.enable)map.touchZoomRotate.enable()}catch(_){}note()}
+window.addEventListener('dom:map-ready',e=>attach(e.detail?.map));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&map)attach(map)});window.DOMDeepLocalityZoom=Object.freeze({attach,state:()=>({attached:!!map,maxZoom:map?.getMaxZoom?.()??null})});
+})();
