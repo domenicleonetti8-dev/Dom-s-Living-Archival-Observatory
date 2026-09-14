@@ -1,17 +1,24 @@
 (()=>{
 'use strict';
-let map=window.DOMHazardMap||null;
-const SOURCE='dom-wildfire-symbols-source',LAYER='dom-wildfire-symbols',ICON='dom-wildfire-flame';
+let map=window.DOMHazardMap||window.DOMCurrentHazardMap?.map||null,boundMap=null;
+const SOURCE='dom-wildfire-symbols-source',DOT='dom-wildfire-origin-dot',LOW='dom-wildfire-symbols',HIGH='dom-wildfire-symbols-all',ICON='dom-wildfire-flame-emoji';
 const valid=(a,b)=>Number.isFinite(Number(a))&&Number.isFinite(Number(b))&&Number(a)>=-90&&Number(a)<=90&&Number(b)>=-180&&Number(b)<=180;
-function rows(){const r=window.DOMHazardRenderReconciler?.rows?.()||[];return r.filter(e=>String(e?.kind||'').toLowerCase()==='wildfire'&&e?.geometryIntegrity!=='QUARANTINED'&&valid(e?.lat,e?.lon));}
-function data(){return{type:'FeatureCollection',features:rows().map(e=>({type:'Feature',geometry:{type:'Point',coordinates:[Number(e.lon),Number(e.lat)]},properties:{id:String(e.id||''),title:String(e.title||'Wildfire'),source:String(e.source||e.agency||'')}}))};}
-function addFlame(){if(!map||map.hasImage?.(ICON))return;const c=document.createElement('canvas');c.width=40;c.height=48;const x=c.getContext('2d');x.clearRect(0,0,40,48);x.lineJoin='round';x.beginPath();x.moveTo(20,3);x.bezierCurveTo(28,13,34,20,33,29);x.bezierCurveTo(32,40,25,46,19,46);x.bezierCurveTo(9,46,4,39,6,31);x.bezierCurveTo(8,23,15,19,15,10);x.bezierCurveTo(15,7,17,5,20,3);x.closePath();x.fillStyle='#ff5b22';x.fill();x.strokeStyle='#7a2200';x.lineWidth=2;x.stroke();x.beginPath();x.moveTo(21,18);x.bezierCurveTo(26,24,27,29,25,34);x.bezierCurveTo(24,39,20,42,17,40);x.bezierCurveTo(13,38,12,34,14,30);x.bezierCurveTo(16,26,20,24,21,18);x.closePath();x.fillStyle='#ffd43b';x.fill();const img=x.getImageData(0,0,40,48);try{map.addImage(ICON,img,{pixelRatio:2})}catch(_){}}
-function ensure(){if(!map||!map.loaded?.())return;addFlame();const d=data();if(!map.getSource(SOURCE))map.addSource(SOURCE,{type:'geojson',data:d});else map.getSource(SOURCE).setData(d);if(!map.getLayer(LAYER))map.addLayer({id:LAYER,type:'symbol',source:SOURCE,layout:{'icon-image':ICON,'icon-size':['interpolate',['linear'],['zoom'],0,.62,4,.72,8,.9,12,1.05],'icon-allow-overlap':true,'icon-ignore-placement':true},paint:{'icon-opacity':.98}});try{map.moveLayer(LAYER)}catch(_){} }
-function attach(m){if(m)map=m;ensure();try{map?.on?.('styledata',ensure)}catch(_){}}
+function point(e){const g=e?.sourceGeometry;if(g?.type==='Point'&&Array.isArray(g.coordinates)&&valid(g.coordinates[1],g.coordinates[0]))return{lat:+g.coordinates[1],lon:+g.coordinates[0],basis:'exact upstream Point geometry'};if(valid(e?.lat,e?.lon))return{lat:+e.lat,lon:+e.lon,basis:String(e?.locationPrecision||'source-derived coordinates')};return null}
+function rows(){const r=window.DOMHazardRenderReconciler?.rows?.()||[];return r.filter(e=>String(e?.kind||'').toLowerCase()==='wildfire'&&e?.geometryIntegrity!=='QUARANTINED').map(e=>({e,p:point(e)})).filter(x=>x.p)}
+function data(){return{type:'FeatureCollection',features:rows().map(({e,p})=>({type:'Feature',geometry:{type:'Point',coordinates:[p.lon,p.lat]},properties:{id:String(e.id||''),title:String(e.title||'Wildfire'),source:String(e.source||e.agency||''),precision:String(e.locationPrecision||p.basis),basis:p.basis,lat:p.lat,lon:p.lon}}))}}
+function addFlame(){if(!map||map.hasImage?.(ICON))return;const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');x.clearRect(0,0,64,64);x.textAlign='center';x.textBaseline='middle';x.font='44px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.fillText('🔥',32,33);try{map.addImage(ICON,x.getImageData(0,0,64,64),{pixelRatio:2})}catch(_){}}
+function add(id,def,before){if(map?.getLayer(id))return;try{before&&map.getLayer(before)?map.addLayer(def,before):map.addLayer(def)}catch(_){}}
+function ensure(){if(!map||!map.loaded?.())return;addFlame();const d=data();if(!map.getSource(SOURCE))map.addSource(SOURCE,{type:'geojson',data:d});else map.getSource(SOURCE).setData(d);
+  add(DOT,{id:DOT,type:'circle',source:SOURCE,paint:{'circle-color':'#ff7a1a','circle-radius':['interpolate',['linear'],['zoom'],0,1.25,5,1.8,9,2.5,14,3.2],'circle-opacity':.9,'circle-stroke-color':'#ffd166','circle-stroke-width':.65,'circle-stroke-opacity':.9}});
+  add(LOW,{id:LOW,type:'symbol',source:SOURCE,maxzoom:6.5,layout:{'icon-image':ICON,'icon-size':['interpolate',['linear'],['zoom'],0,.42,3,.48,6,.56],'icon-allow-overlap':false,'icon-ignore-placement':false,'icon-padding':2,'symbol-sort-key':0},paint:{'icon-opacity':.98}});
+  add(HIGH,{id:HIGH,type:'symbol',source:SOURCE,minzoom:6.5,layout:{'icon-image':ICON,'icon-size':['interpolate',['linear'],['zoom'],6.5,.5,10,.62,14,.72],'icon-allow-overlap':true,'icon-ignore-placement':true},paint:{'icon-opacity':.98}});
+  for(const id of [DOT,LOW,HIGH])try{if(map.getLayer(id))map.moveLayer(id)}catch(_){}
+  bind();
+}
+function popup(f){if(!f||!map)return;const p=f.properties||{},ll=f.geometry?.coordinates;if(!Array.isArray(ll))return;const ML=window.maplibregl||window.MaplibreGL||window.DOMCurrentHazardMap?.maplibre;if(!ML?.Popup)return;const safe=s=>String(s??'').replace(/[<>]/g,'');new ML.Popup({closeButton:true,maxWidth:'300px'}).setLngLat(ll).setHTML(`<div style="font:600 12px/1.45 system-ui"><div style="font-size:16px">🔥 ${safe(p.title||'Wildfire')}</div><div><b>Latitude:</b> ${Number(p.lat).toFixed(5)}°</div><div><b>Longitude:</b> ${Number(p.lon).toFixed(5)}°</div><div><b>Source:</b> ${safe(p.source||'source unavailable')}</div><div><b>Coordinate basis:</b> ${safe(p.basis||p.precision||'source coordinates')}</div></div>`).addTo(map)}
+function bind(){if(!map||boundMap===map)return;boundMap=map;for(const id of [LOW,HIGH,DOT]){try{map.on('click',id,e=>popup(e.features?.[0]));map.on('mouseenter',id,()=>{map.getCanvas().style.cursor='pointer'});map.on('mouseleave',id,()=>{map.getCanvas().style.cursor=''})}catch(_){}}}
+function attach(m){if(m)map=m;if(!map)return;ensure();try{map.on('styledata',()=>setTimeout(ensure,0))}catch(_){} }
 function schedule(){queueMicrotask(ensure)}
-window.addEventListener('dom:map-ready',e=>attach(e.detail?.map||null));
-for(const n of ['dom:hazard-refresh','dom:hazard-extension','dom:verified-global-events'])window.addEventListener(n,schedule);
-if(map)queueMicrotask(ensure);
-document.addEventListener('DOMContentLoaded',schedule,{once:true});
-window.DOMWildfireSymbolLayer=Object.freeze({attach,refresh:ensure,state:()=>({wildfires:rows().length,source:SOURCE,layer:LAYER,icon:ICON,mapAttached:!!map})});
+window.addEventListener('dom:map-ready',e=>attach(e.detail?.map||null));for(const n of ['dom:hazard-refresh','dom:hazard-extension','dom:verified-global-events'])window.addEventListener(n,schedule);if(map)queueMicrotask(ensure);document.addEventListener('DOMContentLoaded',schedule,{once:true});
+window.DOMWildfireSymbolLayer=Object.freeze({attach,refresh:ensure,state:()=>({wildfires:rows().length,source:SOURCE,layers:[DOT,LOW,HIGH],icon:ICON,mapAttached:!!map,semantics:'exact coordinates; collision-aware flames at global zoom; every fire flame visible at local zoom'})});
 })();
