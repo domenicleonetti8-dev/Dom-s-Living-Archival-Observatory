@@ -13,6 +13,7 @@ const DOMBrokerStatus=(()=>{
     set('domVisitorState',visitorText());
   }
   function mountVisitor(){
+    if(typeof DOMVisitorClient==='undefined'){document.getElementById('domVisitorCounter')?.remove();return false}
     const shell=document.querySelector('.hazard-shell')||document.querySelector('main')||document.body;if(!shell)return false;
     let box=document.getElementById('domVisitorCounter');
     if(!box){box=document.createElement('section');box.id='domVisitorCounter';box.setAttribute('aria-label','Anonymous public visitor activity');box.style.cssText='margin:26px 0 12px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.10);border-bottom:1px solid rgba(255,255,255,.06);opacity:.76';box.innerHTML='<div class="tiny" style="display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;text-align:center"><span>Anonymous visitors <strong id="domTotalVisitors" style="display:inline;font-size:.95rem">—</strong></span><span>Live now <strong id="domLiveVisitors" style="display:inline;font-size:.95rem">—</strong></span><span id="domVisitorState" aria-live="polite">Waiting for visitor service…</span></div><div class="tiny" style="margin-top:5px;text-align:center;opacity:.72">Privacy-preserving browser counts · no names, location history or fingerprinting.</div>'}
@@ -20,10 +21,11 @@ const DOMBrokerStatus=(()=>{
     render();return true
   }
   function mount(){const anchor=document.getElementById('sourceState');if(anchor){let box=document.getElementById('domNetworkTruth');if(!box){box=document.createElement('div');box.id='domNetworkTruth';box.className='evidence-block';box.innerHTML='<strong>D.O.M. network truth</strong><div id="brokerState" class="tiny"></div><div id="organismState" class="tiny"></div><div class="tiny">Registered source families are not counted as live until an adapter actually ingests them. Stale feeds are separated from active feeds. Feed health is not Earth health.</div>';anchor.insertAdjacentElement('afterend',box)}}mountVisitor();render();return true}
-  function startVisitor(){if(visitorUnsubscribe||typeof DOMVisitorClient==='undefined')return;if(typeof DOMVisitorClient.start==='function')visitorUnsubscribe=DOMVisitorClient.start(s=>{visitor={...visitor,...(s||{})};render()})}
+  function startVisitor(){if(visitorUnsubscribe||typeof DOMVisitorClient==='undefined')return;if(typeof DOMVisitorClient.start==='function')visitorUnsubscribe=DOMVisitorClient.start(s=>{visitor={...visitor,...(s||{})};mountVisitor();render()})}
   function boot(){mount();startVisitor()}
   window.addEventListener('dom:broker-state',ev=>{broker={...broker,...(ev.detail||{})};mount()});
   window.addEventListener('dom:organism-state',ev=>{organism={...organism,...(ev.detail||{})};mount()});
+  window.addEventListener('dom:visitor-client-ready',()=>{mountVisitor();startVisitor();render()});
   window.addEventListener('pagehide',()=>{if(visitorUnsubscribe)visitorUnsubscribe()},{once:true});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
   return{mount,state:()=>({broker:{...broker},organism:{...organism},visitor:{...visitor}})};
