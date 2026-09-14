@@ -43,15 +43,39 @@ Equation-gated functions include:
 - polygon area
 - local scalar gradients for fronts
 
-## Latest issue found and fixed
+## Real issue found and fixed during 50,000 re-evaluation
 Scalar-gradient longitude deltas were not antimeridian-wrapped. Near +/-180 degrees a physically nearby point could be interpreted as roughly 360 degrees away in the local planar fit. Fixed in commit `fd181f9a647a1b50429e3d9199f9cd4a9af9af2c` by wrapping longitude deltas into [-180,180] and refusing the local-plane gradient arbitrarily close to the pole singularity.
 
 ## 50,000-case adversarial qualification
-New test: `ci/dom-environmental-coupled-physics-50000-test.js`
-Created in commit `8b97c603d57470e5028f191c47fc33bd9c45facb`.
-It checks 50,000 randomized cases across cryosphere/ice, snow, hail, cold-front gradients, air pollution/plumes, soil/groundwater, oil spills, water mixing, waste/fire physics, plus antimeridian behavior, boundary inputs, missing data, conservation, symmetry, monotonicity and invalid-input rejection.
+Test: `ci/dom-environmental-coupled-physics-50000-test.js`
+Originally created in commit `8b97c603d57470e5028f191c47fc33bd9c45facb`.
+Workflow `.github/workflows/hazard-environment-physics.yml` was updated in commit `7e56b3db535f205cf4a61f6ab65e97534739a0f5` to run the 50,000-case test on `main`.
 
-Workflow `.github/workflows/hazard-environment-physics.yml` updated in commit `7e56b3db535f205cf4a61f6ab65e97534739a0f5` to run the 50,000-case test on `main`.
+First 50,000-case workflow run:
+- run id `34895559748`
+- head `7e56b3db535f205cf4a61f6ab65e97534739a0f5`
+- conclusion: SUCCESS
+
+After that success, the test itself was re-inspected. One weakness was found: the oil-slick mass assertion partly reconstructed mass from itself rather than independently proving the governing relation. The test was strengthened instead of accepting that weak pass.
+
+Strengthened test commit: `4bd8aec68dfff28b081e0e1966dd20069c7901d0`
+It now independently checks:
+- oil volume = area * thickness
+- oil mass = area * thickness * density
+- wind-vector 360-degree periodicity
+- zero-source Gaussian plume concentration
+- inverse ideal-gas concentration response to increasing absolute temperature at fixed ppb/pressure/MW
+- antimeridian polygon area remains local/finite/positive
+- pole singularity rejection for the local scalar-plane gradient
+- previous mass/flow conservation, symmetry, monotonicity, invalid-input, antimeridian-gradient, cryosphere, snow, hail, pollutant, groundwater, mixing, combustion and drift checks
+
+Strengthened 50,000-case workflow run:
+- run id `34895734217`
+- head `4bd8aec68dfff28b081e0e1966dd20069c7901d0`
+- status: completed
+- conclusion: SUCCESS
+
+Do not weaken tests to preserve a green result. If a future invariant fails, fix the physics/math or clearly narrow the model's applicability.
 
 ## Popup/provenance
 Hazard popup provenance layer includes History / Source / Physics controls and truth labels for exact source points versus source-area centroids. Do not invent direct source links or exact locations.
@@ -65,10 +89,11 @@ Hazard popup provenance layer includes History / Source / Physics controls and t
 - Sensors/stations remain a separate semantic layer from hazards.
 
 ## Next action after continuity transfer
-1. Check the GitHub Actions run triggered by commit `7e56b3db535f205cf4a61f6ab65e97534739a0f5`.
-2. If the 50,000-case qualification fails, inspect the exact failed invariant, fix the physics/math, and rerun. Do not weaken the test to make it pass.
-3. Re-run Hazard Observatory truth qualification after any fix.
-4. Continue bringing real public environmental measurements into the evidence fabric; do not fake unavailable measurements or claim inaccessible/private feeds are connected.
+1. Resume from strengthened test head `4bd8aec68dfff28b081e0e1966dd20069c7901d0` and continuity-file update after it.
+2. Re-inspect current source before any edit; do not assume no intervening commits.
+3. Continue adversarial review rather than rerunning identical checks forever: prioritize dimensional consistency, coordinate/time boundaries, conservation laws, source lineage, and missing-data behavior.
+4. Re-run Hazard Observatory truth qualification after any production-physics change.
+5. Continue bringing real public environmental measurements into the evidence fabric; do not fake unavailable measurements or claim inaccessible/private feeds are connected.
 
 ## Canonical repository / live page
 Repository: `domenicleonetti8-dev/Dom-s-Living-Archival-Observatory`
