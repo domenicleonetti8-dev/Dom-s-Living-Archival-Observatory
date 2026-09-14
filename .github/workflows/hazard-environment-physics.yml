@@ -1,0 +1,22 @@
+name: D.O.M. environmental coupled physics qualification
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dom-environmental-coupled-physics.js'
+      - 'ci/dom-environmental-coupled-physics-5000-test.js'
+      - '.github/workflows/hazard-environment-physics.yml'
+  workflow_dispatch:
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check environmental coupling
+        run: node --check dom-environmental-coupled-physics.js
+      - name: Run 5,000-case environmental physics qualification
+        run: node ci/dom-environmental-coupled-physics-5000-test.js
