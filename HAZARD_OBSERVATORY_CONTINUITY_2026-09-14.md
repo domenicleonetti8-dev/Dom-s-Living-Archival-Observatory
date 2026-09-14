@@ -15,6 +15,9 @@ Treat Earth as one coupled physical system. Earthquake, tsunami, atmosphere, win
 - Every derived quantity must expose its equation/basis and source inputs.
 - Exact source Point coordinates remain exact; centroids/areas must be labeled as such.
 - Official alerts/products remain authoritative for official warning/confirmation states.
+- Malformed geometry must not yield derived physical area/mass.
+- A positive-flow stream with missing concentration invalidates conservative mixing; it must not be silently discarded.
+- Local environmental gradients must be based on local evidence, not arbitrary array order or distant global cells.
 
 ## Existing coupled hazard layer
 `dom-planetary-coupled-hazard-math.js`
@@ -40,42 +43,88 @@ Equation-gated functions include:
 - oil slick mass
 - conservative flow-weighted water mixing
 - waste/junkyard/garbage fire heat-release and source-specific emission rate
-- polygon area
-- local scalar gradients for fronts
+- validated polygon/MultiPolygon area
+- bounded local scalar gradients for fronts
 
-## Real issue found and fixed during 50,000 re-evaluation
-Scalar-gradient longitude deltas were not antimeridian-wrapped. Near +/-180 degrees a physically nearby point could be interpreted as roughly 360 degrees away in the local planar fit. Fixed in commit `fd181f9a647a1b50429e3d9199f9cd4a9af9af2c` by wrapping longitude deltas into [-180,180] and refusing the local-plane gradient arbitrarily close to the pole singularity.
+## Real issues found and fixed during repeated re-evaluation
 
-## 50,000-case adversarial qualification
+### 1. Antimeridian scalar-gradient error
+Near +/-180 degrees a physically nearby point could be interpreted as roughly 360 degrees away in the local planar fit.
+Fixed in commit `fd181f9a647a1b50429e3d9199f9cd4a9af9af2c` by wrapping longitude deltas into [-180,180] and rejecting the local-plane gradient arbitrarily close to the pole singularity.
+
+### 2. Weak oil-mass test
+After the first 50,000-case pass, the test itself was re-read. The oil-slick assertion partly reconstructed mass from itself instead of independently proving `mass = area * thickness * density`.
+Strengthened in commit `4bd8aec68dfff28b081e0e1966dd20069c7901d0`.
+
+### 3. Local front-gradient source-selection error
+`scalarGradient()` previously took the first valid model rows. With a globally ordered model array, a local front could be fitted from unrelated cells thousands of kilometers away.
+Production fix commit: `06222b57a3ac37f906a65f02e2f78e808a92e113`.
+Current behavior:
+- physical great-circle distance to target is calculated
+- only samples within a declared 2000 km radius are eligible
+- eligible samples are sorted by distance
+- nearest 16 are used
+- fewer than 3 local samples returns missing/null
+- result exposes sample count, maximum used distance and declared radius
+- antimeridian wrapping and pole rejection remain active
+
+Adversarial locality test commit: `4825da6499a5e34e023528821644fc869b1b2d99`.
+The test inserts 40 extreme distant decoy cells ahead of valid local cells and proves that the recovered local x/y gradient is unchanged. Distant-only cells must return null rather than manufacture a local gradient.
+Workflow run `34896209652`: SUCCESS.
+
+### 4. Incomplete water-mixing evidence could be silently dropped
+Old `flowWeightedMix()` filtered invalid streams and calculated from whatever valid streams remained. That violated the missing-evidence rule.
+Fixed in production commit `4a3c59ad4640f958b0e4a38e95a33fd006f50d9e`.
+Current behavior:
+- every positive-flow stream must have a finite nonnegative concentration
+- invalid/missing positive-flow concentration returns null
+- invalid/negative flow returns null
+- zero-flow streams may be ignored because they contribute no mass or flow
+- missing data is surfaced instead of silently omitted
+Environmental workflow run for the production fix `34896336963`: SUCCESS.
+
+### 5. Malformed polygon geometry could still create derived physical area
+Old polygon-area logic skipped invalid vertices/edges, which could let malformed source geometry feed ice/oil/waste area and mass calculations.
+Fixed in production commit `4a3c59ad4640f958b0e4a38e95a33fd006f50d9e`.
+Current behavior:
+- every ring coordinate must be valid
+- rings must contain enough points
+- degenerate/zero-area rings return null
+- invalid holes return null
+- invalid MultiPolygon component invalidates the result
+- malformed source geometry cannot silently become physical area
+
+Qualification hardening commit `89880f58bc64e8caf7200853e9dbe1008e02a827` adds explicit failures for malformed polygons, degenerate polygons, missing concentration on positive-flow streams and negative concentrations, while preserving the 50,000 randomized physics checks.
+Latest workflow run `34896380062`: SUCCESS. Syntax check and the 50,000-case qualification both completed successfully.
+
+## 50,000-case adversarial qualification history
 Test: `ci/dom-environmental-coupled-physics-50000-test.js`
-Originally created in commit `8b97c603d57470e5028f191c47fc33bd9c45facb`.
-Workflow `.github/workflows/hazard-environment-physics.yml` was updated in commit `7e56b3db535f205cf4a61f6ab65e97534739a0f5` to run the 50,000-case test on `main`.
+Workflow: `.github/workflows/hazard-environment-physics.yml`
 
-First 50,000-case workflow run:
-- run id `34895559748`
-- head `7e56b3db535f205cf4a61f6ab65e97534739a0f5`
-- conclusion: SUCCESS
+Verified successful runs include:
+- `34895559748` — initial 50,000 pass
+- `34895734217` — strengthened invariant pass
+- `34896209652` — local-gradient decoy/radius pass
+- `34896336963` — production mixing/geometry hardening pass
+- `34896380062` — explicit malformed-geometry/incomplete-mixing qualification pass
 
-After that success, the test itself was re-inspected. One weakness was found: the oil-slick mass assertion partly reconstructed mass from itself rather than independently proving the governing relation. The test was strengthened instead of accepting that weak pass.
+Current adversarial coverage includes:
+- antimeridian gradients and polygons
+- local-neighbor selection against distant decoys
+- bounded local-radius rejection
+- malformed geometry rejection
+- incomplete positive-flow stream rejection
+- boundary inputs
+- missing data
+- independent mass and flow conservation
+- symmetry
+- monotonicity
+- wind-angle periodicity
+- pole singularity rejection
+- invalid-input rejection
+- cryosphere/ice, snow, hail, air pollution/plume, soil/groundwater, oil spill, water mixing and waste/fire equations
 
-Strengthened test commit: `4bd8aec68dfff28b081e0e1966dd20069c7901d0`
-It now independently checks:
-- oil volume = area * thickness
-- oil mass = area * thickness * density
-- wind-vector 360-degree periodicity
-- zero-source Gaussian plume concentration
-- inverse ideal-gas concentration response to increasing absolute temperature at fixed ppb/pressure/MW
-- antimeridian polygon area remains local/finite/positive
-- pole singularity rejection for the local scalar-plane gradient
-- previous mass/flow conservation, symmetry, monotonicity, invalid-input, antimeridian-gradient, cryosphere, snow, hail, pollutant, groundwater, mixing, combustion and drift checks
-
-Strengthened 50,000-case workflow run:
-- run id `34895734217`
-- head `4bd8aec68dfff28b081e0e1966dd20069c7901d0`
-- status: completed
-- conclusion: SUCCESS
-
-Do not weaken tests to preserve a green result. If a future invariant fails, fix the physics/math or clearly narrow the model's applicability.
+Do not weaken tests to preserve a green result. A green run means the implemented invariants passed; it does not prove all real-world physics or source feeds are complete.
 
 ## Popup/provenance
 Hazard popup provenance layer includes History / Source / Physics controls and truth labels for exact source points versus source-area centroids. Do not invent direct source links or exact locations.
@@ -89,14 +138,14 @@ Hazard popup provenance layer includes History / Source / Physics controls and t
 - Sensors/stations remain a separate semantic layer from hazards.
 
 ## Next action after continuity transfer
-1. Resume from strengthened test head `4bd8aec68dfff28b081e0e1966dd20069c7901d0` and continuity-file update after it.
-2. Re-inspect current source before any edit; do not assume no intervening commits.
-3. Continue adversarial review rather than rerunning identical checks forever: prioritize dimensional consistency, coordinate/time boundaries, conservation laws, source lineage, and missing-data behavior.
-4. Re-run Hazard Observatory truth qualification after any production-physics change.
-5. Continue bringing real public environmental measurements into the evidence fabric; do not fake unavailable measurements or claim inaccessible/private feeds are connected.
+1. Re-fetch current source and workflow state before any edit; never assume no intervening commit.
+2. Continue adversarial review rather than repeating identical random cases forever. Highest-value next targets: source lineage, timestamp/validity semantics, dimensional/unit declarations, scale/resolution suitability, and observed-vs-modeled separation.
+3. Verify Hazard Observatory truth-specific CI after production physics changes; keep it Hazard-only and do not invoke Geographic Earth qualification.
+4. Continue bringing real public environmental measurements into the evidence fabric; never fake unavailable measurements or claim inaccessible/private feeds are connected.
+5. Keep this file current whenever a real issue/fix changes the resume point.
 
 ## Canonical repository / live page
 Repository: `domenicleonetti8-dev/Dom-s-Living-Archival-Observatory`
 Live Hazard Observatory: `https://domenicleonetti8-dev.github.io/Dom-s-Living-Archival-Observatory/hazards.html`
 
-This file exists specifically so the next chat can resume without relying on conversational memory alone.
+This file exists specifically so the next chat can resume from verified repository state without relying on conversational memory alone.
