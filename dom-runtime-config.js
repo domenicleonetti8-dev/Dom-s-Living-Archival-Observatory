@@ -20,7 +20,8 @@
     ['./dom-geographic-semantic-forensic-audit.js?v=20260914-2','domGeographicSemanticForensicAudit'],
     ['./dom-weather-climate-station-inspector.js?v=20260914-2','domWeatherClimateStationInspector'],
     ['./dom-earthquake-visual-restoration.js?v=20260914-2','domEarthquakeVisualRestoration'],
-    ['./dom-geographic-hazard-motion.js?v=20260914-3','domGeographicHazardMotion']
+    ['./dom-geographic-hazard-motion.js?v=20260914-3','domGeographicHazardMotion'],
+    ['./dom-global-operational-weather-field.js?v=20260914-1','domGlobalOperationalWeather']
   ])loadScript(src,key);
 
   const dashboardKey='domObservatoryDashboardShell';
