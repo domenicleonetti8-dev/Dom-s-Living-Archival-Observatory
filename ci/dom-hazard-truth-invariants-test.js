@@ -9,7 +9,7 @@ const fire=read('dom-wildfire-symbol-layer.js');
 const quake=read('dom-earthquake-visual-restoration.js');
 const dash=read('dom-observatory-dashboard-shell.js');
 const fusion=read('dom-earthquake-tsunami-atmospheric-fusion.js');
-const seismic=read('dom-global-seismic-heartbeat.js');
+const seismic=read('dom-global-seismic-heartbeat-core.js');
 
 assert(hazards.includes('USGS all magnitudes · past 24h · source epicenters'),'public earthquake card must state all-magnitude source semantics');
 assert(hazards.includes('waveform availability, not measured shaking amplitude'),'station presence/waveform availability must not masquerade as measured shaking');
@@ -42,11 +42,11 @@ assert(fusion.includes("does not mean a tsunami exists"),'USGS tsunami flag must
 assert(fusion.includes('Only actual NTWC/PTWC/NWS products count as issued tsunami products'),'only actual warning-center products may count as issued tsunami products');
 assert(/0\.18/.test(fusion)&&/0\.40/.test(fusion),'atmospheric association must retain a physically bounded apparent propagation-speed gate');
 
-assert(seismic.includes('presence')||seismic.includes('instrument'),'seismic heartbeat must distinguish station/instrument presence');
-assert(seismic.includes('waveform'),'seismic heartbeat must distinguish waveform availability from station presence');
-assert(!/measured shaking amplitude[^\n]*=/.test(seismic),'seismic heartbeat must not synthesize measured shaking amplitude');
+assert(seismic.includes('station presence'),'seismic heartbeat must keep instrument presence semantically separate');
+assert(seismic.includes('recent waveform availability'),'seismic heartbeat must distinguish recent waveform availability from station presence');
+assert(seismic.includes('does not convert missing waveform telemetry into synthetic tremors'),'missing waveform telemetry must never be promoted into synthetic ground motion');
 
-for(const f of ['dom-hazard-geophysical-adapter.js','dom-hazard-render-reconciler.js','dom-wildfire-symbol-layer.js','dom-earthquake-visual-restoration.js','dom-observatory-dashboard-shell.js','dom-earthquake-tsunami-atmospheric-fusion.js','dom-global-seismic-heartbeat.js']){
+for(const f of ['dom-hazard-geophysical-adapter.js','dom-hazard-render-reconciler.js','dom-wildfire-symbol-layer.js','dom-earthquake-visual-restoration.js','dom-observatory-dashboard-shell.js','dom-earthquake-tsunami-atmospheric-fusion.js','dom-global-seismic-heartbeat-core.js']){
   const s=read(f);
   assert(!/Math\.random\(\)/.test(s),`${f} must not randomly relocate or synthesize hazard positions`);
 }
