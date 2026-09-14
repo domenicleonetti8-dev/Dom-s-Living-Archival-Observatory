@@ -1,0 +1,17 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const listeners={};
+const window={addEventListener:(n,f)=>(listeners[n]??=[]).push(f),dispatchEvent:()=>true,DOMGlobalOperationalWeather:{points:()=>[{lat:40,lon:-74,time:new Date().toISOString(),temp:31,humidity:24,pressure:1004,wind:35,windDir:270,cloud:15,source:'NOAA GFS via Open-Meteo transport'}]},DOMPlanetaryEvidenceFabric:{within:()=>[{class:'registry',source:'TEST STATION REGISTRY',distanceKm:1,ageHours:null,raw:{sensorFamily:'seismic'}},{class:'observed',source:'TEST OBS',distanceKm:2,ageHours:.1,raw:{temperatureC:33,relativeHumidity:20,windSpeed:40,windDirection:260,waterLevel:.3,groundMotion:.2}}]}};
+const document={readyState:'complete',addEventListener:()=>{}};
+const sandbox={window,document,console,Date,Math,Number,String,Array,Object,Map,Set,JSON,CustomEvent:class{constructor(type,init={}){this.type=type;this.detail=init.detail}},setTimeout:(f)=>{f();return 1},clearTimeout:()=>{}};Object.assign(window,sandbox);const ctx=vm.createContext(sandbox);vm.runInContext(fs.readFileSync('dom-planetary-coupled-hazard-math.js','utf8'),ctx,{filename:'dom-planetary-coupled-hazard-math.js'});const M=ctx.window.DOMPlanetaryCoupledHazardMath;
+assert(M,'coupled hazard math must export');
+assert(Math.abs(M.km(0,0,0,0))<1e-12,'zero distance');
+for(let i=0;i<100000;i++){
+  const a=-89.9+179.8*((i*7919%100000)/99999),b=-179.9+359.8*((i*104729%100000)/99999),c=-89.9+179.8*((i*15485863%100000)/99999),d=-179.9+359.8*((i*32452843%100000)/99999);
+  const ab=M.km(a,b,c,d),ba=M.km(c,d,a,b);assert(Number.isFinite(ab)&&ab>=0&&ab<=Math.PI*6371.0088+1e-6,'haversine bounded on Earth');assert(Math.abs(ab-ba)<1e-9,'haversine symmetry');
+  const speed=(i%250)+.01,dir=(i*137.507764)%360,v=M.windVector(speed,dir);assert(v&&Math.abs(Math.hypot(v.uEastMs,v.vNorthMs)-speed/3.6)<1e-10,'wind vector conserves speed magnitude');
+  const t=-20+(i%7000)/100,rh=i%101,vpd=M.vaporPressureDeficitKPa(t,rh);assert(vpd&&vpd.vpdKPa>=-1e-12,'VPD nonnegative');if(rh===100)assert(Math.abs(vpd.vpdKPa)<1e-12,'VPD zero at 100% RH');
+}
+for(const t of [-10,0,10,20,30,40]){let prev=Infinity;for(let rh=0;rh<=100;rh+=5){const v=M.vaporPressureDeficitKPa(t,rh).vpdKPa;assert(v<=prev+1e-12,'VPD decreases as RH increases at fixed temperature');prev=v}}
+const quake={id:'q',kind:'Earthquake',title:'fixture',lat:40,lon:-74,mag:7,depthKm:20,magType:'mw',usgsTsunamiFlag:false,source:'USGS',authoritative:true,sourceGeometry:{type:'Point',coordinates:[-74,40]}};const a=M.analyze(quake);assert(a.ok,'earthquake analyzes');assert(a.location.basis==='exact upstream Point geometry','exact Point geometry wins');assert(a.physics.family==='earthquake','earthquake gets earthquake physics');assert(a.physics.derived.approxRadiatedEnergyJ>0,'Mw energy equation applied');assert(/never confirms a tsunami/i.test(a.physics.truth),'magnitude cannot self-confirm tsunami');assert(a.evidenceContext.registry.measurementWeight===0,'registry presence has zero measurement weight');assert(a.weatherContext.observed.temperature&&a.weatherContext.temperatureC===33,'observed measurement overrides modeled temperature');assert(a.weatherContext.modeledFallback.temperatureC===31,'modeled fallback remains separately visible');
+const unknown=M.analyze({id:'x',kind:'Landslide',lat:40,lon:-74,source:'fixture',sourceGeometry:{type:'Point',coordinates:[-74,40]}});assert(unknown.physics.family==='generic-hazard','unknown hazard must not silently use storm equations');
+console.log('D.O.M. COUPLED HAZARD 100000=PASS');
