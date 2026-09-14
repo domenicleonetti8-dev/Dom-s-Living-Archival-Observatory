@@ -18,6 +18,8 @@ function push(){const rows=union();if(window.DOMLiveGlobeRenderer?.setEvents)DOM
 window.addEventListener('dom:hazard-refresh',ev=>{replace(base,ev.detail?.events);queueMicrotask(push)});
 window.addEventListener('dom:hazard-extension',ev=>{ingestBatch(ev.detail||{});queueMicrotask(push)});
 window.addEventListener('dom:verified-global-events',ev=>{ingestBatch(ev.detail||{},'verified:');queueMicrotask(push)});
-document.addEventListener('DOMContentLoaded',()=>{if(!document.querySelector('script[data-dom-wildfire-symbols]')){const s=document.createElement('script');s.src='./dom-wildfire-symbol-layer.js?v=20260914-1';s.defer=true;s.dataset.domWildfireSymbols='1';document.head.appendChild(s)}queueMicrotask(push)},{once:true});
+window.addEventListener('dom:map-ready',e=>{window.DOMHazardMap=e.detail?.map||null;window.DOMWildfireSymbolLayer?.attach?.(window.DOMHazardMap);});
+if(!document.querySelector('script[data-dom-wildfire-symbols]')){const s=document.createElement('script');s.src='./dom-wildfire-symbol-layer.js?v=20260914-2';s.async=false;s.dataset.domWildfireSymbols='1';document.head.appendChild(s)}
+document.addEventListener('DOMContentLoaded',()=>queueMicrotask(push),{once:true});
 window.DOMHazardRenderReconciler=Object.freeze({state:()=>window.DOMHazardRenderReconciliation||{},rows:()=>union()});
 })();
