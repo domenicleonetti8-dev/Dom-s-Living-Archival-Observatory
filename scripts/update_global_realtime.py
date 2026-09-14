@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 import csv, gzip, io, json, os, pathlib, urllib.request, datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 OUT=pathlib.Path('data/global-realtime'); OUT.mkdir(parents=True, exist_ok=True)
 UA={'User-Agent':'DOM-Living-Observatory/1.0'}
 
-def get(url):
+def get(url,timeout=30):
     req=urllib.request.Request(url,headers=UA)
-    with urllib.request.urlopen(req,timeout=90) as r:return r.read()
+    with urllib.request.urlopen(req,timeout=timeout) as r:return r.read()
 
 def write(name,obj):
     (OUT/name).write_text(json.dumps(obj,separators=(',',':')))
@@ -44,8 +45,7 @@ try:
     write('metar_observations.json',{'updatedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'source':'NOAA Aviation Weather worldwide METAR cache','observations':obs})
 except Exception as e: print('metars:',e)
 
-# Global seismic station metadata. Merge official FDSN repositories by station id,
-# preserve source coordinates, and never relocate a station from event geography.
+# Global seismic station metadata from multiple official FDSN repositories.
 FDSN_STATION_SOURCES=[
     ('NSF EarthScope','https://service.earthscope.org/fdsnws/station/1/query?level=station&format=text&starttime=2026-01-01&endtime=2027-01-01&nodata=404'),
     ('GFZ GEOFON','https://geofon.gfz.de/fdsnws/station/1/query?level=station&format=text&starttime=2026-01-01&endtime=2027-01-01&nodata=404'),
@@ -53,38 +53,44 @@ FDSN_STATION_SOURCES=[
     ('EIDA UIB-NORSAR','https://eida.geo.uib.no/fdsnws/station/1/query?level=station&format=text&starttime=2026-01-01&endtime=2027-01-01&nodata=404'),
     ('EIDA KOERI','https://eida.koeri.boun.edu.tr/fdsnws/station/1/query?level=station&format=text&starttime=2026-01-01&endtime=2027-01-01&nodata=404'),
 ]
-seismic={},[]
-station_map={}; provider_status=[]; coordinate_conflicts=[]
-for provider,url in FDSN_STATION_SOURCES:
-    try:
-        t=get(url).decode('utf-8','replace'); count=0
-        for line in t.splitlines():
-            if not line or line.startswith('#'): continue
-            p=[x.strip() for x in line.split('|')]
-            if len(p)<6: continue
-            try: lat=float(p[2]); lon=float(p[3]); elev=float(p[4] or 0)
-            except: continue
-            if not valid(lat,lon): continue
-            net,sta=p[0],p[1]; sid=f'{net}.{sta}'
-            candidate={'id':sid,'network':net,'station':sta,'lat':lat,'lon':lon,'elevationM':elev,'name':p[5] or sid,'family':'seismic','source':' + '.join([]),'coordinateSource':provider,'coordinateVerified':True,'providers':[provider]}
-            old=station_map.get(sid)
-            if old is None:
-                candidate['source']=provider+' FDSN'
-                station_map[sid]=candidate
-            else:
-                dlat=abs(float(old['lat'])-lat); dlon=abs(float(old['lon'])-lon)
-                if dlat<=0.02 and dlon<=0.02:
-                    if provider not in old['providers']: old['providers'].append(provider)
-                    old['source']=' + '.join(old['providers'])+' FDSN'
-                else:
-                    coordinate_conflicts.append({'id':sid,'keptSource':old.get('coordinateSource'),'kept':[old['lat'],old['lon']],'otherSource':provider,'other':[lat,lon]})
-            count+=1
-        provider_status.append({'provider':provider,'status':'ok','records':count})
-    except Exception as e:
-        provider_status.append({'provider':provider,'status':'unavailable','error':str(e)})
-        print('seismic provider',provider,e)
+
+def fetch_station_provider(provider,url):
+    text=get(url,25).decode('utf-8','replace'); rows=[]
+    for line in text.splitlines():
+        if not line or line.startswith('#'): continue
+        p=[x.strip() for x in line.split('|')]
+        if len(p)<6: continue
+        try: lat=float(p[2]); lon=float(p[3]); elev=float(p[4] or 0)
+        except: continue
+        if not valid(lat,lon): continue
+        net,sta=p[0],p[1]
+        rows.append({'id':f'{net}.{sta}','network':net,'station':sta,'lat':lat,'lon':lon,'elevationM':elev,'name':p[5] or f'{net}.{sta}','family':'seismic','coordinateSource':provider,'coordinateVerified':True})
+    return rows
+
+provider_rows={}; provider_status=[]
+with ThreadPoolExecutor(max_workers=len(FDSN_STATION_SOURCES)) as ex:
+    futures={ex.submit(fetch_station_provider,p,u):(p,u) for p,u in FDSN_STATION_SOURCES}
+    for fut in as_completed(futures):
+        provider,_=futures[fut]
+        try:
+            rows=fut.result(); provider_rows[provider]=rows; provider_status.append({'provider':provider,'status':'ok','records':len(rows)})
+        except Exception as e:
+            provider_rows[provider]=[]; provider_status.append({'provider':provider,'status':'unavailable','error':str(e)}); print('seismic provider',provider,e)
+
+station_map={}; coordinate_conflicts=[]
+for provider,_ in FDSN_STATION_SOURCES:
+    for candidate in provider_rows.get(provider,[]):
+        sid=candidate['id']; old=station_map.get(sid)
+        if old is None:
+            candidate['providers']=[provider]; candidate['source']=provider+' FDSN'; station_map[sid]=candidate; continue
+        dlat=abs(float(old['lat'])-candidate['lat']); dlon=abs(float(old['lon'])-candidate['lon'])
+        if dlat<=0.02 and dlon<=0.02:
+            if provider not in old['providers']: old['providers'].append(provider)
+            old['source']=' + '.join(old['providers'])+' FDSN'
+        else:
+            coordinate_conflicts.append({'id':sid,'keptSource':old.get('coordinateSource'),'kept':[old['lat'],old['lon']],'otherSource':provider,'other':[candidate['lat'],candidate['lon']]})
 stations=sorted(station_map.values(),key=lambda x:x['id'])
-write('seismic_stations.json',{'updatedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'source':'Merged official FDSN station registries','coordinatePolicy':'Exact station coordinates from upstream FDSN metadata; event coordinates are never used to move stations. Conflicting duplicates keep the first authoritative coordinate and are reported.','providers':provider_status,'coordinateConflicts':coordinate_conflicts,'stations':stations})
+write('seismic_stations.json',{'updatedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'source':'Merged official FDSN station registries','coordinatePolicy':'Exact upstream station coordinates only. Earthquake/event coordinates never move sensor locations. Conflicting duplicate station ids keep the first provider coordinate and are reported.','providers':provider_status,'coordinateConflicts':coordinate_conflicts,'stations':stations})
 
 # NASA FIRMS global VIIRS NOAA-20/21 hotspots. Requires repository secret FIRMS_MAP_KEY.
 key=os.environ.get('FIRMS_MAP_KEY','').strip()
