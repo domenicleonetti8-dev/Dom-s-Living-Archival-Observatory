@@ -7,7 +7,7 @@ function replay(){if(!lastMap)return;window.dispatchEvent(new CustomEvent('dom:m
 for(const[path,key]of files){
   if(document.querySelector(`script[data-dom-seismic-boot="${key}"]`))continue;
   const s=document.createElement('script');
-  s.src=`./${path}?v=20260914-6`;
+  s.src=`./${path}?v=${key==='seismic-presence'?'20260914-7':'20260914-6'}`;
   s.defer=true;
   s.dataset.domSeismicBoot=key;
   s.onload=()=>{
