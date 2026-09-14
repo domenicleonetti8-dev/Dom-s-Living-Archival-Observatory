@@ -19,7 +19,7 @@ window.addEventListener('dom:hazard-refresh',ev=>{replace(base,ev.detail?.events
 window.addEventListener('dom:hazard-extension',ev=>{ingestBatch(ev.detail||{});queueMicrotask(push)});
 window.addEventListener('dom:verified-global-events',ev=>{ingestBatch(ev.detail||{},'verified:');queueMicrotask(push)});
 window.addEventListener('dom:map-ready',e=>{window.DOMHazardMap=e.detail?.map||null;window.DOMWildfireSymbolLayer?.attach?.(window.DOMHazardMap);});
-if(!document.querySelector('script[data-dom-wildfire-symbols]')){const s=document.createElement('script');s.src='./dom-wildfire-symbol-layer.js?v=20260914-4';s.async=false;s.dataset.domWildfireSymbols='1';document.head.appendChild(s)}
+if(!document.querySelector('script[data-dom-wildfire-symbols]')){const s=document.createElement('script');s.src='./dom-wildfire-symbol-layer.js?v=20260914-5';s.async=false;s.dataset.domWildfireSymbols='1';document.head.appendChild(s)}
 document.addEventListener('DOMContentLoaded',()=>queueMicrotask(push),{once:true});
 window.DOMHazardRenderReconciler=Object.freeze({state:()=>window.DOMHazardRenderReconciliation||{},rows:()=>union()});
 })();
