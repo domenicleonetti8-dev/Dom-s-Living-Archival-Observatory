@@ -12,7 +12,7 @@
   const loadScript=(src,key,onload)=>{const existing=document.querySelector(`script[data-dom-runtime-module="${key}"]`);if(existing){onload?.();return}const s=document.createElement('script');s.src=src;s.defer=true;s.dataset.domRuntimeModule=key;if(onload)s.addEventListener('load',onload,{once:true});if(onload)s.addEventListener('error',onload,{once:true});document.head.appendChild(s)};
   for(const [src,key] of coreModules)loadScript(src,key,coreDone);
   const dashboardKey='domObservatoryDashboardShell';if(document.querySelector(`script[data-dom-runtime-module="${dashboardKey}"]`))return;
-  let css=document.querySelector('link[data-dom-dashboard-shell]');const loadDashboard=()=>loadScript('./dom-observatory-dashboard-shell.js?v=20260914-9',dashboardKey);
+  let css=document.querySelector('link[data-dom-dashboard-shell]');const loadDashboard=()=>loadScript('./dom-observatory-dashboard-shell.js?v=20260914-10',dashboardKey);
   if(css){if(css.sheet)loadDashboard();else css.addEventListener('load',loadDashboard,{once:true});return}
   css=document.createElement('link');css.rel='stylesheet';css.href='./dom-observatory-dashboard-shell.css?v=20260914-5';css.dataset.domDashboardShell='1';css.addEventListener('load',loadDashboard,{once:true});css.addEventListener('error',()=>console.error('D.O.M. dashboard stylesheet failed; dashboard shell not started'),{once:true});document.head.appendChild(css);
 })();
