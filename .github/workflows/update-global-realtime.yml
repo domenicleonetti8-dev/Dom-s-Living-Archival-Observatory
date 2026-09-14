@@ -1,0 +1,34 @@
+name: Update global realtime observation snapshots
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,37 * * * *'
+  push:
+    paths:
+      - 'scripts/update_global_realtime.py'
+      - '.github/workflows/update-global-realtime.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Update worldwide public observation snapshots
+        env:
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+        run: python scripts/update_global_realtime.py
+      - name: Commit changed snapshots
+        run: |
+          git config user.name 'dom-observatory-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add data/global-realtime || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Update global realtime observation snapshots'
+          git push
