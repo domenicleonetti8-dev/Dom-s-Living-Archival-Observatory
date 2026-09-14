@@ -1,0 +1,44 @@
+name: D.O.M. Hazard Observatory qualification
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'hazards.html'
+      - 'hazards.js'
+      - 'dom-*hazard*.js'
+      - 'dom-planetary-evidence-fabric.js'
+      - 'dom-global-operational-weather-field.js'
+      - 'dom-weather-climate-*.js'
+      - 'dom-global-seismic-heartbeat.js'
+      - 'ci/dom-coupled-hazard-100000-test.js'
+      - 'ci/dom-hazard-semantics-test.js'
+      - '.github/workflows/hazard-observatory-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hazard-truth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Hazard JavaScript syntax qualification
+        run: |
+          node --check dom-planetary-evidence-fabric.js
+          node --check dom-planetary-coupled-hazard-math.js
+          node --check dom-hazard-render-reconciler.js
+          node --check dom-hazard-geophysical-adapter.js
+          node --check dom-wildfire-symbol-layer.js
+          node --check dom-earthquake-visual-restoration.js
+          node --check dom-hazard-popup-provenance.js
+      - name: Coupled Earth hazard 100,000-case qualification
+        run: node ci/dom-coupled-hazard-100000-test.js
+      - name: Hazard semantics execution
+        run: node ci/dom-hazard-semantics-test.js
