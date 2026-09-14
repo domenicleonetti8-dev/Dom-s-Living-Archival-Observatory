@@ -21,7 +21,7 @@ function paint(){
     el.innerHTML=`<strong>Weather + climate station fabric</strong> · ${loaded.toLocaleString()} rendered globally / ${indexed.toLocaleString()} indexed · ${tiles}/${total} tiles${best.globalLoadComplete?' · COMPLETE':''}<br><span class="tiny">The 40,096-station global layer is independent from the additional seismic/marine/water/current overlays. Detailed station metadata remains interactive while zooming.</span>`;
   }
 }
-function ensureGlobalRealtime(){if(window.DOMGlobalRealtimeExtension||document.querySelector('script[data-dom-global-realtime]'))return;const s=document.createElement('script');s.src='./dom-global-realtime-extension.js?v=20260913-2204';s.defer=true;s.dataset.domGlobalRealtime='1';document.head.appendChild(s)}
+function ensureGlobalRealtime(){if(window.DOMGlobalRealtimeExtension||document.querySelector('script[data-dom-global-realtime]'))return;const s=document.createElement('script');s.src='./dom-global-realtime-extension.js?v=20260913-2214';s.defer=true;s.dataset.domGlobalRealtime='1';document.head.appendChild(s)}
 window.addEventListener('dom:station-fabric-summary',e=>{
   const d=e.detail||{};
   if(d.__arbiter)return;
