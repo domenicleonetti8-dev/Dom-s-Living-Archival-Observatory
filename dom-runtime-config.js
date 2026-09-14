@@ -14,5 +14,5 @@
   const dashboardKey='domObservatoryDashboardShell';if(document.querySelector(`script[data-dom-runtime-module="${dashboardKey}"]`))return;
   let css=document.querySelector('link[data-dom-dashboard-shell]');const loadDashboard=()=>loadScript('./dom-observatory-dashboard-shell.js?v=20260914-8',dashboardKey);
   if(css){if(css.sheet)loadDashboard();else css.addEventListener('load',loadDashboard,{once:true});return}
-  css=document.createElement('link');css.rel='stylesheet';css.href='./dom-observatory-dashboard-shell.css?v=20260914-4';css.dataset.domDashboardShell='1';css.addEventListener('load',loadDashboard,{once:true});css.addEventListener('error',()=>console.error('D.O.M. dashboard stylesheet failed; dashboard shell not started'),{once:true});document.head.appendChild(css);
+  css=document.createElement('link');css.rel='stylesheet';css.href='./dom-observatory-dashboard-shell.css?v=20260914-5';css.dataset.domDashboardShell='1';css.addEventListener('load',loadDashboard,{once:true});css.addEventListener('error',()=>console.error('D.O.M. dashboard stylesheet failed; dashboard shell not started'),{once:true});document.head.appendChild(css);
 })();
