@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-let map=window.DOMHazardMap||window.DOMCurrentHazardMap?.map||null,boundMap=null;
+let map=window.DOMHazardMap||window.DOMCurrentHazardMap?.map||null,boundMap=null,styleBoundMap=null;
 const SOURCE='dom-wildfire-symbols-source',DOT='dom-wildfire-origin-dot',LOW='dom-wildfire-symbols',HIGH='dom-wildfire-symbols-all',ICON='dom-wildfire-flame-emoji';
 const valid=(a,b)=>Number.isFinite(Number(a))&&Number.isFinite(Number(b))&&Number(a)>=-90&&Number(a)<=90&&Number(b)>=-180&&Number(b)<=180;
 function point(e){const g=e?.sourceGeometry;if(g?.type==='Point'&&Array.isArray(g.coordinates)&&valid(g.coordinates[1],g.coordinates[0]))return{lat:+g.coordinates[1],lon:+g.coordinates[0],basis:'exact upstream Point geometry'};if(valid(e?.lat,e?.lon))return{lat:+e.lat,lon:+e.lon,basis:String(e?.locationPrecision||'source-derived coordinates')};return null}
@@ -17,7 +17,7 @@ function ensure(){if(!map||!map.loaded?.())return;addFlame();const d=data();if(!
 }
 function popup(f){if(!f||!map)return;const p=f.properties||{},ll=f.geometry?.coordinates;if(!Array.isArray(ll))return;const ML=window.maplibregl||window.MaplibreGL||window.DOMCurrentHazardMap?.maplibre;if(!ML?.Popup)return;const safe=s=>String(s??'').replace(/[<>]/g,'');new ML.Popup({closeButton:true,maxWidth:'300px'}).setLngLat(ll).setHTML(`<div style="font:600 12px/1.45 system-ui"><div style="font-size:16px">🔥 ${safe(p.title||'Wildfire')}</div><div><b>Latitude:</b> ${Number(p.lat).toFixed(5)}°</div><div><b>Longitude:</b> ${Number(p.lon).toFixed(5)}°</div><div><b>Source:</b> ${safe(p.source||'source unavailable')}</div><div><b>Coordinate basis:</b> ${safe(p.basis||p.precision||'source coordinates')}</div></div>`).addTo(map)}
 function bind(){if(!map||boundMap===map)return;boundMap=map;for(const id of [LOW,HIGH,DOT]){try{map.on('click',id,e=>popup(e.features?.[0]));map.on('mouseenter',id,()=>{map.getCanvas().style.cursor='pointer'});map.on('mouseleave',id,()=>{map.getCanvas().style.cursor=''})}catch(_){}}}
-function attach(m){if(m)map=m;if(!map)return;ensure();try{map.on('styledata',()=>setTimeout(ensure,0))}catch(_){} }
+function attach(m){if(m)map=m;if(!map)return;ensure();if(styleBoundMap===map)return;styleBoundMap=map;try{map.on('styledata',()=>setTimeout(ensure,0))}catch(_){} }
 function schedule(){queueMicrotask(ensure)}
 window.addEventListener('dom:map-ready',e=>attach(e.detail?.map||null));for(const n of ['dom:hazard-refresh','dom:hazard-extension','dom:verified-global-events'])window.addEventListener(n,schedule);if(map)queueMicrotask(ensure);document.addEventListener('DOMContentLoaded',schedule,{once:true});
 window.DOMWildfireSymbolLayer=Object.freeze({attach,refresh:ensure,state:()=>({wildfires:rows().length,source:SOURCE,layers:[DOT,LOW,HIGH],icon:ICON,mapAttached:!!map,semantics:'exact coordinates; collision-aware flames at global zoom; every fire flame visible at local zoom'})});
