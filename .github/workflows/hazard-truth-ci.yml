@@ -41,8 +41,11 @@ jobs:
           node --check dom-global-seismic-heartbeat.js
           node --check dom-observatory-dashboard-shell.js
       - name: Hazard source and rendering truth invariants
+        if: always()
         run: node ci/dom-hazard-truth-invariants-test.js
       - name: Hazard semantics execution
+        if: always()
         run: node ci/dom-hazard-semantics-test.js
       - name: Source time and freshness truth qualification
+        if: always()
         run: node ci/dom-source-time-truth-test.js
