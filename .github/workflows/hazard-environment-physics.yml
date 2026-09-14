@@ -4,7 +4,7 @@ on:
     branches: [main]
     paths:
       - 'dom-environmental-coupled-physics.js'
-      - 'ci/dom-environmental-coupled-physics-5000-test.js'
+      - 'ci/dom-environmental-coupled-physics-50000-test.js'
       - '.github/workflows/hazard-environment-physics.yml'
   workflow_dispatch:
 jobs:
@@ -18,5 +18,5 @@ jobs:
           node-version: '22'
       - name: Syntax check environmental coupling
         run: node --check dom-environmental-coupled-physics.js
-      - name: Run 5,000-case environmental physics qualification
-        run: node ci/dom-environmental-coupled-physics-5000-test.js
+      - name: Run 50,000-case environmental physics qualification
+        run: node ci/dom-environmental-coupled-physics-50000-test.js
