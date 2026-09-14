@@ -7,9 +7,9 @@
 
   if(/\/hazards\.html$/i.test(location.pathname)){
     const s=document.createElement('script');
-    s.src='./dom-earthquake-tsunami-atmospheric-fusion.js?v=20260914-1';
-    s.defer=true;
-    s.dataset.domHazardFusion='1';
+    s.src='./dom-hazard-render-reconciler.js?v=20260914-1';
+    s.async=false;
+    s.dataset.domHazardRenderReconciler='1';
     document.head.appendChild(s);
   }
 })();
