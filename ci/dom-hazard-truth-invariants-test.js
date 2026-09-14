@@ -36,8 +36,10 @@ assert(dash.includes("['Earthquakes',['dom-eira-quake-origin'"),'dashboard earth
 assert(dash.includes("['Wildfires',['dom-wildfire-origin-dot'"),'dashboard wildfire filter must control current wildfire layers');
 assert(!dash.includes("['Wildfires',['dom-hazard-wildfire-flame'"),'dashboard must not make a legacy wildfire layer authoritative again');
 
-assert(fusion.includes('USGS tsunami flag'),'fusion must preserve the source-qualified USGS tsunami-screening semantics');
-assert(fusion.includes('not an issued tsunami product')||fusion.includes('not a tsunami product'),'USGS tsunami flag must not be presented as an issued tsunami product');
+assert(fusion.includes('usgsTsunamiFlag===true'),'fusion must preserve the source-qualified USGS oceanic-large-event screening flag');
+assert(fusion.includes("state:'USGS_OCEANIC_LARGE_EVENT_FLAG'"),'USGS screening flag must remain explicitly named and separate from issued products');
+assert(fusion.includes("does not mean a tsunami exists"),'USGS tsunami flag must never be presented as proof that a tsunami exists');
+assert(fusion.includes('Only actual NTWC/PTWC/NWS products count as issued tsunami products'),'only actual warning-center products may count as issued tsunami products');
 assert(/0\.18/.test(fusion)&&/0\.40/.test(fusion),'atmospheric association must retain a physically bounded apparent propagation-speed gate');
 
 assert(seismic.includes('presence')||seismic.includes('instrument'),'seismic heartbeat must distinguish station/instrument presence');
