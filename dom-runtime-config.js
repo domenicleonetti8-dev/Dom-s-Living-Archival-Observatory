@@ -6,11 +6,19 @@
   window.DOMSRuntimeConfig=Object.freeze({brokerUrl,googleMapsApiKey});
 
   if(/\/hazards\.html$/i.test(location.pathname)){
+    if(!document.querySelector('link[data-dom-dashboard-shell]')){
+      const l=document.createElement('link');
+      l.rel='stylesheet';
+      l.href='./dom-observatory-dashboard-shell.css?v=20260914-1';
+      l.dataset.domDashboardShell='1';
+      document.head.appendChild(l);
+    }
     for(const [src,key] of [
       ['./dom-geographic-semantic-forensic-audit.js?v=20260914-1','domGeographicSemanticForensicAudit'],
       ['./dom-weather-climate-station-inspector.js?v=20260914-1','domWeatherClimateStationInspector'],
       ['./dom-earthquake-visual-restoration.js?v=20260914-1','domEarthquakeVisualRestoration'],
-      ['./dom-geographic-hazard-motion.js?v=20260914-2','domGeographicHazardMotion']
+      ['./dom-geographic-hazard-motion.js?v=20260914-2','domGeographicHazardMotion'],
+      ['./dom-observatory-dashboard-shell.js?v=20260914-1','domObservatoryDashboardShell']
     ]){
       if(document.querySelector(`script[data-dom-runtime-module="${key}"]`))continue;
       const s=document.createElement('script');
