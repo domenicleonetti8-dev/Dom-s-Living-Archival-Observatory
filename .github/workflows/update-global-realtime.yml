@@ -8,6 +8,7 @@ on:
     paths:
       - 'scripts/update_global_realtime.py'
       - 'scripts/update_seismic_heartbeat.py'
+      - 'scripts/update_gdacs_global.py'
       - '.github/workflows/update-global-realtime.yml'
 
 permissions:
@@ -27,6 +28,8 @@ jobs:
         run: python scripts/update_global_realtime.py
       - name: Update recent seismic sensor heartbeat
         run: python scripts/update_seismic_heartbeat.py
+      - name: Update worldwide GDACS disaster snapshot
+        run: python scripts/update_gdacs_global.py
       - name: Commit changed snapshots
         run: |
           git config user.name 'dom-observatory-bot'
