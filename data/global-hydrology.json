@@ -1,21 +1,22 @@
 {
-  "schema": "dom-global-hydrology-source-v1",
-  "status": "source-connected",
-  "source": "NASA GSFC GRACE-FO Groundwater and Soil Moisture Drought Indicators",
-  "publisher": "NASA Goddard Space Flight Center / National Drought Mitigation Center, University of Nebraska-Lincoln",
-  "sourceUrl": "https://nasagrace.unl.edu/",
-  "coverage": "global land",
-  "resolutionDegrees": 0.25,
+  "basis": "GRACE-FO terrestrial water storage assimilated with land-surface observations/modeling",
   "cadence": "weekly",
+  "caveat": "This connects a current global hydrology observation product. D.O.M. does not convert the spatial percentile fields into one global water-health score until a documented area-weighted aggregation and uncertainty/coverage qualification are implemented.",
+  "coverage": "global land",
+  "fetchedAt": "2026-09-14T12:10:42Z",
+  "healthIndex": null,
   "latestProductDate": "2026-09-07",
   "observations": [
     "groundwater percentile",
     "root-zone soil-moisture percentile",
     "surface soil-moisture percentile"
   ],
-  "basis": "GRACE-FO terrestrial water storage assimilated with land-surface observations/modeling",
-  "healthIndex": null,
+  "publisher": "NASA Goddard Space Flight Center / National Drought Mitigation Center, University of Nebraska-Lincoln",
   "qualification": "SOURCE_CONNECTED_INDEX_WITHHELD",
-  "caveat": "This connects a current global hydrology observation product. D.O.M. does not convert the spatial percentile fields into one global water-health score until a documented area-weighted aggregation and uncertainty/coverage qualification are implemented.",
+  "resolutionDegrees": 0.25,
+  "schema": "dom-global-hydrology-source-v1",
+  "source": "NASA GSFC GRACE-FO Groundwater and Soil Moisture Drought Indicators",
+  "sourceUrl": "https://nasagrace.unl.edu/",
+  "status": "source-connected",
   "verifiedAsOf": "2026-09-14"
 }
