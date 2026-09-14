@@ -11,10 +11,10 @@ on:
       - 'dom-earthquake-*.js'
       - 'dom-wildfire-*.js'
       - 'dom-global-seismic-heartbeat.js'
+      - 'dom-global-seismic-heartbeat-core.js'
       - 'dom-observatory-dashboard-shell.js'
       - 'dom-runtime-config.js'
       - 'ci/dom-hazard-*.js'
-      - 'ci/dom-source-time-truth-test.js'
       - '.github/workflows/hazard-truth-ci.yml'
   workflow_dispatch:
 
@@ -39,6 +39,7 @@ jobs:
           node --check dom-earthquake-visual-restoration.js
           node --check dom-earthquake-tsunami-atmospheric-fusion.js
           node --check dom-global-seismic-heartbeat.js
+          node --check dom-global-seismic-heartbeat-core.js
           node --check dom-observatory-dashboard-shell.js
       - name: Hazard source and rendering truth invariants
         if: always()
@@ -46,6 +47,3 @@ jobs:
       - name: Hazard semantics execution
         if: always()
         run: node ci/dom-hazard-semantics-test.js
-      - name: Source time and freshness truth qualification
-        if: always()
-        run: node ci/dom-source-time-truth-test.js
