@@ -7,6 +7,7 @@ on:
       - 'dom-realism-observatory-adapter.js'
       - 'tests/realism-semantic-simulation.js'
       - 'tests/walkable-realism-simulation.js'
+      - 'tests/realism-200-check-matrix.js'
       - '.github/workflows/realism-semantic-simulation.yml'
   workflow_dispatch:
 jobs:
@@ -16,17 +17,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Syntax check realism runtime
-        run: node --check dom-realism-runtime.js
-      - name: Syntax check Observatory adapter
-        run: node --check dom-realism-observatory-adapter.js
-      - name: Syntax check semantic simulation
-        run: node --check tests/realism-semantic-simulation.js
-      - name: Syntax check walkable simulation
-        run: node --check tests/walkable-realism-simulation.js
-      - name: Run semantic simulation
+        with: {node-version: '22'}
+      - name: Syntax all realism modules
+        run: |
+          node --check dom-realism-runtime.js
+          node --check dom-realism-observatory-adapter.js
+          node --check tests/realism-semantic-simulation.js
+          node --check tests/walkable-realism-simulation.js
+          node --check tests/realism-200-check-matrix.js
+      - name: Semantic canonical simulation
         run: node tests/realism-semantic-simulation.js
-      - name: Run walkable physical simulation
+      - name: Walkable physical simulation
         run: node tests/walkable-realism-simulation.js
+      - name: 200 checks across 50 evidence fields
+        run: node tests/realism-200-check-matrix.js
