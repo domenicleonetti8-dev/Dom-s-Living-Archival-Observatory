@@ -8,6 +8,9 @@ on:
       - 'hazards.html'
       - 'hazards.js'
       - 'dom-*hazard*.js'
+      - 'dom-runtime-config.js'
+      - 'dom-live-globe-renderer.js'
+      - 'dom-organism-runtime.js'
       - 'dom-planetary-evidence-fabric.js'
       - 'dom-global-operational-weather-field.js'
       - 'dom-weather-climate-*.js'
@@ -31,6 +34,12 @@ jobs:
           node-version: '22'
       - name: Hazard JavaScript syntax qualification
         run: |
+          node --check dom-runtime-config.js
+          node --check dom-hazard-runtime-guard.js
+          node --check dom-live-globe-renderer.js
+          node --check dom-organism-runtime.js
+          node --check dom-weather-climate-global-loader.js
+          node --check dom-weather-climate-station-inspector.js
           node --check dom-planetary-evidence-fabric.js
           node --check dom-planetary-coupled-hazard-math.js
           node --check dom-hazard-render-reconciler.js
