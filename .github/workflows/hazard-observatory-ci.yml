@@ -2,7 +2,7 @@ name: D.O.M. Hazard Observatory qualification
 on:
   push:
     branches: [main]
-    paths: ['hazards.html','hazards.js','dom-*hazard*.js','dom-planetary-*.js','dom-environmental-coupled-physics.js','dom-global-operational-weather-field.js','dom-global-observing-fabric.js','dom-observation-ingress.js','dom-sensor-activation.js','dom-weather-climate-*.js','dom-global-seismic-heartbeat.js','dom-runtime-config.js','dom-hazard-runtime-guard.js','dom-live-globe-renderer.js','dom-organism-runtime.js','ci/dom-coupled-hazard-100000-test.js','ci/dom-hazard-semantics-test.js','.github/workflows/hazard-observatory-ci.yml']
+    paths: ['hazards.html','hazards.js','dom-*hazard*.js','dom-planetary-*.js','dom-environmental-coupled-physics.js','dom-global-operational-weather-field.js','dom-global-observing-fabric.js','dom-global-sensor-globe.js','dom-observation-ingress.js','dom-sensor-activation.js','dom-weather-climate-*.js','dom-global-seismic-heartbeat.js','dom-runtime-config.js','dom-hazard-runtime-guard.js','dom-live-globe-renderer.js','dom-organism-runtime.js','ci/dom-coupled-hazard-100000-test.js','ci/dom-hazard-semantics-test.js','.github/workflows/hazard-observatory-ci.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,6 +21,7 @@ jobs:
           node --check dom-live-globe-renderer.js
           node --check dom-observation-ingress.js
           node --check dom-sensor-activation.js
+          node --check dom-global-sensor-globe.js
           node --check dom-organism-runtime.js
           node --check dom-global-observing-fabric.js
           node --check dom-weather-climate-global-loader.js
@@ -33,6 +34,12 @@ jobs:
           node --check dom-wildfire-symbol-layer.js
           node --check dom-earthquake-visual-restoration.js
           node --check dom-hazard-popup-provenance.js
+      - name: Sensor attention semantics cannot impersonate hazard severity
+        run: |
+          ! grep -q "Critical invocation" dom-sensor-activation.js
+          ! grep -q "Heavy invocation" dom-sensor-activation.js
+          grep -q "not hazard probability" dom-sensor-activation.js
+          grep -q "not hazard probability" dom-global-sensor-globe.js
       - name: Coupled Earth hazard 100,000-case qualification
         run: node ci/dom-coupled-hazard-100000-test.js
       - name: Hazard semantics execution
