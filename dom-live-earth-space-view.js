@@ -1,0 +1,16 @@
+(()=>{
+'use strict';
+const API='https://epic.gsfc.nasa.gov/api/natural';
+const state={host:null,map:null,frame:null,visible:false,lastError:null};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function imageUrl(x){const d=String(x.date||'').slice(0,10).replaceAll('-','/');return `https://epic.gsfc.nasa.gov/archive/natural/${d}/png/${encodeURIComponent(x.image)}.png`;}
+async function latest(){const r=await fetch(API,{cache:'no-store'});if(!r.ok)throw new Error(`EPIC metadata ${r.status}`);const a=await r.json();if(!Array.isArray(a)||!a.length)throw new Error('EPIC returned no natural-color frames');return a[a.length-1];}
+function ensureHost(){const mapHost=document.getElementById('map');if(!mapHost)return null;let h=mapHost.querySelector('.dom-live-earth-space');if(!h){h=document.createElement('div');h.className='dom-live-earth-space';h.style.cssText='position:absolute;inset:0;z-index:12;background:#000;display:none;align-items:center;justify-content:center;overflow:hidden;pointer-events:none';h.innerHTML='<img alt="Current NASA DSCOVR EPIC view of Earth" style="width:min(92%,92vh);height:min(92%,92vh);object-fit:contain;filter:saturate(1.04) contrast(1.03)"/><div class="dom-epic-stamp" style="position:absolute;left:12px;bottom:10px;padding:5px 8px;border-radius:8px;background:rgba(0,0,0,.58);color:#dff;font:600 11px/1.25 system-ui"></div>';mapHost.style.position='relative';mapHost.appendChild(h)}state.host=h;return h;}
+function setVisible(v){const h=ensureHost();if(!h)return;state.visible=!!v;h.style.display=v?'flex':'none';if(state.map){for(const id of['dom-live-points-layer','dom-live-touch-layer','dom-eira-quake-origin','dom-live-pulse'])try{if(state.map.getLayer?.(id))state.map.setLayoutProperty(id,'visibility',v?'none':'visible')}catch(_){}}}
+function sync(){if(!state.map)return;setVisible((state.map.getZoom?.()??0)<=0.55);}
+async function refresh(){try{const f=await latest(),h=ensureHost();if(!h)return false;const img=h.querySelector('img');img.src=imageUrl(f);img.onload=()=>{state.frame=f;state.lastError=null;h.querySelector('.dom-epic-stamp').innerHTML=`NASA DSCOVR / EPIC · ${esc(f.date)} UTC · OBSERVED`;sync();window.dispatchEvent(new CustomEvent('dom:orbital-earth-observed',{detail:{source:'NASA DSCOVR EPIC',acquiredAt:f.date,image:f.image}}));};img.onerror=()=>{state.lastError='EPIC image failed';setVisible(false)};return true}catch(e){state.lastError=String(e?.message||e);setVisible(false);return false}}
+function attach(m){if(!m)return;state.map=m;m.on?.('zoom',sync);m.on?.('zoomend',sync);refresh();sync();}
+window.addEventListener('dom:map-ready',e=>attach(e.detail?.map));window.addEventListener('pageshow',()=>refresh());window.addEventListener('pagehide',()=>{});
+window.DOMLiveEarthSpaceView=Object.freeze({attach,refresh,state:()=>({visible:state.visible,frame:state.frame,lastError:state.lastError})});
+if(window.DOMCurrentHazardMap?.map)attach(window.DOMCurrentHazardMap.map);
+})();
