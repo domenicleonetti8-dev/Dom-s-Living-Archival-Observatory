@@ -1,0 +1,33 @@
+name: Realism Semantic Simulation
+on:
+  push:
+    branches: [hazard-realism-safe-build-20260915]
+    paths:
+      - 'dom-realism-runtime.js'
+      - 'dom-realism-observatory-adapter.js'
+      - 'tests/realism-semantic-simulation.js'
+      - 'tests/walkable-realism-simulation.js'
+      - 'tests/realism-200-check-matrix.js'
+      - '.github/workflows/realism-semantic-simulation.yml'
+  workflow_dispatch:
+jobs:
+  semantic-canonical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22'}
+      - name: Syntax all realism modules
+        run: |
+          node --check dom-realism-runtime.js
+          node --check dom-realism-observatory-adapter.js
+          node --check tests/realism-semantic-simulation.js
+          node --check tests/walkable-realism-simulation.js
+          node --check tests/realism-200-check-matrix.js
+      - name: Semantic canonical simulation
+        run: node tests/realism-semantic-simulation.js
+      - name: Walkable physical simulation
+        run: node tests/walkable-realism-simulation.js
+      - name: 200 checks across 50 evidence fields
+        run: node tests/realism-200-check-matrix.js
