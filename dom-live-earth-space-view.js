@@ -1,16 +1,20 @@
 (()=>{
 'use strict';
-const API='https://epic.gsfc.nasa.gov/api/natural';
-const state={host:null,map:null,frame:null,visible:false,lastError:null};
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function imageUrl(x){const d=String(x.date||'').slice(0,10).replaceAll('-','/');return `https://epic.gsfc.nasa.gov/archive/natural/${d}/png/${encodeURIComponent(x.image)}.png`;}
-async function latest(){const r=await fetch(API,{cache:'no-store'});if(!r.ok)throw new Error(`EPIC metadata ${r.status}`);const a=await r.json();if(!Array.isArray(a)||!a.length)throw new Error('EPIC returned no natural-color frames');return a[a.length-1];}
-function ensureHost(){const mapHost=document.getElementById('map');if(!mapHost)return null;let h=mapHost.querySelector('.dom-live-earth-space');if(!h){h=document.createElement('div');h.className='dom-live-earth-space';h.style.cssText='position:absolute;inset:0;z-index:12;background:#000;display:none;align-items:center;justify-content:center;overflow:hidden;pointer-events:none';h.innerHTML='<img alt="Current NASA DSCOVR EPIC view of Earth" style="width:min(92%,92vh);height:min(92%,92vh);object-fit:contain;filter:saturate(1.04) contrast(1.03)"/><div class="dom-epic-stamp" style="position:absolute;left:12px;bottom:10px;padding:5px 8px;border-radius:8px;background:rgba(0,0,0,.58);color:#dff;font:600 11px/1.25 system-ui"></div>';mapHost.style.position='relative';mapHost.appendChild(h)}state.host=h;return h;}
-function setVisible(v){const h=ensureHost();if(!h)return;state.visible=!!v;h.style.display=v?'flex':'none';if(state.map){for(const id of['dom-live-points-layer','dom-live-touch-layer','dom-eira-quake-origin','dom-live-pulse'])try{if(state.map.getLayer?.(id))state.map.setLayoutProperty(id,'visibility',v?'none':'visible')}catch(_){}}}
-function sync(){if(!state.map)return;setVisible((state.map.getZoom?.()??0)<=0.55);}
-async function refresh(){try{const f=await latest(),h=ensureHost();if(!h)return false;const img=h.querySelector('img');img.src=imageUrl(f);img.onload=()=>{state.frame=f;state.lastError=null;h.querySelector('.dom-epic-stamp').innerHTML=`NASA DSCOVR / EPIC · ${esc(f.date)} UTC · OBSERVED`;sync();window.dispatchEvent(new CustomEvent('dom:orbital-earth-observed',{detail:{source:'NASA DSCOVR EPIC',acquiredAt:f.date,image:f.image}}));};img.onerror=()=>{state.lastError='EPIC image failed';setVisible(false)};return true}catch(e){state.lastError=String(e?.message||e);setVisible(false);return false}}
-function attach(m){if(!m)return;state.map=m;m.on?.('zoom',sync);m.on?.('zoomend',sync);refresh();sync();}
-window.addEventListener('dom:map-ready',e=>attach(e.detail?.map));window.addEventListener('pageshow',()=>refresh());window.addEventListener('pagehide',()=>{});
-window.DOMLiveEarthSpaceView=Object.freeze({attach,refresh,state:()=>({visible:state.visible,frame:state.frame,lastError:state.lastError})});
+const GIBS='https://gibs.earthdata.nasa.gov/wmts/epsg3857/best';
+const STEP=10*60*1000,REFRESH=60*1000;
+const state={map:null,timer:0,frameTime:null,layers:[],lastError:null};
+const PRODUCTS=[
+ {id:'goes-east',layer:'GOES-East_ABI_GeoColor',coverage:'western hemisphere'},
+ {id:'goes-west',layer:'GOES-West_ABI_GeoColor',coverage:'eastern Pacific'},
+ {id:'himawari',layer:'Himawari_AHI_Band3_Red_Visible_1km',coverage:'western Pacific / Asia'}
+];
+function frameDate(){return new Date(Math.floor((Date.now()-STEP)/STEP)*STEP).toISOString().replace(/\.000Z$/,'Z')}
+function tile(layer,t){return `${GIBS}/${layer}/default/${encodeURIComponent(t)}/GoogleMapsCompatible_Level6/{z}/{y}/{x}.jpg`}
+function ensureLayer(p,t){const m=state.map,sid=`dom-worldview-${p.id}`,lid=`${sid}-atmosphere`;if(!m||!m.loaded?.())return;const url=tile(p.layer,t);try{if(m.getLayer?.(lid))m.removeLayer(lid);if(m.getSource?.(sid))m.removeSource(sid);m.addSource(sid,{type:'raster',tiles:[url],tileSize:256,attribution:'NASA Worldview / GIBS'});const before=m.getLayer?.('dom-live-points-layer')?'dom-live-points-layer':undefined;m.addLayer({id:lid,type:'raster',source:sid,paint:{'raster-opacity':['interpolate',['linear'],['zoom'],0,.92,3,.88,6,.78,9,.5,12,.18],'raster-fade-duration':900}},before);state.layers.push(lid)}catch(e){state.lastError=String(e?.message||e)}}
+function setLOD(){const m=state.map;if(!m)return;const z=m.getZoom?.()??0;for(const id of['dom-live-points-layer','dom-live-touch-layer','dom-eira-quake-origin','dom-live-pulse'])try{if(m.getLayer?.(id))m.setLayoutProperty(id,'visibility',z<2.2?'none':'visible')}catch(_){};for(const id of state.layers)try{if(m.getLayer?.(id))m.setPaintProperty(id,'raster-opacity',z<2?.92:z<6?.82:z<9?.55:.18)}catch(_){}}
+function refresh(){const m=state.map;if(!m||!m.loaded?.())return false;const t=frameDate();if(t===state.frameTime&&state.layers.length){setLOD();return true}state.layers=[];state.frameTime=t;PRODUCTS.forEach(p=>ensureLayer(p,t));setLOD();window.dispatchEvent(new CustomEvent('dom:worldview-atmosphere-frame',{detail:{source:'NASA Worldview / GIBS',frameTime:t,truth:'OBSERVED_WHERE_IMAGERY_EXISTS',gapPolicy:'transparent-underlay',products:PRODUCTS.map(p=>p.layer)}}));return true}
+function attach(m){if(!m)return;state.map=m;const run=()=>{refresh();setLOD()};m.on?.('load',run);m.on?.('zoom',setLOD);m.on?.('zoomend',setLOD);if(m.loaded?.())run();clearInterval(state.timer);state.timer=setInterval(refresh,REFRESH)}
+window.addEventListener('dom:map-ready',e=>attach(e.detail?.map));window.addEventListener('pagehide',()=>clearInterval(state.timer));
+window.DOMLiveEarthSpaceView=Object.freeze({attach,refresh,state:()=>({frameTime:state.frameTime,layers:[...state.layers],lastError:state.lastError,products:PRODUCTS})});
 if(window.DOMCurrentHazardMap?.map)attach(window.DOMCurrentHazardMap.map);
 })();
