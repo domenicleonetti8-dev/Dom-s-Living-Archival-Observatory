@@ -3,20 +3,21 @@ const DOMSensorActivation=(()=>{
   const finiteCoordinate=x=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x));
   const validLatLon=(lat,lon)=>finiteCoordinate(lat)&&finiteCoordinate(lon)&&Number(lat)>=-90&&Number(lat)<=90&&Number(lon)>=-180&&Number(lon)<=180;
   const optionalNumber=x=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x))?Number(x):null;
+  /* UI/data-attention bands only. These are NOT hazard probability, severity, danger, warning level, or scientific confidence. */
   const LEVELS=[
-    {min:.90,id:'critical',label:'Critical invocation',color:'#ff2b2b',pulse:1.00},
-    {min:.72,id:'heavy',label:'Heavy invocation',color:'#ff7a1a',pulse:.86},
-    {min:.52,id:'elevated',label:'Elevated invocation',color:'#ffd43b',pulse:.68},
-    {min:.30,id:'active',label:'Active',color:'#34d17b',pulse:.48},
-    {min:.01,id:'watching',label:'Watching',color:'#39c6ff',pulse:.28},
-    {min:0,id:'idle',label:'Idle / no qualified signal',color:'#65707d',pulse:.10}
+    {min:.90,id:'very-high-data-attention',label:'Very high data attention',color:'#ff2b2b',pulse:1.00},
+    {min:.72,id:'high-data-attention',label:'High data attention',color:'#ff7a1a',pulse:.86},
+    {min:.52,id:'moderate-data-attention',label:'Moderate data attention',color:'#ffd43b',pulse:.68},
+    {min:.30,id:'active-data',label:'Active data',color:'#34d17b',pulse:.48},
+    {min:.01,id:'monitoring-data',label:'Monitoring data',color:'#39c6ff',pulse:.28},
+    {min:0,id:'insufficient-data-attention',label:'Insufficient data for attention ranking',color:'#65707d',pulse:.10}
   ];
   function level(score){const s=clamp(score);return LEVELS.find(x=>s>=x.min)||LEVELS[LEVELS.length-1]}
   function anomalyScore(sensor={}){if(sensor.anomaly!=null&&sensor.anomaly!==''&&Number.isFinite(Number(sensor.anomaly)))return clamp(sensor.anomaly);if(sensor.anomalyZ!=null&&sensor.anomalyZ!==''&&Number.isFinite(Number(sensor.anomalyZ)))return clamp(Math.abs(Number(sensor.anomalyZ))/6);return 0}
   function activation(sensor={}){
     const freshness=clamp(sensor.freshness),quality=clamp(sensor.quality),anomaly=anomalyScore(sensor),persistence=clamp(sensor.persistence),corroboration=clamp(sensor.corroboration),hazardCoupling=clamp(sensor.hazardCoupling);
     const score=clamp(.18*freshness+.18*quality+.24*anomaly+.14*persistence+.14*corroboration+.12*hazardCoupling);
-    return{score,percent:Math.round(score*100),components:{freshness,quality,anomaly,persistence,corroboration,hazardCoupling},...level(score)};
+    return{score,percent:Math.round(score*100),semanticClass:'ui-data-attention-ranking',notHazardProbability:true,notHazardSeverity:true,notWarningLevel:true,components:{freshness,quality,anomaly,persistence,corroboration,hazardCoupling},...level(score)};
   }
   function cycloneFromKnots(knots){
     if(knots===null||knots===undefined||knots==='')return{type:'Tropical cyclone',category:'unknown',windKt:null,scale:'Saffir-Simpson one-minute sustained-wind thresholds',reason:'invalid or missing sustained wind'};
@@ -38,44 +39,8 @@ const DOMSensorActivation=(()=>{
   function sensorPacket(obs={}){
     const hasPoint=validLatLon(obs.lat,obs.lon),a=activation(obs),canonicalId=obs.sensorId||obs.stationId||obs.sourceId||obs.id||obs.instrumentId||'unknown-sensor';
     return{
-      sensorId:String(canonicalId),
-      sourceId:String(obs.sourceId||obs.id||canonicalId),
-      stationId:String(obs.stationId||obs.sensorId||obs.sourceId||obs.id||''),
-      agency:String(obs.agency||obs.sourceAgency||''),
-      sourceAgency:String(obs.sourceAgency||obs.agency||''),
-      network:String(obs.network||obs.sourceAgency||obs.agency||'unknown-network'),
-      instrument:String(obs.instrument||obs.modality||'unknown-instrument'),
-      modality:String(obs.modality||obs.instrument||''),
-      kind:String(obs.kind||''),
-      title:String(obs.title||obs.kind||''),
-      observationStatus:String(obs.observationStatus||'reported'),
-      expiresAt:obs.expiresAt||null,
-      lat:hasPoint?Number(obs.lat):null,
-      lon:hasPoint?Number(obs.lon):null,
-      elevation:optionalNumber(obs.elevation),
-      depth:optionalNumber(obs.depth),
-      nominalAreaWeight:optionalNumber(obs.nominalAreaWeight),
-      locationPrecision:hasPoint?(obs.locationPrecision||'source-coordinate'):'unresolved',
-      observedAt:obs.observedAt||null,
-      receivedAt:obs.receivedAt||null,
-      measurement:obs.measurement||null,
-      measurements:Array.isArray(obs.measurements)?obs.measurements:[],
-      unit:obs.unit||null,
-      temperature:obs.temperature||null,
-      lineageId:obs.lineageId||null,
-      sourceUrl:obs.sourceUrl||null,
-      authoritative:!!obs.authoritative,
-      officialAlert:!!obs.officialAlert,
-      quality:obs.quality==null||obs.quality===''?null:clamp(obs.quality),
-      freshness:obs.freshness==null||obs.freshness===''?null:clamp(obs.freshness),
-      anomaly:obs.anomaly==null||obs.anomaly===''?null:clamp(obs.anomaly),
-      anomalyZ:optionalNumber(obs.anomalyZ),
-      persistence:obs.persistence==null||obs.persistence===''?null:clamp(obs.persistence),
-      corroboration:obs.corroboration==null||obs.corroboration===''?null:clamp(obs.corroboration),
-      hazardCoupling:obs.hazardCoupling==null||obs.hazardCoupling===''?null:clamp(obs.hazardCoupling),
-      activation:a,
-      storm:obs.storm?stormLabel(obs.storm):null
+      sensorId:String(canonicalId),sourceId:String(obs.sourceId||obs.id||canonicalId),stationId:String(obs.stationId||obs.sensorId||obs.sourceId||obs.id||''),agency:String(obs.agency||obs.sourceAgency||''),sourceAgency:String(obs.sourceAgency||obs.agency||''),network:String(obs.network||obs.sourceAgency||obs.agency||'unknown-network'),instrument:String(obs.instrument||obs.modality||'unknown-instrument'),modality:String(obs.modality||obs.instrument||''),kind:String(obs.kind||''),title:String(obs.title||obs.kind||''),observationStatus:String(obs.observationStatus||'reported'),expiresAt:obs.expiresAt||null,lat:hasPoint?Number(obs.lat):null,lon:hasPoint?Number(obs.lon):null,elevation:optionalNumber(obs.elevation),depth:optionalNumber(obs.depth),nominalAreaWeight:optionalNumber(obs.nominalAreaWeight),locationPrecision:hasPoint?(obs.locationPrecision||'source-coordinate'):'unresolved',observedAt:obs.observedAt||null,receivedAt:obs.receivedAt||null,measurement:obs.measurement||null,measurements:Array.isArray(obs.measurements)?obs.measurements:[],unit:obs.unit||null,temperature:obs.temperature||null,lineageId:obs.lineageId||null,sourceUrl:obs.sourceUrl||null,authoritative:!!obs.authoritative,officialAlert:!!obs.officialAlert,quality:obs.quality==null||obs.quality===''?null:clamp(obs.quality),freshness:obs.freshness==null||obs.freshness===''?null:clamp(obs.freshness),anomaly:obs.anomaly==null||obs.anomaly===''?null:clamp(obs.anomaly),anomalyZ:optionalNumber(obs.anomalyZ),persistence:obs.persistence==null||obs.persistence===''?null:clamp(obs.persistence),corroboration:obs.corroboration==null||obs.corroboration===''?null:clamp(obs.corroboration),hazardCoupling:obs.hazardCoupling==null||obs.hazardCoupling===''?null:clamp(obs.hazardCoupling),activation:a,storm:obs.storm?stormLabel(obs.storm):null
     };
   }
-  return{LEVELS,finiteCoordinate,validLatLon,optionalNumber,level,anomalyScore,activation,cycloneFromKnots,stormLabel,sensorPacket};
+  return{LEVELS,finiteCoordinate,validLatLon,optionalNumber,level,anomalyScore,activation,cycloneFromKnots,stormLabel,sensorPacket,policy:'Activation is a UI/data-attention heuristic only. It is never hazard probability, danger, severity, warning level, or scientific confidence.'};
 })();
