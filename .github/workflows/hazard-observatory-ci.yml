@@ -1,28 +1,11 @@
 name: D.O.M. Hazard Observatory qualification
-
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'hazards.html'
-      - 'hazards.js'
-      - 'dom-*hazard*.js'
-      - 'dom-runtime-config.js'
-      - 'dom-live-globe-renderer.js'
-      - 'dom-organism-runtime.js'
-      - 'dom-planetary-evidence-fabric.js'
-      - 'dom-global-operational-weather-field.js'
-      - 'dom-weather-climate-*.js'
-      - 'dom-global-seismic-heartbeat.js'
-      - 'ci/dom-coupled-hazard-100000-test.js'
-      - 'ci/dom-hazard-semantics-test.js'
-      - '.github/workflows/hazard-observatory-ci.yml'
+    branches: [main]
+    paths: ['hazards.html','hazards.js','dom-*hazard*.js','dom-planetary-*.js','dom-environmental-coupled-physics.js','dom-global-operational-weather-field.js','dom-weather-climate-*.js','dom-global-seismic-heartbeat.js','dom-runtime-config.js','dom-hazard-runtime-guard.js','dom-live-globe-renderer.js','dom-organism-runtime.js','ci/dom-coupled-hazard-100000-test.js','ci/dom-hazard-semantics-test.js','.github/workflows/hazard-observatory-ci.yml']
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   hazard-truth:
     runs-on: ubuntu-latest
@@ -30,8 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+        with: {node-version: '22'}
       - name: Hazard JavaScript syntax qualification
         run: |
           node --check dom-runtime-config.js
@@ -39,9 +21,10 @@ jobs:
           node --check dom-live-globe-renderer.js
           node --check dom-organism-runtime.js
           node --check dom-weather-climate-global-loader.js
-          node --check dom-weather-climate-station-inspector.js
           node --check dom-planetary-evidence-fabric.js
           node --check dom-planetary-coupled-hazard-math.js
+          node --check dom-environmental-coupled-physics.js
+          node --check dom-planetary-organism.js
           node --check dom-hazard-render-reconciler.js
           node --check dom-hazard-geophysical-adapter.js
           node --check dom-wildfire-symbol-layer.js
