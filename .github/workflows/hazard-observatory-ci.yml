@@ -38,8 +38,9 @@ jobs:
         run: |
           ! grep -q "Critical invocation" dom-sensor-activation.js
           ! grep -q "Heavy invocation" dom-sensor-activation.js
-          grep -q "not hazard probability" dom-sensor-activation.js
-          grep -q "not hazard probability" dom-global-sensor-globe.js
+          grep -q "notHazardProbability:true" dom-sensor-activation.js
+          grep -q "notHazardSeverity:true" dom-sensor-activation.js
+          grep -q "notHazardSeverity:true" dom-global-sensor-globe.js
       - name: Coupled Earth hazard 100,000-case qualification
         run: node ci/dom-coupled-hazard-100000-test.js
       - name: Hazard semantics execution
