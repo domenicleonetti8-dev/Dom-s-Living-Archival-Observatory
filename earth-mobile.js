@@ -17,12 +17,12 @@ const EARTH_STYLE={
  layers:[
   {id:'space',type:'background',paint:{'background-color':'#01070b'}},
   {id:'satellite',type:'raster',source:'imagery',paint:{'raster-opacity':1,'raster-saturation':0.08,'raster-contrast':0.08}},
-  {id:'place-labels',type:'raster',source:'labels',paint:{'raster-opacity':['interpolate',['linear'],['zoom'],0,0.03,2,0.10,5,0.42,8,0.72,12,0.94]}}
+  {id:'place-labels',type:'raster',source:'labels',paint:{'raster-opacity':['interpolate',['linear'],['zoom'],0,0,2,0,3,0.08,5,0.42,8,0.72,12,0.94]}}
  ]
 };
 
 function setState(text){const el=$('#providerState');if(el)el.textContent=text;}
-function dateUTC(offset=0){const d=new Date(Date.now()+offset*86400000);return d.toISOString().slice(0,10);}
+function dateUTC(offset=0){return new Date(Date.now()+offset*86400000).toISOString().slice(0,10);}
 function tileURL(date){return `${GIBS}/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/${date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;}
 
 function installCloudContext(){
@@ -34,24 +34,29 @@ function installCloudContext(){
   map.addSource(SRC,{type:'raster',tiles:[tileURL(date)],tileSize:256,minzoom:0,maxzoom:9,attribution:'NASA EOSDIS GIBS / VIIRS'});
   map.addLayer({id:LYR,type:'raster',source:SRC,paint:{
    'raster-opacity':['interpolate',['linear'],['zoom'],0,0.94,2,0.92,4,0.84,6,0.62,8,0.34,10,0],
-   'raster-saturation':0.02,
-   'raster-contrast':0.10,
-   'raster-fade-duration':250
+   'raster-saturation':0.02,'raster-contrast':0.10,'raster-fade-duration':250
   }},'place-labels');
-  setState(`Observed Earth layer active · NASA VIIRS ${date} context · geographic terrain underneath · not represented as real-time.`);
+  setState(`Observed Earth active · NASA VIIRS ${date} context · geographic fallback fills projection/coverage gaps · labels hidden from orbital view.`);
   return true;
- }catch(err){
-  setState(`Observed Earth layer unavailable · ${err&&err.message?err.message:String(err)}`);
-  return false;
- }
+ }catch(err){setState(`Observed Earth layer unavailable · ${err&&err.message?err.message:String(err)}`);return false;}
+}
+
+function protectGlobe(){
+ if(!map||!map.isStyleLoaded())return;
+ // MapLibre globe + EPSG:3857 rasters cannot represent the polar caps. Keep the
+ // geographic satellite layer immediately beneath the observation layer so every
+ // uncovered/invalid observation fragment resolves to Earth rather than black space.
+ try{map.setPaintProperty('satellite','raster-opacity',1);}catch(e){}
+ try{map.setPaintProperty('place-labels','raster-opacity',['interpolate',['linear'],['zoom'],0,0,2,0,3,0.08,5,0.42,8,0.72,12,0.94]);}catch(e){}
 }
 
 function initializeLoadedMap(){
  try{map.setProjection({type:'globe'});}catch(e){}
  try{map.setTerrain({source:'terrain',exaggeration:1.12});}catch(e){}
  try{map.setFog({range:[0.4,8],color:'#8bb7c8','horizon-blend':0.12,'high-color':'#0d3550','space-color':'#000207','star-intensity':0.18});}catch(e){}
+ protectGlobe();
  installCloudContext();
- if(!refreshTimer)refreshTimer=setInterval(installCloudContext,10*60*1000);
+ if(!refreshTimer)refreshTimer=setInterval(()=>{protectGlobe();installCloudContext();},10*60*1000);
 }
 
 function build(){
@@ -60,24 +65,18 @@ function build(){
   map=new maplibregl.Map({container:'earthMap',style:EARTH_STYLE,center:[0,15],zoom:1.15,minZoom:0.35,maxZoom:19,pitch:0,bearing:0,attributionControl:true,renderWorldCopies:false,antialias:true,pitchWithRotate:true,touchPitch:true});
   map.addControl(new maplibregl.NavigationControl({showCompass:true,showZoom:true,visualizePitch:true}),'top-right');
   map.once('load',initializeLoadedMap);
-  map.on('error',event=>{
-   const msg=event&&event.error&&event.error.message?event.error.message:(event&&event.message?event.message:'map resource error');
-   if(!map.getLayer(LYR))setState(`Geographical Earth resource notice · ${msg}`);
-  });
+  map.on('moveend',protectGlobe);
+  map.on('error',event=>{const msg=event&&event.error&&event.error.message?event.error.message:(event&&event.message?event.message:'map resource error');if(!map.getLayer(LYR))setState(`Geographical Earth resource notice · ${msg}`);});
  }catch(err){setState(`Geographical Earth failed to initialize · ${err&&err.message?err.message:String(err)}`);}
 }
 
 function reset(){if(map)map.easeTo({center:[0,15],zoom:1.15,pitch:0,bearing:0,duration:500});}
-function refresh(){if(!map)return;setState('Refreshing observed Earth layer…');installCloudContext();map.triggerRepaint();}
-function locate(){
- if(!navigator.geolocation){setState('Location unavailable.');return;}
- navigator.geolocation.getCurrentPosition(p=>{if(map)map.flyTo({center:[p.coords.longitude,p.coords.latitude],zoom:10,pitch:55,duration:900});},()=>setState('Location unavailable.'));
-}
+function refresh(){if(!map)return;setState('Refreshing observed Earth layer…');protectGlobe();installCloudContext();map.triggerRepaint();}
+function locate(){if(!navigator.geolocation){setState('Location unavailable.');return;}navigator.geolocation.getCurrentPosition(p=>{if(map)map.flyTo({center:[p.coords.longitude,p.coords.latitude],zoom:10,pitch:55,duration:900});},()=>setState('Location unavailable.'));}
 
 window.addEventListener('pagehide',()=>{if(refreshTimer)clearInterval(refreshTimer);},{once:true});
 window.addEventListener('error',e=>setState(`Geographical Earth script error · ${e.message||'unknown error'}`));
 window.addEventListener('unhandledrejection',e=>setState(`Geographical Earth script rejection · ${e.reason&&e.reason.message?e.reason.message:String(e.reason||'unknown')}`));
-
 build();
 $('#resetEarth')?.addEventListener('click',reset);
 $('#refreshEarth')?.addEventListener('click',refresh);
