@@ -9,22 +9,14 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="./styles.css?v=6">
 <link rel="stylesheet" href="./earth.css?v=5">
-<style>
-.earth-map-card{position:relative;min-height:68vh;background:#00050a}#earthOrbital,#earthMap{position:absolute;inset:0}#earthOrbital{z-index:2;background:#00050a;overflow:hidden;touch-action:none;opacity:1;transition:opacity .28s ease}#earthOrbital canvas{width:100%;height:100%;display:block}#earthMap{z-index:1;display:block;visibility:hidden;opacity:0;transition:opacity .28s ease}#earthMap.active{z-index:3;visibility:visible;opacity:1}#earthOrbital.detail-active{opacity:0;pointer-events:none}
-</style>
+<style>.earth-map-card{position:relative;min-height:68vh;background:#00050a}#earthMap{position:absolute;inset:0}</style>
 </head>
 <body class="earth-page">
 <header class="earth-header"><a class="brand" href="./index.html"><strong>D.O.M.</strong><span>Living Archival Observatory</span></a><div class="earth-header-links"><a href="./hazards.html">⚠ Hazard Observatory</a><a href="./index.html">Home</a></div></header>
 <main class="earth-shell">
-<section class="earth-intro"><div><p class="eyebrow">GEOGRAPHICAL EARTH · LIVING SATELLITE + TERRAIN PLANET VIEW</p><h1>Geographical Earth</h1><p>A living Earth-from-space geographic experience: continuous satellite imagery on a true spherical orbital surface, transitioning into geographic imagery, elevation terrain and progressively visible labels as you descend. Hazard overlays remain exclusively in the Hazard Observatory.</p></div><div class="earth-actions"><button id="resetEarth" type="button">Global</button><button id="refreshEarth" type="button">Refresh Earth</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Loading continuous NASA whole-Earth satellite surface · build 0710…</div></section>
-<section class="earth-map-card" aria-label="Interactive living satellite and terrain Earth"><div id="earthMap"></div><div id="earthOrbital"></div></section>
+<section class="earth-intro"><div><p class="eyebrow">GEOGRAPHICAL EARTH · SATELLITE + TERRAIN PLANET VIEW</p><h1>Geographical Earth</h1><p>A spherical satellite geographic Earth with real elevation terrain, geographic detail, globe rotation, zoom and local exploration. Geographic labels progressively appear during descent. Hazard overlays remain exclusively in the Hazard Observatory.</p></div><div class="earth-actions"><button id="resetEarth" type="button">Global</button><button id="refreshEarth" type="button">Refresh Earth</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Starting stable Geographical Earth · build 0718…</div></section>
+<section class="earth-map-card" aria-label="Interactive satellite and terrain Earth"><div id="earthMap"></div></section>
 </main>
-<script type="module" src="./earth-mobile.js?v=20260916-descent-2"></script>
-<script type="module" src="./earth-orbital.js?v=20260916-safari-canvas-0710"></script>
-<script>
-document.getElementById('resetEarth').addEventListener('click',()=>{window.DOM_DETAIL?.reset();window.DOM_ORBITAL?.reset();});
-document.getElementById('refreshEarth').addEventListener('click',()=>window.DOM_ORBITAL?.refresh());
-document.getElementById('locateMe').addEventListener('click',()=>window.DOM_DETAIL?.locate());
-</script>
+<script type="module" src="./earth-mobile.js?v=20260916-stable-visible-0718"></script>
 </body>
 </html>
