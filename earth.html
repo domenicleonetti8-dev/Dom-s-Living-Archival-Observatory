@@ -6,16 +6,23 @@
 <meta name="theme-color" content="#07110f">
 <meta name="description" content="D.O.M. Geographical Earth: a living satellite and terrain globe for geographic exploration.">
 <title>D.O.M. Geographical Earth</title>
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.6.0/dist/maplibre-gl.css">
 <link rel="stylesheet" href="./styles.css?v=6">
 <link rel="stylesheet" href="./earth.css?v=5">
+<style>
+#earthOrbital{position:absolute;inset:0;background:#010b10;overflow:hidden;touch-action:none}#earthOrbital canvas{width:100%;height:100%;display:block}.earth-map-card{position:relative;min-height:68vh}#earthMap{display:none!important}
+</style>
 </head>
 <body class="earth-page">
 <header class="earth-header"><a class="brand" href="./index.html"><strong>D.O.M.</strong><span>Living Archival Observatory</span></a><div class="earth-header-links"><a href="./hazards.html">⚠ Hazard Observatory</a><a href="./index.html">Home</a></div></header>
 <main class="earth-shell">
-<section class="earth-intro"><div><p class="eyebrow">GEOGRAPHICAL EARTH · LIVING SATELLITE + TERRAIN PLANET VIEW</p><h1>Geographical Earth</h1><p>A living Earth-from-space geographic experience: a spherical geographic Earth with real elevation terrain, geographic detail, globe rotation, zoom and local exploration. Geographic labels progressively appear during descent. Hazard events, alerts, sensor networks and scientific hazard overlays remain exclusively in the Hazard Observatory.</p></div><div class="earth-actions"><button id="resetEarth" type="button">Global</button><button id="refreshEarth" type="button">Refresh Earth</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Loading protected geographic Earth…</div></section>
-<section class="earth-map-card" aria-label="Interactive living satellite and terrain Earth"><div id="earthMap"></div></section>
+<section class="earth-intro"><div><p class="eyebrow">GEOGRAPHICAL EARTH · LIVING SATELLITE + TERRAIN PLANET VIEW</p><h1>Geographical Earth</h1><p>A living Earth-from-space geographic experience with a continuous spherical observation surface. Geographic terrain and local exploration remain the descent target; hazard overlays remain exclusively in the Hazard Observatory.</p></div><div class="earth-actions"><button id="resetEarth" type="button">Global</button><button id="refreshEarth" type="button">Refresh Earth</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Loading continuous spherical observed Earth…</div></section>
+<section class="earth-map-card" aria-label="Interactive living satellite Earth"><div id="earthOrbital"></div><div id="earthMap"></div></section>
 </main>
-<script type="module" src="./earth-mobile.js?v=20260916-protected-globe-1"></script>
+<script type="module" src="./earth-orbital.js?v=20260916-sphere-1"></script>
+<script>
+document.getElementById('resetEarth').addEventListener('click',()=>window.DOM_ORBITAL?.reset());
+document.getElementById('refreshEarth').addEventListener('click',()=>window.DOM_ORBITAL?.refresh());
+document.getElementById('locateMe').addEventListener('click',()=>{document.getElementById('providerState').textContent='Local geographic descent is being retained separately from the continuous orbital sphere.';});
+</script>
 </body>
 </html>
