@@ -1,0 +1,16 @@
+import * as THREE from 'https://unpkg.com/three@0.180.0/build/three.module.js';
+import {OrbitControls} from 'https://unpkg.com/three@0.180.0/examples/jsm/controls/OrbitControls.js';
+const host=document.getElementById('earth3d'),state=document.getElementById('providerState'),stamp=document.getElementById('earthTimestamp');
+const status=t=>{if(state)state.textContent=t};
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x000000);
+const camera=new THREE.PerspectiveCamera(34,1,.1,100);camera.position.set(0,0,3.25);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.outputColorSpace=THREE.SRGBColorSpace;host.prepend(renderer.domElement);
+const globe=new THREE.Mesh(new THREE.SphereGeometry(1,128,96),new THREE.MeshBasicMaterial({color:0x102030}));scene.add(globe);
+const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(1.012,128,96),new THREE.MeshBasicMaterial({color:0x70b9df,transparent:true,opacity:.055,side:THREE.BackSide,depthWrite:false}));scene.add(atmosphere);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.enablePan=false;controls.minDistance=1.55;controls.maxDistance=7;controls.rotateSpeed=.55;controls.zoomSpeed=.75;
+function size(){const r=host.getBoundingClientRect();renderer.setSize(Math.max(1,r.width),Math.max(1,r.height),false);camera.aspect=Math.max(1,r.width)/Math.max(1,r.height);camera.updateProjectionMatrix()}addEventListener('resize',size);size();
+function render(){controls.update();renderer.render(scene,camera);requestAnimationFrame(render)}render();
+const API='https://epic.gsfc.nasa.gov/api/natural',ARCHIVE='https://epic.gsfc.nasa.gov/archive/natural';
+function imageURL(f){const [d]=f.date.split(' '),[y,m,day]=d.split('-');return `${ARCHIVE}/${y}/${m}/${day}/jpg/${f.image}.jpg`;}
+async function refresh(){status('Loading latest NASA full-disk observation onto 3D Earth…');try{const r=await fetch(`${API}?v=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw Error(`NASA API ${r.status}`);const a=await r.json();if(!Array.isArray(a)||!a.length)throw Error('no observation returned');const f=a.reduce((x,y)=>x.date>y.date?x:y),src=imageURL(f);new THREE.TextureLoader().load(src,t=>{t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());globe.material.map=t;globe.material.color.set(0xffffff);globe.material.needsUpdate=true;stamp.textContent=`NASA DSCOVR/EPIC · acquired ${f.date} UTC`;status('Geographical Earth · interactive 3D · latest available NASA DSCOVR/EPIC observation');},undefined,()=>status('NASA observation image unavailable; 3D renderer remains active.'));}catch(e){status(`NASA observation unavailable · ${e.message}`)}}
+document.getElementById('refreshEarth')?.addEventListener('click',refresh);document.getElementById('resetEarth')?.addEventListener('click',()=>{camera.position.set(0,0,3.25);controls.target.set(0,0,0);controls.update()});refresh();
