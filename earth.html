@@ -16,11 +16,11 @@
 <body class="earth-page">
 <header class="earth-header"><a class="brand" href="./index.html"><strong>D.O.M.</strong><span>Living Archival Observatory</span></a><div class="earth-header-links"><a href="./hazards.html">⚠ Hazard Observatory</a><a href="./index.html">Home</a></div></header>
 <main class="earth-shell">
-<section class="earth-intro"><div><p class="eyebrow">GEOGRAPHICAL EARTH · LIVING SATELLITE + TERRAIN PLANET VIEW</p><h1>Geographical Earth</h1><p>A living Earth-from-space geographic experience: continuous satellite imagery on a true spherical orbital surface, transitioning into geographic imagery, elevation terrain and progressively visible labels as you descend. Hazard overlays remain exclusively in the Hazard Observatory.</p></div><div class="earth-actions"><button id="resetEarth" type="button">Global</button><button id="refreshEarth" type="button">Refresh Earth</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Loading corrected full-Earth satellite surface · build 0703…</div></section>
+<section class="earth-intro"><div><p class="eyebrow">GEOGRAPHICAL EARTH · LIVING SATELLITE + TERRAIN PLANET VIEW</p><h1>Geographical Earth</h1><p>A living Earth-from-space geographic experience: continuous satellite imagery on a true spherical orbital surface, transitioning into geographic imagery, elevation terrain and progressively visible labels as you descend. Hazard overlays remain exclusively in the Hazard Observatory.</p></div><div class="earth-actions"><button id="resetEarth" type="button">Global</button><button id="refreshEarth" type="button">Refresh Earth</button><button id="locateMe" type="button">My area</button></div><div id="providerState" class="earth-note" aria-live="polite">Loading continuous NASA whole-Earth satellite surface · build 0710…</div></section>
 <section class="earth-map-card" aria-label="Interactive living satellite and terrain Earth"><div id="earthMap"></div><div id="earthOrbital"></div></section>
 </main>
 <script type="module" src="./earth-mobile.js?v=20260916-descent-2"></script>
-<script type="module" src="./earth-orbital.js?v=20260916-opaque-viirs-0703"></script>
+<script type="module" src="./earth-orbital.js?v=20260916-safari-canvas-0710"></script>
 <script>
 document.getElementById('resetEarth').addEventListener('click',()=>{window.DOM_DETAIL?.reset();window.DOM_ORBITAL?.reset();});
 document.getElementById('refreshEarth').addEventListener('click',()=>window.DOM_ORBITAL?.refresh());
