@@ -1,0 +1,9 @@
+(()=>{'use strict';
+const URL='./data/global-realtime/gdacs_events.json';let last=null,error=null,count=0;
+const valid=e=>e&&Number.isFinite(+e.lat)&&Number.isFinite(+e.lon)&&+e.lat>=-90&&+e.lat<=90&&+e.lon>=-180&&+e.lon<=180;
+function normalize(e){const kind=String(e.kind||'');return{...e,id:String(e.id||`gdacs:${kind}:${e.lat}:${e.lon}:${e.observedAt||''}`),kind,source:e.source||'Global Disaster Alert and Coordination System (GDACS)',agency:e.agency||'UN / European Commission JRC GDACS',authoritative:e.authoritative!==false,sourceType:e.sourceType||'global-disaster-system',locationPrecision:e.locationPrecision||'source-point',truthClass:e.truthClass||'curated-global-disaster-event'};}
+async function refresh(){try{const r=await fetch(`${URL}?v=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw Error(`HTTP ${r.status}`);const d=await r.json();const rows=(Array.isArray(d.events)?d.events:[]).filter(valid).map(normalize);count=rows.length;last=d.updatedAt||new Date().toISOString();error=null;window.dispatchEvent(new CustomEvent('dom:hazard-extension',{detail:{source:'GDACS-GLOBAL-REALTIME-SNAPSHOT',events:rows,updatedAt:last,authoritative:true,preservedSnapshot:true}}));}catch(e){error=String(e?.message||e);}}
+function boot(){refresh();setInterval(()=>{if(document.visibilityState==='visible')refresh()},600000)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+window.DOMGlobalRealtimeHazardBridge=Object.freeze({refresh,state:()=>({count,last,error,policy:'additive snapshot bridge; preserves existing globe and renderers; source coordinates only'})});
+})();
