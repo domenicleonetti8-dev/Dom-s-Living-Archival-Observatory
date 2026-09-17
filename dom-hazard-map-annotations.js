@@ -1,0 +1,1 @@
+(()=>{'use strict';import('./dom-hazard-visibility-repair.js?v=20260917-1').catch(e=>console.warn('D.O.M. hazard visibility recovery load failed',e));})();
