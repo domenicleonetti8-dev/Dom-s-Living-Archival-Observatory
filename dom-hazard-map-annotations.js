@@ -1,1 +1,6 @@
-(()=>{'use strict';import('./dom-hazard-visibility-repair.js?v=20260917-1').catch(e=>console.warn('D.O.M. hazard visibility recovery load failed',e));})();
+(()=>{'use strict';
+Promise.allSettled([
+  import('./dom-hazard-visibility-repair.js?v=20260917-1'),
+  import('./dom-global-realtime-hazard-bridge.js?v=20260917-1')
+]).then(r=>{for(const x of r)if(x.status==='rejected')console.warn('D.O.M. additive hazard module load failed',x.reason)});
+})();
