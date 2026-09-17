@@ -1,6 +1,6 @@
 {
   "currentYear": 2026,
-  "generatedAt": "2026-09-17T11:35:34Z",
+  "generatedAt": "2026-09-17T15:38:58Z",
   "historyCoverage": {
     "earliestRecordStartYear": 1781,
     "elementStationCounts": {
@@ -13,14 +13,14 @@
       "ASTP": 471,
       "AWBT": 471,
       "AWDR": 46,
-      "AWND": 1306,
+      "AWND": 1307,
       "DAEV": 378,
-      "DAPR": 25785,
+      "DAPR": 25808,
       "DASF": 2105,
       "DATN": 384,
       "DATX": 368,
       "DAWM": 365,
-      "DWPR": 2692,
+      "DWPR": 2693,
       "EVAP": 466,
       "FMTM": 926,
       "FRGB": 45,
@@ -28,7 +28,7 @@
       "FRTH": 55,
       "GAHT": 90,
       "MDEV": 378,
-      "MDPR": 25987,
+      "MDPR": 26010,
       "MDSF": 2483,
       "MDTN": 384,
       "MDTX": 368,
@@ -36,7 +36,7 @@
       "MNPN": 368,
       "MXPN": 370,
       "PGTM": 1195,
-      "PRCP": 37499,
+      "PRCP": 37511,
       "PSUN": 359,
       "RHAV": 472,
       "RHMN": 473,
@@ -69,8 +69,8 @@
       "SN81": 1,
       "SN82": 1,
       "SN83": 1,
-      "SNOW": 28994,
-      "SNWD": 25294,
+      "SNOW": 29004,
+      "SNWD": 25304,
       "SX01": 21,
       "SX02": 114,
       "SX03": 27,
@@ -103,41 +103,41 @@
       "SX83": 1,
       "TAVG": 4030,
       "THIC": 226,
-      "TMAX": 10700,
-      "TMIN": 10689,
-      "TOBS": 5588,
+      "TMAX": 10704,
+      "TMIN": 10693,
+      "TOBS": 5591,
       "TSUN": 895,
       "WDF1": 307,
-      "WDF2": 1159,
-      "WDF5": 1154,
+      "WDF2": 1160,
+      "WDF5": 1155,
       "WDFG": 1004,
       "WDFI": 9,
       "WDFM": 198,
       "WDMV": 467,
-      "WESD": 13675,
-      "WESF": 12779,
+      "WESD": 13680,
+      "WESF": 12783,
       "WSF1": 313,
-      "WSF2": 1161,
-      "WSF5": 1155,
+      "WSF2": 1162,
+      "WSF5": 1156,
       "WSFG": 1111,
       "WSFI": 59,
       "WSFM": 200,
-      "WT01": 5878,
-      "WT02": 1163,
-      "WT03": 5876,
-      "WT04": 5165,
-      "WT05": 5266,
-      "WT06": 4883,
+      "WT01": 5881,
+      "WT02": 1165,
+      "WT03": 5880,
+      "WT04": 5168,
+      "WT05": 5269,
+      "WT06": 4884,
       "WT07": 1854,
-      "WT08": 3092,
+      "WT08": 3094,
       "WT09": 2340,
       "WT10": 720,
-      "WT11": 4830,
+      "WT11": 4833,
       "WT12": 51,
       "WT13": 518,
-      "WT14": 2833,
+      "WT14": 2835,
       "WT15": 361,
-      "WT16": 2284,
+      "WT16": 2285,
       "WT17": 435,
       "WT18": 1973,
       "WT19": 433,
@@ -154,17 +154,17 @@
     "meanRecordSpanYears": 33.4,
     "meaning": "Record lifespan metadata from authoritative inventories. It tells D.O.M. how far back each station can be queried; it is not a claim that every historical measurement has already been ingested.",
     "medianRecordSpanYears": 16.0,
-    "potentialStationYears": 1258481,
+    "potentialStationYears": 1258817,
     "sourceInventoryUrl": "https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-inventory.txt",
-    "stationCountWithHistoryMetadata": 37641
+    "stationCountWithHistoryMetadata": 37653
   },
   "locationValidation": {
     "coordinateSystem": "source-published geographic latitude/longitude; rendered as WGS84-compatible map coordinates",
     "crossNetworkSupportRadiusM": 500,
-    "crossNetworkSupportedStations": 2743,
+    "crossNetworkSupportedStations": 2745,
     "precisionClassCounts": {
       "documented-coordinate-coarse": 175,
-      "documented-coordinate-high-precision": 39548,
+      "documented-coordinate-high-precision": 39560,
       "documented-coordinate-medium-precision": 242,
       "documented-coordinate-very-coarse": 131
     },
@@ -174,7 +174,7 @@
   "schema": "dom-weather-climate-manifest-v2",
   "sources": [
     {
-      "count": 37641,
+      "count": 37653,
       "id": "ghcn-d",
       "inventoryUrl": "https://www.ncei.noaa.gov/pub/data/ghcn/daily/ghcnd-inventory.txt",
       "scope": "global current-year reporting stations with source-published record lifespans",
@@ -235,7 +235,7 @@
       "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/ccd-stations.txt"
     }
   ],
-  "stationCount": 40096,
+  "stationCount": 40108,
   "tileCount": 264,
   "tileDegrees": 10,
   "tiles": [
@@ -510,7 +510,7 @@
       "path": "./data/weather-climate/tile_lat_+20_lon_-120.json"
     },
     {
-      "count": 145,
+      "count": 146,
       "id": "lat_+20_lon_-160",
       "path": "./data/weather-climate/tile_lat_+20_lon_-160.json"
     },
@@ -610,22 +610,22 @@
       "path": "./data/weather-climate/tile_lat_+30_lon_-030.json"
     },
     {
-      "count": 2045,
+      "count": 2046,
       "id": "lat_+30_lon_-080",
       "path": "./data/weather-climate/tile_lat_+30_lon_-080.json"
     },
     {
-      "count": 4505,
+      "count": 4506,
       "id": "lat_+30_lon_-090",
       "path": "./data/weather-climate/tile_lat_+30_lon_-090.json"
     },
     {
-      "count": 4268,
+      "count": 4269,
       "id": "lat_+30_lon_-100",
       "path": "./data/weather-climate/tile_lat_+30_lon_-100.json"
     },
     {
-      "count": 2633,
+      "count": 2636,
       "id": "lat_+30_lon_-110",
       "path": "./data/weather-climate/tile_lat_+30_lon_-110.json"
     },
@@ -730,7 +730,7 @@
       "path": "./data/weather-climate/tile_lat_+40_lon_-070.json"
     },
     {
-      "count": 2777,
+      "count": 2778,
       "id": "lat_+40_lon_-080",
       "path": "./data/weather-climate/tile_lat_+40_lon_-080.json"
     },
@@ -740,12 +740,12 @@
       "path": "./data/weather-climate/tile_lat_+40_lon_-090.json"
     },
     {
-      "count": 4003,
+      "count": 4004,
       "id": "lat_+40_lon_-100",
       "path": "./data/weather-climate/tile_lat_+40_lon_-100.json"
     },
     {
-      "count": 1786,
+      "count": 1787,
       "id": "lat_+40_lon_-110",
       "path": "./data/weather-climate/tile_lat_+40_lon_-110.json"
     },
@@ -1355,7 +1355,7 @@
       "path": "./data/weather-climate/tile_lat_-40_lon_+120.json"
     },
     {
-      "count": 374,
+      "count": 376,
       "id": "lat_-40_lon_+130",
       "path": "./data/weather-climate/tile_lat_-40_lon_+130.json"
     },
