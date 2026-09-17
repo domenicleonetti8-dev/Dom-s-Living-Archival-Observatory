@@ -3,7 +3,7 @@ name: Update global realtime observation snapshots
 on:
   workflow_dispatch:
   schedule:
-    - cron: '7,37 * * * *'
+    - cron: '*/10 * * * *'
   push:
     paths:
       - 'scripts/update_global_realtime.py'
