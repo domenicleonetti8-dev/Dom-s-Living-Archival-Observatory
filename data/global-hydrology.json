@@ -3,7 +3,7 @@
   "cadence": "weekly",
   "caveat": "This connects a current global hydrology observation product. D.O.M. does not convert the spatial percentile fields into one global water-health score until a documented area-weighted aggregation and uncertainty/coverage qualification are implemented.",
   "coverage": "global land",
-  "fetchedAt": "2026-09-19T22:55:22Z",
+  "fetchedAt": "2026-09-20T00:42:38Z",
   "healthIndex": null,
   "latestProductDate": "2026-09-14",
   "observations": [
@@ -18,5 +18,5 @@
   "source": "NASA GSFC GRACE-FO Groundwater and Soil Moisture Drought Indicators",
   "sourceUrl": "https://nasagrace.unl.edu/",
   "status": "source-connected",
-  "verifiedAsOf": "2026-09-19"
+  "verifiedAsOf": "2026-09-20"
 }
