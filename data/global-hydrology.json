@@ -3,7 +3,7 @@
   "cadence": "weekly",
   "caveat": "This connects a current global hydrology observation product. D.O.M. does not convert the spatial percentile fields into one global water-health score until a documented area-weighted aggregation and uncertainty/coverage qualification are implemented.",
   "coverage": "global land",
-  "fetchedAt": "2026-09-23T10:07:05Z",
+  "fetchedAt": "2026-09-23T14:59:32Z",
   "healthIndex": null,
   "latestProductDate": "2026-09-21",
   "observations": [
