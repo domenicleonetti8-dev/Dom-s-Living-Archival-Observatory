@@ -1,6 +1,6 @@
 {
   "currentYear": 2026,
-  "generatedAt": "2026-09-25T22:41:04Z",
+  "generatedAt": "2026-09-26T00:53:37Z",
   "historyCoverage": {
     "earliestRecordStartYear": 1781,
     "elementStationCounts": {
@@ -161,12 +161,12 @@
   "locationValidation": {
     "coordinateSystem": "source-published geographic latitude/longitude; rendered as WGS84-compatible map coordinates",
     "crossNetworkSupportRadiusM": 500,
-    "crossNetworkSupportedStations": 2248,
+    "crossNetworkSupportedStations": 2745,
     "precisionClassCounts": {
-      "documented-coordinate-coarse": 162,
-      "documented-coordinate-high-precision": 39248,
-      "documented-coordinate-medium-precision": 223,
-      "documented-coordinate-very-coarse": 129
+      "documented-coordinate-coarse": 175,
+      "documented-coordinate-high-precision": 39584,
+      "documented-coordinate-medium-precision": 242,
+      "documented-coordinate-very-coarse": 131
     },
     "precisionMethod": "half-cell diagonal derived from decimal-degree source precision using latitude-adjusted longitude scale",
     "rangeValidated": true
@@ -188,7 +188,6 @@
     },
     {
       "count": 0,
-      "error": "TimeoutError: The read operation timed out",
       "id": "coop",
       "scope": "current official station list",
       "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/coop-stations.txt"
@@ -201,22 +200,19 @@
       "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/lcd-stations.txt"
     },
     {
-      "count": 0,
-      "error": "TimeoutError: The read operation timed out",
+      "count": 210,
       "id": "nexrad",
       "scope": "current official station list",
       "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/nexrad-stations.txt"
     },
     {
-      "count": 0,
-      "error": "TimeoutError: The read operation timed out",
+      "count": 144,
       "id": "crn",
       "scope": "current official station list",
       "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/crn-stations.txt"
     },
     {
-      "count": 0,
-      "error": "TimeoutError: The read operation timed out",
+      "count": 16,
       "id": "alrcrn",
       "scope": "current official station list",
       "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/alrcrn-stations.txt"
@@ -235,13 +231,12 @@
     },
     {
       "count": 0,
-      "error": "TimeoutError: The read operation timed out",
       "id": "ccd",
       "scope": "current official station list",
       "sourceUrl": "https://www.ncei.noaa.gov/access/homr/file/ccd-stations.txt"
     }
   ],
-  "stationCount": 39762,
+  "stationCount": 40132,
   "tileCount": 264,
   "tileDegrees": 10,
   "tiles": [
@@ -371,7 +366,7 @@
       "path": "./data/weather-climate/tile_lat_+10_lon_+130.json"
     },
     {
-      "count": 21,
+      "count": 22,
       "id": "lat_+10_lon_+140",
       "path": "./data/weather-climate/tile_lat_+10_lon_+140.json"
     },
@@ -396,7 +391,7 @@
       "path": "./data/weather-climate/tile_lat_+10_lon_-060.json"
     },
     {
-      "count": 159,
+      "count": 163,
       "id": "lat_+10_lon_-070",
       "path": "./data/weather-climate/tile_lat_+10_lon_-070.json"
     },
@@ -421,7 +416,7 @@
       "path": "./data/weather-climate/tile_lat_+10_lon_-110.json"
     },
     {
-      "count": 58,
+      "count": 61,
       "id": "lat_+10_lon_-160",
       "path": "./data/weather-climate/tile_lat_+10_lon_-160.json"
     },
@@ -476,7 +471,7 @@
       "path": "./data/weather-climate/tile_lat_+20_lon_+110.json"
     },
     {
-      "count": 7,
+      "count": 8,
       "id": "lat_+20_lon_+120",
       "path": "./data/weather-climate/tile_lat_+20_lon_+120.json"
     },
@@ -496,17 +491,17 @@
       "path": "./data/weather-climate/tile_lat_+20_lon_-080.json"
     },
     {
-      "count": 788,
+      "count": 800,
       "id": "lat_+20_lon_-090",
       "path": "./data/weather-climate/tile_lat_+20_lon_-090.json"
     },
     {
-      "count": 1044,
+      "count": 1051,
       "id": "lat_+20_lon_-100",
       "path": "./data/weather-climate/tile_lat_+20_lon_-100.json"
     },
     {
-      "count": 52,
+      "count": 54,
       "id": "lat_+20_lon_-110",
       "path": "./data/weather-climate/tile_lat_+20_lon_-110.json"
     },
@@ -516,7 +511,7 @@
       "path": "./data/weather-climate/tile_lat_+20_lon_-120.json"
     },
     {
-      "count": 143,
+      "count": 146,
       "id": "lat_+20_lon_-160",
       "path": "./data/weather-climate/tile_lat_+20_lon_-160.json"
     },
@@ -586,7 +581,7 @@
       "path": "./data/weather-climate/tile_lat_+30_lon_+110.json"
     },
     {
-      "count": 18,
+      "count": 20,
       "id": "lat_+30_lon_+120",
       "path": "./data/weather-climate/tile_lat_+30_lon_+120.json"
     },
@@ -611,37 +606,37 @@
       "path": "./data/weather-climate/tile_lat_+30_lon_-020.json"
     },
     {
-      "count": 1,
+      "count": 2,
       "id": "lat_+30_lon_-030",
       "path": "./data/weather-climate/tile_lat_+30_lon_-030.json"
     },
     {
-      "count": 2027,
+      "count": 2046,
       "id": "lat_+30_lon_-080",
       "path": "./data/weather-climate/tile_lat_+30_lon_-080.json"
     },
     {
-      "count": 4446,
+      "count": 4514,
       "id": "lat_+30_lon_-090",
       "path": "./data/weather-climate/tile_lat_+30_lon_-090.json"
     },
     {
-      "count": 4229,
+      "count": 4270,
       "id": "lat_+30_lon_-100",
       "path": "./data/weather-climate/tile_lat_+30_lon_-100.json"
     },
     {
-      "count": 2611,
+      "count": 2636,
       "id": "lat_+30_lon_-110",
       "path": "./data/weather-climate/tile_lat_+30_lon_-110.json"
     },
     {
-      "count": 1414,
+      "count": 1439,
       "id": "lat_+30_lon_-120",
       "path": "./data/weather-climate/tile_lat_+30_lon_-120.json"
     },
     {
-      "count": 516,
+      "count": 522,
       "id": "lat_+30_lon_-130",
       "path": "./data/weather-climate/tile_lat_+30_lon_-130.json"
     },
@@ -731,37 +726,37 @@
       "path": "./data/weather-climate/tile_lat_+40_lon_-060.json"
     },
     {
-      "count": 352,
+      "count": 355,
       "id": "lat_+40_lon_-070",
       "path": "./data/weather-climate/tile_lat_+40_lon_-070.json"
     },
     {
-      "count": 2760,
+      "count": 2780,
       "id": "lat_+40_lon_-080",
       "path": "./data/weather-climate/tile_lat_+40_lon_-080.json"
     },
     {
-      "count": 3006,
+      "count": 3030,
       "id": "lat_+40_lon_-090",
       "path": "./data/weather-climate/tile_lat_+40_lon_-090.json"
     },
     {
-      "count": 3990,
+      "count": 4010,
       "id": "lat_+40_lon_-100",
       "path": "./data/weather-climate/tile_lat_+40_lon_-100.json"
     },
     {
-      "count": 1766,
+      "count": 1787,
       "id": "lat_+40_lon_-110",
       "path": "./data/weather-climate/tile_lat_+40_lon_-110.json"
     },
     {
-      "count": 1194,
+      "count": 1214,
       "id": "lat_+40_lon_-120",
       "path": "./data/weather-climate/tile_lat_+40_lon_-120.json"
     },
     {
-      "count": 1446,
+      "count": 1456,
       "id": "lat_+40_lon_-130",
       "path": "./data/weather-climate/tile_lat_+40_lon_-130.json"
     },
@@ -896,27 +891,27 @@
       "path": "./data/weather-climate/tile_lat_+50_lon_-130.json"
     },
     {
-      "count": 68,
+      "count": 73,
       "id": "lat_+50_lon_-140",
       "path": "./data/weather-climate/tile_lat_+50_lon_-140.json"
     },
     {
-      "count": 1,
+      "count": 2,
       "id": "lat_+50_lon_-150",
       "path": "./data/weather-climate/tile_lat_+50_lon_-150.json"
     },
     {
-      "count": 32,
+      "count": 35,
       "id": "lat_+50_lon_-160",
       "path": "./data/weather-climate/tile_lat_+50_lon_-160.json"
     },
     {
-      "count": 15,
+      "count": 16,
       "id": "lat_+50_lon_-170",
       "path": "./data/weather-climate/tile_lat_+50_lon_-170.json"
     },
     {
-      "count": 7,
+      "count": 8,
       "id": "lat_+50_lon_-180",
       "path": "./data/weather-climate/tile_lat_+50_lon_-180.json"
     },
@@ -1051,17 +1046,17 @@
       "path": "./data/weather-climate/tile_lat_+60_lon_-140.json"
     },
     {
-      "count": 142,
+      "count": 148,
       "id": "lat_+60_lon_-150",
       "path": "./data/weather-climate/tile_lat_+60_lon_-150.json"
     },
     {
-      "count": 63,
+      "count": 72,
       "id": "lat_+60_lon_-160",
       "path": "./data/weather-climate/tile_lat_+60_lon_-160.json"
     },
     {
-      "count": 62,
+      "count": 66,
       "id": "lat_+60_lon_-170",
       "path": "./data/weather-climate/tile_lat_+60_lon_-170.json"
     },
@@ -1146,12 +1141,12 @@
       "path": "./data/weather-climate/tile_lat_+70_lon_-130.json"
     },
     {
-      "count": 8,
+      "count": 9,
       "id": "lat_+70_lon_-150",
       "path": "./data/weather-climate/tile_lat_+70_lon_-150.json"
     },
     {
-      "count": 9,
+      "count": 10,
       "id": "lat_+70_lon_-160",
       "path": "./data/weather-climate/tile_lat_+70_lon_-160.json"
     },
