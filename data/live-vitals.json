@@ -1,7 +1,7 @@
 {
   "coralBleaching": {
     "current": true,
-    "fetchedAt": "2026-10-07T06:33:21Z",
+    "fetchedAt": "2026-10-07T13:50:52Z",
     "globalReefPixelsExposedPct": 0.43377,
     "historyEndDate": "2026-10-05",
     "historySampleCount": 14806,
@@ -19,19 +19,19 @@
     "windowDays": 365
   },
   "cryosphere": {
-    "fetchedAt": "2026-10-07T06:33:18Z",
+    "fetchedAt": "2026-10-07T13:50:50Z",
     "note": "Sea-ice extent is distinct from land-ice mass loss. Daily anomaly is relative to the same calendar day in 1981-2010; no trend is inferred from a single daily value.",
     "seaIce": {
       "antarctic": {
-        "anomalyMillionKm2": -1.7347692307692313,
-        "anomalyPercent": -9.371675531914896,
-        "climatologyMeanMillionKm2": 18.51076923076923,
+        "anomalyMillionKm2": -1.7367500000000007,
+        "anomalyPercent": -9.416979571918509,
+        "climatologyMeanMillionKm2": 18.44275,
         "climatologyPeriod": "1981-2010",
-        "climatologySampleCount": 26,
-        "climatologySampleSDMillionKm2": 0.36187592433786575,
-        "day": 5,
-        "extentMillionKm2": 16.776,
-        "fetchedAt": "2026-10-07T06:33:18Z",
+        "climatologySampleCount": 28,
+        "climatologySampleSDMillionKm2": 0.3840741272009677,
+        "day": 6,
+        "extentMillionKm2": 16.706,
+        "fetchedAt": "2026-10-07T13:50:50Z",
         "hemisphere": "south",
         "missingMillionKm2": 0.0,
         "month": 10,
@@ -41,18 +41,18 @@
         "status": "live",
         "unit": "million km^2 extent",
         "year": 2026,
-        "zScoreVsCalendarDayClimatology": -4.79382328057161
+        "zScoreVsCalendarDayClimatology": -4.521913550014376
       },
       "arctic": {
-        "anomalyMillionKm2": -1.3321153846153848,
-        "anomalyPercent": -18.521885611914758,
-        "climatologyMeanMillionKm2": 7.192115384615385,
+        "anomalyMillionKm2": -1.4292500000000006,
+        "anomalyPercent": -19.34490576252835,
+        "climatologyMeanMillionKm2": 7.38825,
         "climatologyPeriod": "1981-2010",
-        "climatologySampleCount": 26,
-        "climatologySampleSDMillionKm2": 0.9988766220879565,
-        "day": 5,
-        "extentMillionKm2": 5.86,
-        "fetchedAt": "2026-10-07T06:33:18Z",
+        "climatologySampleCount": 28,
+        "climatologySampleSDMillionKm2": 1.0531765574257297,
+        "day": 6,
+        "extentMillionKm2": 5.959,
+        "fetchedAt": "2026-10-07T13:50:50Z",
         "hemisphere": "north",
         "missingMillionKm2": 0.0,
         "month": 10,
@@ -62,14 +62,14 @@
         "status": "live",
         "unit": "million km^2 extent",
         "year": 2026,
-        "zScoreVsCalendarDayClimatology": -1.3336135366056099
+        "zScoreVsCalendarDayClimatology": -1.357084897040914
       }
     },
     "source": "NOAA/NSIDC Sea Ice Index v4",
     "status": "live"
   },
   "currentSourcePolicy": "Use the freshest authoritative source available as of 2026; retain older periods only when they are the latest authoritative assessment or required historical baseline.",
-  "generatedAt": "2026-10-07T06:33:18Z",
+  "generatedAt": "2026-10-07T13:50:50Z",
   "latestAssessments": {
     "coralCover": {
       "latestAvailableAsOf2026": true,
@@ -91,19 +91,19 @@
   "population": {
     "date": "20261007",
     "estimate": true,
-    "fetchedAt": "2026-10-07T06:33:18Z",
+    "fetchedAt": "2026-10-07T13:50:50Z",
     "ratePerSecond": 2.169339485032978,
     "source": "U.S. Census Bureau Population Clock",
-    "sourceUpdatedAt": "2026-10-07T06:33:18Z",
+    "sourceUpdatedAt": "2026-10-07T13:50:50Z",
     "sourceUrl": "https://www.census.gov/popclock/data/population.php/world",
     "status": "live",
     "unit": "people",
-    "value": 8210881683
+    "value": 8210938632
   },
   "schema": "dom-authoritative-vitals-2026-v2",
   "seaLevel": {
     "endDecimalYear": 2025.1268,
-    "fetchedAt": "2026-10-07T06:33:18Z",
+    "fetchedAt": "2026-10-07T13:50:50Z",
     "interceptMm": -6467.114789789663,
     "method": "D.O.M. linear OLS diagnostic of per-timestamp mean across available NOAA altimeter columns",
     "naiveSlopeSEMmPerYear": 0.012869004047701837,
@@ -120,7 +120,7 @@
   },
   "seaLevelCurrent": {
     "current": true,
-    "fetchedAt": "2026-10-07T06:33:22Z",
+    "fetchedAt": "2026-10-07T13:50:53Z",
     "measurementMm": 109.8,
     "observationLabel": "September 2026",
     "observationPeriod": "2026-09",
@@ -134,7 +134,7 @@
   "temperature": {
     "anomalyC": 1.4,
     "baseline": "1951-1980",
-    "fetchedAt": "2026-10-07T06:33:18Z",
+    "fetchedAt": "2026-10-07T13:50:50Z",
     "month": 8,
     "observationPeriod": "2026-08",
     "source": "NASA GISS GISTEMP v4",
