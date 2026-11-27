@@ -1,11 +1,5 @@
 (() => {
   'use strict';
-  const genealogy = [
-    ['Ancestry Historical Records', 'https://www.ancestry.com/search/', ['name']],
-    ['FamilySearch Historical Records', 'https://www.familysearch.org/search/record/results', ['q.givenName', 'q.surname']],
-    ['Find a Grave', 'https://www.findagrave.com/memorial/search', ['firstname', 'lastname']],
-    ['U.S. National Archives', 'https://catalog.archives.gov/search', ['q']]
-  ];
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
@@ -17,17 +11,83 @@
     for (const [key, value] of Object.entries(params)) if (value) url.searchParams.set(key, value);
     return url.href;
   }
-  function genealogyCards(given, surname, query) {
-    return genealogy.map(([source, url, fields]) => {
-      const params = fields.length === 1 ? {[fields[0]]: query} : {[fields[0]]: given, [fields[1]]: surname};
-      if (fields[0] === 'name') params.name = given + '_' + surname;
-      return '<article><small>HISTORICAL RECORDS · SOURCE SEARCH</small><h3>' + escape(source) +
-        '</h3>' + link(searchUrl(url, params), 'Search records →') + '</article>';
-    }).join('');
+  function parsePerson(query) {
+    const parts = query.trim().split(/\s+/);
+    if (query.includes(',')) {
+      const [surname, ...given] = query.split(',');
+      return {given: given.join(',').trim(), surname: surname.trim()};
+    }
+    return {given: parts.slice(0, -1).join(' '), surname: parts.at(-1)};
+  }
+  function birthYear(value) {
+    if (!value) return '';
+    if (/^[1-9]\d{3}$/.test(value)) return value;
+    if (!/^[1-9]\d{3}-\d{2}-\d{2}$/.test(value)) return null;
+    const date = new Date(value + 'T00:00:00Z');
+    return Number.isFinite(+date) && date.toISOString().slice(0, 10) === value ? value.slice(0, 4) : null;
+  }
+  const fullName = ({given, surname}) => [given, surname].filter(Boolean).join(' ');
+  const quotedName = person => '"' + fullName(person).replaceAll('"', '') + '"';
+  function genealogySources({given, surname}, year) {
+    const phrase = quotedName({given, surname});
+    return [
+      ['FamilySearch', 'Census, vital and immigration records', 'https://www.familysearch.org/search/record/results',
+        {'q.givenName': given, 'q.surname': surname, 'q.birthLikeDate.fromYear': year, 'q.birthLikeDate.toYear': year}, true],
+      ['Ancestry', 'Historical records and family trees', 'https://www.ancestry.com/search/',
+        {name: given + '_' + surname, birth: year}, true],
+      ['Find a Grave', 'Cemetery and memorial records', 'https://www.findagrave.com/memorial/search',
+        {firstname: given, lastname: surname, birthyear: year}, true],
+      ['U.S. National Archives', 'Federal records and catalog descriptions', 'https://catalog.archives.gov/search', {q: phrase}],
+      ['Chronicling America', 'Historic U.S. newspaper mentions', 'https://www.loc.gov/collections/chronicling-america/', {q: phrase}],
+      ['Internet Archive', 'Mentions inside digitized books', 'https://archive.org/search', {query: phrase + ' AND mediatype:texts', sin: 'TXT'}]
+    ];
+  }
+  function genealogyCards(person, year = '') {
+    return genealogySources(person, year).map(([source, coverage, url, params, usesYear]) =>
+      '<article><small>SOURCE SEARCH · ' + escape(year && usesYear ? 'BIRTH YEAR ' + year : 'NAME LOOKUP') +
+      '</small><h3>' + escape(source) + '</h3><p>' + escape(coverage) + '</p>' +
+      link(searchUrl(url, params), 'Search records →') +
+      (year && usesYear ? ' · ' + link(searchUrl(url, genealogySources(person, '').find(row => row[0] === source)[3]), 'Search without year') : '') +
+      '</article>'
+    ).join('');
   }
   function globalGenealogy(query) {
-    const words = query.trim().split(/\s+/);
-    return genealogyCards(words.slice(0, -1).join(' '), words.at(-1), query);
+    return genealogyCards(parsePerson(query));
+  }
+  let personRequest = 0;
+  async function searchPerson(person, year) {
+    const request = ++personRequest;
+    document.querySelector('#genealogy-results').innerHTML = genealogyCards(person, year);
+    const status = document.querySelector('#genealogy-status');
+    const leads = document.querySelector('#genealogy-leads');
+    leads.replaceChildren();
+    const summary = 'Searching for ' + fullName(person) + (year ? ' · birth year ' + year : '') + '. ';
+    status.textContent = summary + 'Checking historic newspapers for the exact name…';
+    try {
+      const data = await json(searchUrl('https://www.loc.gov/collections/chronicling-america/', {
+        q: quotedName(person), fo: 'json', c: '10'
+      }));
+      if (!Array.isArray(data.results)) throw new Error('Unexpected newspaper response');
+      if (request !== personRequest) return;
+      const records = data.results.filter(record => typeof record.id === 'string' &&
+        /^https:\/\/www\.loc\.gov\/(?:resource|item)\//.test(record.id)).slice(0, 8);
+      leads.innerHTML = records.map(record => '<article><small>NEWSPAPER LEAD · VERIFY IDENTITY</small><h3>' +
+        escape(record.title || 'Historic newspaper') + '</h3><p>' + escape(record.date || '') + '</p>' +
+        link(record.id, 'Open original →') + '</article>').join('');
+      status.textContent = summary + (records.length ?
+        records.length + ' newspaper leads. Compare dates and relatives with the original records.' :
+        'No newspaper leads returned. Try the record collections or a spelling variant.');
+    } catch (_) {
+      if (request === personRequest) status.textContent = summary +
+        'The newspaper API is unavailable. The source searches below are ready to open.';
+    }
+  }
+  function preparePerson(query) {
+    const person = parsePerson(query);
+    const form = document.querySelector('#genealogy-form');
+    form.elements.given.value = person.given;
+    form.elements.surname.value = person.surname;
+    form.elements.birth.value = '';
   }
   async function json(url) {
     const response = await fetch(url, {signal: AbortSignal.timeout(9500)});
@@ -101,11 +161,21 @@
   function boot() {
     document.querySelector('#genealogy-form').addEventListener('submit', event => {
       event.preventDefault();
-      const fields = new FormData(event.currentTarget);
-      const given = fields.get('given').trim();
-      const surname = fields.get('surname').trim();
-      if (!given && !surname) return;
-      document.querySelector('#genealogy-results').innerHTML = genealogyCards(given, surname, [given, surname].filter(Boolean).join(' '));
+      const form = event.currentTarget;
+      const given = form.elements.given.value.trim();
+      const surname = form.elements.surname.value.trim();
+      const year = birthYear(form.elements.birth.value.trim());
+      if (!given && !surname) {
+        document.querySelector('#genealogy-status').textContent = 'Enter a first or last name.';
+        form.elements.given.focus();
+        return;
+      }
+      if (year === null) {
+        document.querySelector('#genealogy-status').textContent = 'Enter a valid date as YYYY-MM-DD, or a four-digit birth year.';
+        form.elements.birth.focus();
+        return;
+      }
+      void searchPerson({given, surname}, year);
     });
     const library = document.querySelector('#library-form');
     library.addEventListener('submit', event => {
@@ -115,6 +185,6 @@
     });
     document.querySelector('#library-shelf').addEventListener('change', () => library.requestSubmit());
   }
-  window.DOMArchiveCollections = Object.freeze({searchLibrary, globalGenealogy});
+  window.DOMArchiveCollections = Object.freeze({searchLibrary, globalGenealogy, preparePerson});
   boot();
 })();
