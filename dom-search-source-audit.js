@@ -1,6 +1,7 @@
 (()=>{
   'use strict';
   const DEFINITIONS=[
+    ['Open Library','library','INLINE API','openlibrary.org','PUBLIC SCAN CATALOG','The Full-book library searches works with public scans.'],
     ['Project Gutenberg','archive','INLINE API','gutendex.com','CATALOG METADATA','D.O.M. queries the public books/catalog API from the search bar. Full text remains at the source.'],
     ['Library of Congress','archive','INLINE API','www.loc.gov','CATALOG METADATA','D.O.M. queries the public JSON catalog/search interface from the search bar.'],
     ['Internet Archive','archive','INLINE API','archive.org','SEARCH METADATA','D.O.M. queries Advanced Search metadata from the search bar. Underlying files remain at the source.'],
@@ -46,7 +47,7 @@
   }
   function truthifyObservatoryLinks(){const box=document.querySelector('#obs');if(!box)return;for(const a of box.querySelectorAll('a')){const small=a.querySelector('small');if(small&&small.textContent!=='OFFICIAL PORTAL')small.textContent='OFFICIAL PORTAL';const span=a.querySelector('span');if(span&&span.textContent!=='Open official portal →')span.textContent='Open official portal →'}}
   function installObservers(){const intent=document.querySelector('#intent'),results=document.querySelector('#results');if(intent)new MutationObserver(truthifySearchCopy).observe(intent,{subtree:true,childList:true,characterData:true});if(results)new MutationObserver(truthifySearchCopy).observe(results,{subtree:true,childList:true});}
-  function loadFederatedClient(){if(document.querySelector('script[data-dom-federated-search]'))return;const s=document.createElement('script');s.src='./dom-federated-search-client.js?v=1';s.defer=true;s.dataset.domFederatedSearch='1';document.body.appendChild(s)}
+  function loadFederatedClient(){if(document.querySelector('script[data-dom-federated-search]'))return;const s=document.createElement('script');s.src='./dom-federated-search-client.js?v=2';s.defer=true;s.dataset.domFederatedSearch='1';document.body.appendChild(s)}
   function boot(){render();truthifySearchCopy();truthifyObservatoryLinks();installObservers();loadFederatedClient()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
   window.DOMSearchSourceAudit=Object.freeze({definitions:()=>DEFINITIONS.map(x=>({...x})),render,classifyHttp});
