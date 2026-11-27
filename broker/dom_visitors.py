@@ -57,21 +57,18 @@ class VisitorLedger:
         key = _hash_id(visitor_id)
         page = _page(page)
         with self.lock:
-            existing = self.db.execute(
-                "SELECT first_seen FROM visitor_sessions WHERE visitor_hash=?", (key,)
-            ).fetchone()
-            if existing:
+            inserted = self.db.execute(
+                "INSERT INTO visitor_sessions(visitor_hash,first_seen,last_seen,last_page) "
+                "VALUES(?,?,?,?) ON CONFLICT(visitor_hash) DO NOTHING",
+                (key, stamp, stamp, page),
+            )
+            first_visit = inserted.rowcount == 1
+            if not first_visit:
                 self.db.execute(
-                    "UPDATE visitor_sessions SET last_seen=?,last_page=? WHERE visitor_hash=?",
-                    (stamp, page, key),
+                    "UPDATE visitor_sessions SET last_seen=?,last_page=? "
+                    "WHERE visitor_hash=? AND last_seen<=?",
+                    (stamp, page, key, stamp),
                 )
-                first_visit = False
-            else:
-                self.db.execute(
-                    "INSERT INTO visitor_sessions(visitor_hash,first_seen,last_seen,last_page) VALUES(?,?,?,?)",
-                    (key, stamp, stamp, page),
-                )
-                first_visit = True
             self.db.commit()
         return {**self.stats(now), "firstVisit": first_visit}
 
